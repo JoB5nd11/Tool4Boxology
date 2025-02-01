@@ -17,9 +17,7 @@ digraph G {
     
     //design pattern
     rankdir="LR" Data-> ML_Training-> ML_model
-    
-    
-        
+   
 }
 
     
