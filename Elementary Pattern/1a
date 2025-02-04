@@ -4,7 +4,7 @@ digraph G {
     subgraph cluster_Elementary_1a {
     
     //System design
-    label = "a1" color="black" fillcolor="#c9c5c5" style="filled, dotted"
+    label = "1a" color="black" fillcolor="#c9c5c5" style="filled, dotted"
     
     
     {   
