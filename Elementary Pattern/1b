@@ -1,10 +1,10 @@
 digraph G {
     
 
-    subgraph cluster_Elementary_2a {
+    subgraph cluster_Elementary_1b {
     
     //System design
-    label = "a2" color="black" fillcolor="#c9c5c5" style="filled, dotted"
+    label = "1b" color="black" fillcolor="#c9c5c5" style="filled, dotted"
     
     
     {   
