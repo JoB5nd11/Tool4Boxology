@@ -14,8 +14,9 @@ DOT language is case-sensetive (e.g: symbol ≠ Symbol)
 ##To Keep Improvement
 Implement id for each attributes in order to use in Javascript in a SVG file in future.
 
-#How to use plugin?
-now it only works on Drawio desktop. To upload external plugin in Drawio desktop, you should got to Draw.io app file > Properties > target field , Add: "--enable-plugins" 
+**#How to use plugin?**
+
+Now it only works on Drawio desktop. To upload external plugin in Drawio desktop, you should got to Draw.io app file > Properties > target field , Add: "--enable-plugins" 
 
 <img src="images/enable-plugin.png" width="300">
 
