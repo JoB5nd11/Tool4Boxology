@@ -2,8 +2,7 @@ Draw.loadPlugin(function(ui) {
     console.log("✅ Boxology Guided Plugin Loaded");
 
     var graph = ui.editor.graph;
-    var currentPattern = [];
-    var separateComponents = [];
+    var extractedPatterns = []; // Stores all patterns with connections
 
     // Step 1: Define the Boxology Grammar Palette
     mxResources.parse('boxology=Boxology Grammar');
@@ -32,17 +31,7 @@ Draw.loadPlugin(function(ui) {
     ui.sidebar.addBoxologyPalette();
     console.log("✅ Boxology Grammar Palette Added");
 
-    // Step 2: Define Valid Next Components
-    const validNext = {
-        "symbol": ["infer:deduce", "generate:train"],
-        "infer:deduce": ["symbol", "model"],
-        "generate:train": ["model"],
-        "actor": ["generate:engineer"],
-        "generate:engineer": ["model"],
-        "model:semantic": ["infer:deduce"],
-        "transform": ["data"]
-    };
-
+    // Step 2: Define Valid Patterns
     const validPatterns = [
         ["symbol", "infer:deduce", "model:semantic", "symbol"],
         ["symbol", "generate:train", "model"],
@@ -56,35 +45,58 @@ Draw.loadPlugin(function(ui) {
         ["model", "model", "infer:deduce", "data/symbol"]
     ];
 
-    // Step 3: Allow User to Choose Next or Separate Component
-    function promptNextComponent(lastComponent) {
-        let options = validNext[lastComponent] || [];
-        let message = "What would you like to do?\n1️⃣ Next Component\n2️⃣ Separate Component";
+    // Step 3: Extract Patterns with Connections
+    function extractPatterns() {
+        let edges = Object.values(graph.getModel().cells);
+        let connectedPatterns = new Set();
+        let visitedNodes = new Set();
 
-        if (options.length > 0) {
-            message += "\nValid Next Options: " + options.join(", ");
-        } else {
-            message += "\n(No valid next options, only separate components allowed)";
+        function dfs(node, pattern) {
+            if (!node || visitedNodes.has(node.id)) return;
+            visitedNodes.add(node.id);
+            pattern.push(node.value);
+
+            edges.forEach(cell => {
+                if (cell.edge && cell.source && cell.target) {
+                    let nextNode = cell.source === node ? cell.target : cell.source;
+                    if (nextNode && !visitedNodes.has(nextNode.id)) {
+                        dfs(nextNode, pattern);
+                    }
+                }
+            });
         }
 
-        let choice = prompt(message, "1 or 2");
-
-        if (choice === "1") {
-            let selected = prompt("Choose next component:", options.join(", "));
-            if (options.includes(selected)) {
-                currentPattern.push(selected);
-                console.log("✅ Added as Next:", selected);
-            } else {
-                alert("❌ Invalid next component choice!");
+        edges.forEach(cell => {
+            if (cell.vertex && !visitedNodes.has(cell.id)) {
+                let pattern = [];
+                dfs(cell, pattern);
+                if (pattern.length > 1) connectedPatterns.add(JSON.stringify(pattern));
             }
-        } else if (choice === "2") {
-            let separate = prompt("Choose a separate component:", Object.keys(validNext).join(", "));
-            separateComponents.push(separate);
-            console.log("➕ Added as Separate Component:", separate);
+        });
+
+        extractedPatterns = Array.from(connectedPatterns).map(pattern => JSON.parse(pattern));
+        console.log("🔍 Extracted Full Graph Patterns:", extractedPatterns);
+        return extractedPatterns;
+    }
+
+    // Step 4: Full Graph Validation
+    function validatePattern() {
+        extractPatterns(); // Get the latest graph structure
+
+        let allValid = extractedPatterns.every(pattern => 
+            validPatterns.some(valid => JSON.stringify(valid) === JSON.stringify(pattern))
+        );
+
+        if (allValid) {
+            alert("✅ All patterns are valid!");
+            console.log("✅ Full Graph Patterns are valid:", extractedPatterns);
+        } else {
+            alert("❌ Invalid pattern detected!");
+            console.warn("❌ Invalid Graph Patterns:", extractedPatterns);
         }
     }
 
-    // Step 4: Ensure Connections Follow Rules
+    // Step 5: Ensure Connections Follow Rules
     graph.addListener(mxEvent.CELL_CONNECTED, function(sender, evt) {
         let edge = evt.getProperty('edge');
         if (!edge || !edge.source || !edge.target) return;
@@ -92,7 +104,11 @@ Draw.loadPlugin(function(ui) {
         let source = edge.source.value;
         let target = edge.target.value;
 
-        if (!validNext[source] || !validNext[source].includes(target)) {
+        let validConnection = validPatterns.some(pattern =>
+            pattern.includes(source) && pattern.includes(target)
+        );
+
+        if (!validConnection) {
             alert("❌ Invalid connection! Edge will be removed.");
             graph.getModel().remove(edge);
             console.warn("❌ Invalid Edge Found:", source, "→", target);
@@ -101,40 +117,15 @@ Draw.loadPlugin(function(ui) {
         }
     });
 
-    // Step 5: Validate Entire Pattern
-    function validatePattern() {
-        let edges = Object.values(graph.getModel().cells);
-        let extractedPattern = [];
-
-        edges.forEach(cell => {
-            if (cell.edge && cell.source && cell.target) {
-                extractedPattern.push(cell.source.value, cell.target.value);
-            }
-        });
-
-        extractedPattern = [...new Set(extractedPattern)]; // Remove duplicates
-
-        let isValid = validPatterns.some(valid => JSON.stringify(valid) === JSON.stringify(extractedPattern));
-
-        if (isValid) {
-            alert("✅ Pattern is valid!");
-            console.log("✅ Full Pattern:", extractedPattern);
-        } else {
-            alert("❌ Invalid pattern detected!");
-            console.warn("❌ Invalid Pattern:", extractedPattern);
-        }
-    }
-
     // Step 6: Reset or Undo Last Action
     function resetPattern() {
-        currentPattern = [];
-        separateComponents = [];
+        extractedPatterns = [];
         console.log("🔄 Pattern reset.");
     }
 
     function undoLastAction() {
-        if (currentPattern.length > 0) {
-            let removed = currentPattern.pop();
+        if (extractedPatterns.length > 0) {
+            let removed = extractedPatterns.pop();
             console.log("🔄 Removed Last Action:", removed);
         } else {
             console.warn("⚠️ No actions to undo.");
@@ -168,5 +159,5 @@ Draw.loadPlugin(function(ui) {
 
     addToolbarButtons();
 
-    console.log("✅ Guided Pattern Validation Applied Successfully!");
+    console.log("✅ Full Graph-Based Validation Applied Successfully!");
 });
