@@ -11,11 +11,11 @@ Draw.loadPlugin(function(ui) {
         "symbol/data": ["infer:deduce","transform:embed","transform","symbol/data"],
         "infer:deduce": ["symbol", "model","infer:deduce"],
         "model": ["infer:deduce", "model"],
-        "generate:train": ["model","generate:train","model:semantic","model:statics"],
+        "generate:train": ["model","generate:train","model:semantic","model:statistics"],
         "actor": ["generate:engineer","actor"],
         "generate:engineer": ["model","generate:engineer"],
         "model:semantic": ["infer:deduce","transform:embed","model:semantic"],
-		"model:statics": ["infer:deduce","transform:embed","model:statics"],
+		"model:statistics": ["infer:deduce","transform:embed","model:statistics"],
         "transform:embed": ["data","transform:embed"],
 		"transform": ["data","symbol","symbol/data","transform"]
     };
@@ -23,7 +23,7 @@ Draw.loadPlugin(function(ui) {
     // Step 3: Define Elementary and Full Patterns
     const elementaryPatterns = [
         ["symbol", "generate:train", "model:semantic"],
-        ["data", "generate:train", "model:statics"],
+        ["data", "generate:train", "model:statistics"],
         ["symbol/data", "transform", "data"],
         ["actor", "generate:engineer", "model"]
     ];
