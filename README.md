@@ -1,4 +1,5 @@
-🧰 Tool4Boxology
+##🧰 Tool4Boxology.
+
 Tool4Boxology is a modular, visual toolkit designed to support the Boxology framework—an approach for modeling and validating AI and knowledge-based systems. It includes a Draw.io plugin, structured vocabulary libraries, and a set of elementary patterns that help users build valid and meaningful Boxology models.
 
 ##🌍 What is Boxology?
