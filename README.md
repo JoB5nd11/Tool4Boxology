@@ -1,59 +1,64 @@
-## 🧰 Tool4Boxology.
 
-Tool4Boxology is a modular, visual toolkit designed to support the Boxology framework—an approach for modeling and validating AI and knowledge-based systems. It includes a Draw.io plugin, structured vocabulary libraries, and a set of elementary patterns that help users build valid and meaningful Boxology models.
+# 🧰 Tool4Boxology
+
+**Tool4Boxology** is a modular, visual toolkit designed to support the **Boxology framework**—an approach for modeling and validating AI and knowledge-based systems. It includes a **Draw.io plugin**, structured **vocabulary libraries**, and a set of **elementary patterns** that help users build valid and meaningful Boxology models.
+
+---
 
 ## 🌍 What is Boxology?
-Boxology is a visual methodology for describing AI system architectures using interconnected conceptual components like:
 
-Data
+Boxology is a visual methodology for describing AI system architectures using interconnected conceptual components such as:
 
-Symbols
+- **Data**
+- **Symbols**
+- **Models**
+- **Processes** (e.g. infer, transform, generate)
 
-Models
+Each connection between components is subject to logic constraints. This toolkit helps enforce and validate those constraints.
 
-Processes (e.g. infer, transform, generate)
+---
 
-Each connection is subject to logic constraints, which this tool helps validate.
+## 📂 Repository Structure
 
+| Folder | Description |
+|--------|-------------|
+| [ElementaryPattern](https://github.com/SDM-TIB/Tool4Boxology/tree/main/ElementaryPattern) | Elementary Boxology patterns written in DOT language for visualization |
+| [BoxologyPlugin](https://github.com/SDM-TIB/Tool4Boxology/tree/main/BoxologyPlugin) | Validation plugin for Draw.io and vocabulary components for modeling |
 
-## 🖋️  [Elementary Pattern in DOT Language](https://github.com/SDM-TIB/Tool4Boxology/tree/990d1d8fe63f9c2451a199222345b4aa3a58c7ab/ElementaryPattern).
+👉 **Each folder includes its own README with specific instructions**—we recommend checking them out to understand how to use the contents effectively.
 
-This repository also includes Boxology representations written in **DOT language**—a plain text graph description syntax used with Graphviz. These patterns are used **only for visualization purposes**, **not for validation**.
+---
 
-You can view and edit them using tools like the [Graphviz Visual Editor](https://magjac.com/graphviz-visual-editor/). Either insert shapes manually or copy code from the provided `Vocabulary` file. Each **elementary pattern** is implemented in its own file, reflecting the modular design philosophy of Boxology.
+## 🖋️ [Elementary Patterns in DOT Language](https://github.com/SDM-TIB/Tool4Boxology/tree/main/ElementaryPattern)
+
+This section includes Boxology representations written in **DOT language**—a plain text graph description syntax used with Graphviz. These are used **only for visualization**, not for validation.
+
+You can view and edit them using tools like the [Graphviz Visual Editor](https://magjac.com/graphviz-visual-editor/). Either insert shapes manually or copy from the provided `Vocabulary` file. Each **elementary pattern** is stored separately to support modular design.
 
 > 🔄 **Important Notes**:
-> - **DOT is case-sensitive** (`Symbol` ≠ `symbol`)
-> - Each node must have a **unique identifier**. For example, if you use two `Symbol` nodes, name them `Symbol1` and `Symbol2`; otherwise, Graphviz will merge them.
-> - Use `rankdir=LR` or `rankdir=TB` to organize the layout direction of your diagrams.
+> - DOT is **case-sensitive** (`Symbol` ≠ `symbol`)
+> - Nodes must have **unique identifiers** (`Symbol1`, `Symbol2`, etc.)
+> - Use `rankdir=LR` or `rankdir=TB` for organized layouts
 
-Although DOT helps visualize Boxology structures clearly, it does **not** enforce logic validation. For pattern validation, use the plugin provided in `BoxologyValidation.js` within the Draw.io environment.
-
-# 📦 [Boxology Plugin & Vocabulary Library](https://github.com/SDM-TIB/Tool4Boxology/tree/990d1d8fe63f9c2451a199222345b4aa3a58c7ab/BoxologyPlugin).
-
-A plugin and validation tool for Hyberid AI System modeling using Boxology methodology. This library and plugin ensure the construction of valid design patterns by enforcing logic and flow rules in both **web** and **app** environments.
+📌 For logic validation, use the Draw.io plugin described below.
 
 ---
 
-## 🔍 Overview
+## 📦 [Boxology Plugin & Vocabulary Library](https://github.com/SDM-TIB/Tool4Boxology/tree/main/BoxologyPlugin)
 
-This repository contains:
+A plugin and validation tool for hybrid AI system modeling using the Boxology methodology. This ensures the construction of valid design patterns by enforcing logical flows in both **web** and **desktop app** environments.
 
-- **Boxology Plugin**: A guided plugin integrated into diagramming environments (like Draw.io) for constructing Boxology patterns.
-- **Vocabulary Library**: A modular vocabulary model (see `.drawio` file) for representing components and their relations in knowledge-based or AI systems.
+### 🔍 Overview
 
----
+- **Boxology Plugin**: Extends Draw.io with validation logic for Boxology patterns
+- **Vocabulary Library**: `.drawio` file containing reusable modular components
 
-## 🚀 Features
+### 🚀 Features
 
-- ✅ Validates logical flow and component connectivity  
+- ✅ Validates logical flow and connectivity  
 - 🔁 Prevents invalid or dangling edges  
-- ♻️ Merges duplicate nodes automatically    
-- 🛠️ Toolbar integration for quick validation and debugging  
+- ♻️ Automatically merges duplicate nodes  
+- 🛠️ Adds validation buttons directly into the Draw.io toolbar
 
-
-
-
-
-
+📖 See the [BoxologyPlugin folder README](https://github.com/SDM-TIB/Tool4Boxology/tree/main/BoxologyPlugin) for setup instructions for both **browser-based** and **desktop** usage.
 
