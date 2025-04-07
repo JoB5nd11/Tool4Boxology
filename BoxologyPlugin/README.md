@@ -59,17 +59,16 @@ Currently supported only in the **desktop version** of Draw.io.
    --enable-plugins
    ```
    "C:\Program Files\draw.io\Draw.io.exe" --enable-plugins
-   ```
-<img src="images/enable-plugin.png" width="300">
+   <img src="images/enable-plugin.png" width="300">
 
-2. **Install the Plugin**  
+3. **Install the Plugin**  
    - Open the Draw.io app  
    - Go to **Extras > Plugins > Add...**  
    - Choose the `BoxologyValidation.js` file from your computer
 
    🔗 You can download it [here](https://github.com/SDM-TIB/Tool4Boxology/blob/main/BoxologyValidation.js)
 
-3. **Restart the App**  
+4. **Restart the App**  
    After restarting, components appear in the left menu. Invalid connections will trigger error messages.
 
 ---
