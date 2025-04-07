@@ -13,7 +13,7 @@ Draw.loadPlugin(function(ui) {
     const validNext = {
         "symbol": ["infer:deduce","generate:train","transform:embed","transform","symbol"],
         "data": ["infer:deduce","generate:train","transform","data"],
-        "symbol/data": ["infer:deduce","transform:embed","transform","symbol/data"],
+        "symbol/data": ["infer:deduce","transform:embed","transform","symbol/data","symbol","data"],
         "infer:deduce": ["symbol", "model","infer:deduce",],
         "model": ["infer:deduce", "model","model:statistics","model:semantic"],
         "generate:train": ["model","generate:train","model:semantic","model:statistics"],
@@ -31,7 +31,7 @@ Draw.loadPlugin(function(ui) {
         ["data", "generate:train", "model"],
         ["symbol/data", "transform", "data"],
 	["symbol", "transform", "data"],
-	["data", "transform", "data"],
+	["data", "transform", "symbol"],
         ["actor", "generate:engineer", "model"]
     ];
 
@@ -39,8 +39,8 @@ Draw.loadPlugin(function(ui) {
         ["model:semantic", "infer:deduce", "symbol", "symbol"],
         ["data", "infer:deduce", "symbol", "model"],
         ["symbol/data", "infer:deduce", "model", "model"],
-		["symbol", "infer:deduce", "model", "model"],
-		["data", "infer:deduce", "model", "model"],
+	["symbol", "infer:deduce", "model", "model"],
+	["data", "infer:deduce", "model", "model"],
         ["symbol","transform:embed", "data","model:semantic" ]
     ];
 
