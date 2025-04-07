@@ -58,8 +58,9 @@ Currently supported only in the **desktop version** of Draw.io.
    ```
    --enable-plugins
    ```
-   "C:\Program Files\draw.io\Draw.io.exe" --enable-plugins
-   <img src="images/enable-plugin.png" width="300">
+   "C:\Program Files\draw.io\Draw.io.exe" --enable-plugins"
+   
+   <img src="https://github.com/SDM-TIB/Tool4Boxology/blob/main/images/enable-plugin.png" width="300">
 
 3. **Install the Plugin**  
    - Open the Draw.io app  
