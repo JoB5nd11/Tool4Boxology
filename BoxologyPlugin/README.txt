@@ -60,8 +60,7 @@ Currently supported only in the **desktop version** of Draw.io.
    ```
    "C:\Program Files\draw.io\Draw.io.exe" --enable-plugins
    ```
-
-   ![Enable Plugins]<img src="images/enable-plugin.png" width="300">
+<img src="images/enable-plugin.png" width="300">
 
 2. **Install the Plugin**  
    - Open the Draw.io app  
