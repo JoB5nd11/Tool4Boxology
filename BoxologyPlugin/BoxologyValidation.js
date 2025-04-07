@@ -15,21 +15,23 @@ Draw.loadPlugin(function(ui) {
         "data": ["infer:deduce","generate:train","transform","data"],
         "symbol/data": ["infer:deduce","transform:embed","transform","symbol/data"],
         "infer:deduce": ["symbol", "model","infer:deduce",],
-        "model": ["infer:deduce", "model"],
+        "model": ["infer:deduce", "model","model:statistics","model:semantic"],
         "generate:train": ["model","generate:train","model:semantic","model:statistics"],
         "actor": ["generate:engineer","actor"],
         "generate:engineer": ["model","generate:engineer"],
-        "model:semantic": ["infer:deduce","transform:embed","model:semantic"],
-		"model:statistics": ["infer:deduce","transform:embed","model:statistics"],
+        "model:semantic": ["infer:deduce","transform:embed","model:semantic","model"],
+	"model:statistics": ["infer:deduce","transform:embed","model:statistics","model"],
         "transform:embed": ["data","transform:embed"],
-		"transform": ["data","symbol","symbol/data","transform"]
+	"transform": ["data","symbol","symbol/data","transform"]
     };
 
     // Step 3: Define Elementary and Full Patterns
     const elementaryPatterns = [
-        ["symbol", "generate:train", "model:semantic"],
-        ["data", "generate:train", "model:statistics"],
+        ["symbol", "generate:train", "model"],
+        ["data", "generate:train", "model"],
         ["symbol/data", "transform", "data"],
+	["symbol", "transform", "data"],
+	["data", "transform", "data"],
         ["actor", "generate:engineer", "model"]
     ];
 
@@ -49,8 +51,8 @@ Draw.loadPlugin(function(ui) {
 
         if (!source || !target) return;
 
-        if (source.name === target.name) {
-            alert(`⚠️ Merging identical nodes: ${source.name}`);
+        if (source.value === target.value) {
+            alert(`⚠️ Merging identical nodes: ${source.value}`);
 
             let model = graph.getModel();
             let incomingEdges = model.getEdges(target, true, false);
@@ -79,7 +81,7 @@ Draw.loadPlugin(function(ui) {
                 model.endUpdate();
             }
 
-            console.log(`✅ Nodes merged: ${source.name}`);
+            console.log(`✅ Nodes merged: ${source.value}`);
         }
     }
 	
@@ -216,11 +218,18 @@ Draw.loadPlugin(function(ui) {
             console.log("✅ Valid Connection:", source, "→", target);
             mergeIdenticalNodes(edge);
         }
+		
+		let allEdges = graph.getModel().getEdges(source, true, false);
+		let duplicateInputs = allEdges.filter(e => e.target.name === target.name);
+
+		if (duplicateInputs.length > 1) {
+			alert(`❌ Duplicate inputs found with the same name: ${target.name}`);
+			graph.getModel().remove(edge); // Remove the invalid edge
+			console.warn("❌ Duplicate Edge Removed:", source, "→", target);
+		}
+
     });
-	
-	// Step 8: Automatically Remove Connected Edges When a Node is Removed
-	
-	
+
 
     // Step 7: Add Validation Button to Toolbar
     function addToolbarButtons() {
