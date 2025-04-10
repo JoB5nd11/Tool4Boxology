@@ -3,7 +3,7 @@
 
 **Tool4Boxology** is a modular, visual toolkit designed to support the Boxology framework—an approach for modeling and validating AI and knowledge-based systems. It includes a Draw.io plugin, structured vocabulary libraries, and a set of elementary patterns that help users build valid and meaningful Boxology models. This tool is primarily based on the design patterns and taxonomy introduced by **Frank van Harmelen** and colleagues in their paper *"Modular Design Patterns for Hybrid Learning and Reasoning Systems"*, which serves as the core reference and inspiration for our implementation.
 
-To document the development process, I have also uploaded a detailed progress report. This report outlines how I started building the Tool4Boxology plugin from scratch, including the initial design decisions, implementation milestones, challenges faced, and how the concepts from the foundational Boxology paper were translated into interactive tooling. It serves as a transparent overview of the step-by-step development journey and the rationale behind key components of the toolkit. You can find it here
+To document the development process, I have also uploaded a detailed progress report. This report outlines how I started building the Tool4Boxology plugin from scratch, including the initial design decisions, implementation milestones, challenges faced, and how the concepts from the foundational Boxology paper were translated into interactive tooling. It serves as a transparent overview of the step-by-step development journey and the rationale behind key components of the toolkit. You can find it [here](ProgressReport-Phase1.pdf)
 
 
 ---
