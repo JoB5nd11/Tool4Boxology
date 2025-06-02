@@ -73,9 +73,25 @@ echo "window.DRAWIO_VIEWER_URL = '${DRAWIO_VIEWER_URL}';" >> $CATALINA_HOME/weba
 #DRAWIO_LIGHTBOX_URL Replace with your lightbox URL, eg. https://www.example.com
 echo "window.DRAWIO_LIGHTBOX_URL = '${DRAWIO_LIGHTBOX_URL}';" >> $CATALINA_HOME/webapps/draw/js/PreConfig.js
 echo "window.DRAW_MATH_URL = 'math/es5';" >> $CATALINA_HOME/webapps/draw/js/PreConfig.js
-#Custom draw.io configurations. For more details, https://www.drawio.com/doc/faq/configure-diagram-editor
-echo "window.DRAWIO_PLUGIN_PATHS = ['/plugins/boxologyvalidation.js'];" >> $CATALINA_HOME/webapps/draw/js/PreConfig.js
 
+#Import Boxology plugin
+cat <<'EOF' >> $CATALINA_HOME/webapps/draw/js/PostConfig.js
+
+(function waitForDraw() {
+  if (typeof Draw !== 'undefined' && typeof Draw.loadPlugin === 'function') {
+    Draw.loadPlugin(function(editorUi) {
+      var script = document.createElement('script');
+      script.src = '/plugins/boxologyvalidation.js';
+      script.onload = () => console.log("✅ Plugin loaded");
+      script.onerror = () => console.error("❌ Failed to load plugin");
+      document.head.appendChild(script);
+    });
+  } else {
+    console.log("⏳ Waiting for Draw to be defined...");
+    setTimeout(waitForDraw, 100);
+  }
+})();
+EOF
 
 
 #Real-time configuration
