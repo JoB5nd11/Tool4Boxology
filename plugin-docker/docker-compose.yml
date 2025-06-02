@@ -1,0 +1,12 @@
+version: '3'
+services:
+  drawio:
+    container_name: 'draw'
+    image: 'draw'
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8080:8080'
+      - '8443:8443'
+      
