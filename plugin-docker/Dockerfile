@@ -1,4 +1,4 @@
-FROM jgraph/drawio:latest
+FROM fjudith/draw.io
 
 COPY ./js/plugins/BoxologyValidation.js /usr/local/tomcat/webapps/draw/plugins/boxologyvalidation.js
 COPY ./lib/VocabularyLibrary.drawio /usr/local/tomcat/webapps/draw/lib/VocabularyLibrary.drawio
