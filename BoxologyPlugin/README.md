@@ -30,7 +30,7 @@ This repository contains:
    Press `F12` or `Ctrl+Shift+I` to open the Developer Tools console.
 
 3. **Inject the Plugin**  
-   Copy the entire contents of `BoxologyValidation.js` and paste it into the **Console** tab. Press `Enter` to execute.
+   Copy the entire contents of `BoxologyValidation-v1.2.js` and paste it into the **Console** tab. Press `Enter` to execute.
 
    ✅ You'll see a message:  
    `"✅ Boxology Guided Plugin Loaded"`
@@ -65,9 +65,9 @@ Currently supported only in the **desktop version** of Draw.io.
 3. **Install the Plugin**  
    - Open the Draw.io app  
    - Go to **Extras > Plugins > Add...**  
-   - Choose the `BoxologyValidation.js` file from your computer
+   - Choose the `BoxologyValidation-v1.2.js` file from your computer
 
-   🔗 You can download it [here](https://github.com/SDM-TIB/Tool4Boxology/blob/main/BoxologyValidation.js)
+   🔗 You can download it [here](https://github.com/SDM-TIB/Tool4Boxology/blob/main/BoxologyPlugin/BoxologyValidation-v1.2.js)
 
 4. **Restart the App**  
    After restarting, components appear in the left menu. Invalid connections will trigger error messages.
