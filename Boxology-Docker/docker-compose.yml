@@ -1,0 +1,10 @@
+version: '3'
+services:
+  drawio:
+    build: .
+    image: 'bv-drawio'
+    container_name: 'bv-drawio'
+    ports:
+      - '8080:8080'
+
+      
