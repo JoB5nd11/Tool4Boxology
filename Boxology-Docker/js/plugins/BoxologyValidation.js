@@ -1,4 +1,3 @@
-// Boxology Plugin with correct pattern instance handling
 Draw.loadPlugin(function(ui) {
     console.log("✅ Boxology Plugin Loaded");
 
@@ -58,99 +57,120 @@ Draw.loadPlugin(function(ui) {
     };
 
 //The function which check validation for each pattern seperatedly and support complex pattern
-    function validatePattern() {
-        const selectedCells = graph.getSelectionCells();
-        if (selectedCells.length === 0) {
-            alert("⚠️ No selection made! Please select a pattern before validation.");
-            return;
-        }
-
-		const model = graph.getModel();
-		const ignoredNames = ["text", "conditions"];
-		const ignoredStyles = ["swimlane"]; // Add swimlane style to the ignored list
-
-		const nodes = selectedCells.filter(cell => 
-		  !cell.edge && 
-		  !ignoredNames.includes(cell.name) && 
-		  !ignoredStyles.includes(cell.style)
-		);
-
-
-        const edges = selectedCells.filter(cell => cell.edge);
-
-        const edgeList = edges.map(edge => [edge.source.id, edge.target.id]);
-        const edgeNameList = edges.map(edge => [edge.source.name, edge.target.name]);
-
-        const matchedPatterns = [];
-        const matchedNodeIds = new Set();
-        const usedEdgeIndices = new Set();
-
-        allPatterns.forEach(pattern => {
-            const required = [...pattern.edges];
-            const tempEdges = [...edgeNameList];
-
-            while (true) {
-                let matched = [];
-                let involvedNodeIds = new Set();
-				
-				let matchFound = true;
-
-				for (let [from, to] of required) {
-					let matches = tempEdges
-						.map((edge, i) => ({ edge, i }))
-						.filter(({ edge: [s, t], i }) => s === from && t === to && !usedEdgeIndices.has(i));
-
-					if (matches.length === 0) {
-						matchFound = false;
-						break;
-					}
-
-					matches.forEach(({ i }) => {
-						matched.push(i);
-						involvedNodeIds.add(edges[i].source.id);
-						involvedNodeIds.add(edges[i].target.id);
-					});
-				}
-
-				if (!matchFound) return;
-
-
-                // store matched pattern
-                matchedPatterns.push({ name: pattern.name, edges: required });
-                matched.forEach(i => usedEdgeIndices.add(i));
-                involvedNodeIds.forEach(id => matchedNodeIds.add(id));
-
-                // check if more of this pattern exist
-                if (!required.every(([from, to]) => tempEdges.some(([s, t]) => s === from && t === to))) break;
-            }
-        });
-
-        nodes.forEach(n => delete n.tooltip);
-
-        const unmatched = nodes.filter(n => !matchedNodeIds.has(n.id));
-		
-        const isolatedNodes = nodes.filter(n => model.getEdges(n).length === 0);
-
-
-        nodes.forEach(node => {
-            const incoming = model.getEdges(node, true, false) || [];
-            const outgoing = model.getEdges(node, false, true) || [];
-
-
-            if (incoming.length + outgoing.length === 0) {
-                node.tooltip = "⚠️ Node is disconnected.";
-            } else if (!matchedNodeIds.has(node.id)) {
-                node.tooltip = "⚠️ Node not part of any valid pattern.";
-            }
-        });
-
-        if (unmatched.length === 0 && isolatedNodes.length === 0 && matchedPatterns.length > 0) {
-            const summary = matchedPatterns.map(p => "• " + p.name).join("\n");
-            alert("✅ Valid full pattern(s):\n" + summary);
-        } else {
-            alert("❌ Invalid pattern: Issues detected.");
-        }
+   function validatePattern() {
+    const selectedCells = graph.getSelectionCells();
+    if (selectedCells.length === 0) {
+        alert("⚠️ No selection made! Please select a pattern before validation.");
+        return;
     }
+
+    const model = graph.getModel();
+
+    // Updated logic for ignoring non-graphical nodes
+    function isIgnorable(cell) {
+        const ignoredNames = ["text", "conditions", "description", "note", "pre-conditions", "post-condition"];
+        const ignoredStyles = ["swimlane", "group"];
+        return (
+            !cell.edge && (
+                ignoredNames.includes((cell.name || "").toLowerCase()) ||
+                ignoredNames.includes((cell.value || "").toLowerCase()) ||
+                ignoredStyles.some(s => (cell.style || "").includes(s))
+            )
+        );
+    }
+
+    // Filter relevant nodes and edges
+    const nodes = selectedCells.filter(cell => !cell.edge && !isIgnorable(cell));
+    const edges = selectedCells.filter(cell => cell.edge && cell.source && cell.target);
+
+    // Extract edge names as [sourceName, targetName]
+    const edgeNameList = edges.map(edge => [
+        edge.source.name || edge.source.value || "",
+        edge.target.name || edge.target.value || ""
+    ]);
+
+    const matchedPatterns = [];
+    const matchedNodeIds = new Set();
+    const matchedNodesByPattern = {};
+    const usedEdgeIndices = new Set();
+
+    allPatterns.forEach(pattern => {
+        const required = [...pattern.edges];
+        const tempEdges = edgeNameList.map((edge, i) => ({ edge, i }));
+
+        let matchCount = 0;
+
+        while (true) {
+            const currentMatchIndices = [];
+            const involvedNodeIds = new Set();
+            let stillValid = true;
+
+            for (const [from, to] of required) {
+                const match = tempEdges.find(({ edge: [s, t], i }) => 
+                    s === from && t === to && !usedEdgeIndices.has(i)
+                );
+
+                if (!match) {
+                    stillValid = false;
+                    break;
+                }
+
+                currentMatchIndices.push(match.i);
+                involvedNodeIds.add(edges[match.i].source.id);
+                involvedNodeIds.add(edges[match.i].target.id);
+            }
+
+            if (!stillValid) break;
+
+            // Record the matched pattern instance
+            matchedPatterns.push({ name: pattern.name });
+            matchedNodesByPattern[pattern.name] = matchedNodesByPattern[pattern.name] || new Set();
+            currentMatchIndices.forEach(i => usedEdgeIndices.add(i));
+            involvedNodeIds.forEach(id => {
+                matchedNodeIds.add(id);
+                matchedNodesByPattern[pattern.name].add(id);
+            });
+
+            matchCount++;
+        }
+    });
+
+    // Annotate unmatched/disconnected nodes
+    nodes.forEach(n => delete n.tooltip);
+
+    const unmatchedNodes = nodes.filter(n => !matchedNodeIds.has(n.id));
+    const isolatedNodes = nodes.filter(n => (model.getEdges(n) || []).length === 0);
+
+    nodes.forEach(node => {
+        const incoming = model.getEdges(node, true, false) || [];
+        const outgoing = model.getEdges(node, false, true) || [];
+
+        if (incoming.length + outgoing.length === 0) {
+            node.tooltip = "⚠️ Node is disconnected.";
+        } else if (!matchedNodeIds.has(node.id)) {
+            node.tooltip = "⚠️ Node not part of any valid pattern.";
+        }
+    });
+
+    // Build result summary
+    if (matchedPatterns.length > 0 && unmatchedNodes.length === 0 && isolatedNodes.length === 0) {
+        let summary = "✅ Valid pattern(s) detected:\n\n";
+        for (const [pattern, nodeSet] of Object.entries(matchedNodesByPattern)) {
+            summary += `• ${pattern} \n`;
+        }
+        alert(summary);
+    } else {
+        let summary = "❌ Invalid pattern: Issues detected.\n\n";
+        if (matchedPatterns.length > 0) {
+            summary += "✅ Partial matches found:\n";
+            for (const [pattern, nodeSet] of Object.entries(matchedNodesByPattern)) {
+                summary += `  • ${pattern} (${nodeSet.size} nodes)\n`;
+            }
+        }
+
+        alert(summary);
+    }
+}
 
 //If two node has same name and user connect them toghether, consider as one node.
     function mergeIdenticalNodes(edge) {
