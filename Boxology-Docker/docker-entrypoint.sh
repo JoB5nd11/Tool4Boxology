@@ -73,8 +73,20 @@ window.DRAWIO_CONFIG = {
             }
 			
           ]
+        },
+		{
+          id: 'annotation',
+          title: { main: 'Annotation Library' }, 
+          libs: [
+			{
+              title: { main: 'Annotation' }, 
+              url: window.location.origin + '/lib/AnnotationLib.xml',
+              noProxy: true,
+              prefetch: true
+            }
+			
+          ]
         }
-
       ]
     }
   ]
@@ -102,9 +114,6 @@ cat <<'EOF' >> $CATALINA_HOME/webapps/draw/js/PreConfig.js
   }
 })();
 EOF
-
-
-
 
 
 # Then start Tomcat
