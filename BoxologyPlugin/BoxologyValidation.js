@@ -11,6 +11,30 @@ Draw.loadPlugin(function(ui) {
     graph.getTooltipForCell = function(cell) {
         return cell.tooltip || null;
     };
+	const shapes = [
+	 "symbol",
+        "data",
+        "symbol/data",
+        "model",
+        "actor",
+        "generate",
+        "generate:train",
+        "generate:engineer",
+        "infer:deduce",
+        "model:semantic",
+        "model:statistics",
+        "infer",
+        "deduce",
+        "transform",
+        "transform:embed",
+        "text",
+        "conditions",
+        "description",
+        "note",
+        "pre-conditions",
+        "post-condition",
+        "group",	
+	]
 //List of all pattern
     const allPatterns = [
         { name: "train_model (symbol)", edges: [["symbol", "generate:train"], ["generate:train", "model"]] },
@@ -41,19 +65,19 @@ Draw.loadPlugin(function(ui) {
 
 //To limit user for connecting nodes, which logicaly can not be next step in flow
     const validNext = {
-        "symbol": ["infer:deduce", "generate:train","generate", "transform:embed", "transform", "symbol"],
-        "data": ["infer:deduce", "generate:train","generate", "transform", "data","transform:embed","symbol/data"],
-        "symbol/data": ["infer:deduce", "transform:embed","generate", "transform", "symbol/data","generate"],
-        "infer:deduce": ["symbol", "model", "infer:deduce"],
-        "model": ["infer:deduce", "model","generate","generate:train","generate:engineer", "model:statistics", "model:semantic"],
+        "symbol": ["infer:deduce", "generate:train","generate","generate:engineer", "transform:embed", "transform", "symbol","symbol/data"],
+        "data": ["infer:deduce", "generate:train","generate","generate:engineer", "transform", "data","transform:embed","symbol/data"],
+        "symbol/data": ["infer:deduce", "transform:embed","generate", "transform", "symbol/data","generate","symbol","data", "generate:train", "generate:engineer"],
+        "infer:deduce": ["symbol", "model", "infer:deduce","data","symbol/data","model:semantic", "model:statistics"],
+        "model": ["infer:deduce", "model","generate","generate:train","generate:engineer", "model:statistics", "model:semantic","transform:embed","transform"],
         "generate:train": ["model", "generate:train", "model:semantic", "model:statistics"],
 		"generate": ["model", "generate", "model:semantic", "model:statistics","data","symbol","symbol/data"],
         "actor": ["generate:engineer", "actor"],
         "generate:engineer": ["model", "generate:engineer","generate","data","symbol","symbol/data"],
-        "model:semantic": ["infer:deduce", "transform:embed", "model:semantic", "model","generate","generate:train"],
-        "model:statistics": ["infer:deduce", "transform:embed", "model:statistics", "model","generate","generate:train"],
-        "transform:embed": ["data", "transform:embed"],
-        "transform": ["data", "symbol", "symbol/data", "transform"]
+        "model:semantic": ["infer:deduce", "model","generate","generate:train","generate:engineer", "model:statistics", "model:semantic","transform:embed","transform"],
+        "model:statistics": ["infer:deduce", "model","generate","generate:train","generate:engineer", "model:statistics", "model:semantic","transform:embed","transform"],
+        "transform:embed": ["data", "transform:embed", "symbol", "transform", "model:semantic", "model:statistics", "symbol/data","model"],
+        "transform": ["data", "symbol", "symbol/data", "transform","transform:embed", "model", "model:semantic", "model:statistics"],
     };
 
 //The function which check validation for each pattern seperatedly and support complex pattern
