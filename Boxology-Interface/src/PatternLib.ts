@@ -32,6 +32,7 @@ export const patternLibShapes = [
 export const patternLibLinks = [
   { from: 'actor', to: 'generate:engineer' },
   { from: 'generate:engineer', to: 'model' },
+<<<<<<< HEAD
 ];
 
 // New pattern: Data → Generate:train → Model
@@ -90,4 +91,6 @@ export const boxologyPatterns = [
     dimensions: { width: 440, height: 50 }
   },
   dataTrainModelPattern
+=======
+>>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
 ];

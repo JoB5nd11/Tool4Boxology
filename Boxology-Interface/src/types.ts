@@ -5,6 +5,7 @@ export interface ShapeDefinition {
   color: string;
   group: string;
   stroke: string; // Optional stroke color
+<<<<<<< HEAD
   borderRadius?: string; // Optional border radius for rounded shapes
 }
 
@@ -40,3 +41,6 @@ export interface PatternDefinition {
 
 // Union type for both individual shapes and patterns
 export type LibraryItem = ShapeDefinition | PatternDefinition;
+=======
+}
+>>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec

@@ -39,11 +39,14 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
   };
 
   useEffect(() => {
+<<<<<<< HEAD
     console.log('🚀 DIAGRAM INITIALIZING:', {
       action: 'GoDiagram component starting up',
       timestamp: new Date().toISOString()
     });
     
+=======
+>>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
     if (!diagramDivRef.current) return;
 
     const $ = go.GraphObject.make;
@@ -86,9 +89,12 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       ),
     });
 
+<<<<<<< HEAD
     // Initialize with GraphLinksModel to support links
     diagram.model = new go.GraphLinksModel();
 
+=======
+>>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
     diagram.toolManager.draggingTool.isGridSnapEnabled = true;
     diagram.toolManager.linkingTool.isEnabled = true;
     diagram.toolManager.relinkingTool.isEnabled = true;
@@ -151,6 +157,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       )
     );
 
+<<<<<<< HEAD
     // Add link template for connections
     diagram.linkTemplate = $(
       go.Link,
@@ -175,11 +182,14 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       )
     );
 
+=======
+>>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
     // Handle node selection
     diagram.addDiagramListener('ChangedSelection', () => {
       const node = diagram.selection.first();
       if (node instanceof go.Node) {
         const data = node.data;
+<<<<<<< HEAD
         console.log('🎯 SELECTION CHANGED:', {
           action: 'Node selected',
           timestamp: new Date().toISOString(),
@@ -188,6 +198,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           shape: data.shape,
           selectionCount: diagram.selection.count
         });
+=======
+>>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
         setSelectedData({
           key: data.key,
           label: data.label || '',
@@ -196,6 +208,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           shape: data.shape || 'Rectangle',
         });
       } else {
+<<<<<<< HEAD
         if (diagram.selection.count > 0) {
           console.log('🎯 SELECTION CHANGED:', {
             action: 'Multiple items or non-node selected',
@@ -204,10 +217,13 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
             selectedTypes: Array.from(diagram.selection).map(part => part.constructor.name)
           });
         }
+=======
+>>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
         setSelectedData(null);
       }
     });
 
+<<<<<<< HEAD
     // Add model change listeners for comprehensive tracking
     diagram.addModelChangedListener((e) => {
       if (e.change === go.ChangedEvent.Insert) {
@@ -277,6 +293,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       return go.LinkingTool.prototype.insertLink.call(this, fromnode, fromport, tonode, toport);
     };
 
+=======
+>>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
     // Handle node double-click to edit
     diagram.addDiagramListener('ObjectDoubleClicked', (e) => {
       const node = e.subject.part;
@@ -301,7 +319,11 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       const shapeData = e.dataTransfer?.getData('application/gojs-shape');
       
       if (shapeData && diagramRef.current) {
+<<<<<<< HEAD
         const item = JSON.parse(shapeData);
+=======
+        const shape = JSON.parse(shapeData);
+>>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
         const diagram = diagramRef.current;
         
         // Get the diagram div's position to calculate correct coordinates
@@ -315,6 +337,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         // Convert to diagram coordinates
         const point = diagram.transformViewToDoc(new go.Point(x, y));
         
+<<<<<<< HEAD
         // Check if it's a pattern
         if (item.isPattern && item.shapes && item.links) {
           // Handle pattern drop
@@ -401,6 +424,28 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           diagram.model.addNodeData(nodeData);
           diagram.commitTransaction("add node");
         }
+=======
+        // Create node data with all necessary properties
+        const nodeData: any = {
+          key: `node_${Date.now()}`,
+          label: shape.label,
+          shape: shape.shape, // This is crucial for rendering
+          color: shape.color,
+          stroke: shape.stroke,
+          loc: go.Point.stringify(point),
+          ...(shape.width && { width: shape.width }),
+          ...(shape.height && { height: shape.height }),
+        };
+
+        // Handle specific shape parameters
+        if (shape.shape === 'RoundedRectangle' && shape.borderRadius) {
+          nodeData.parameter1 = parseFloat(shape.borderRadius) || 8;
+        }
+        
+        diagram.startTransaction("add node");
+        diagram.model.addNodeData(nodeData);
+        diagram.commitTransaction("add node");
+>>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
       }
     };
 
