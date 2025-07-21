@@ -18,9 +18,18 @@ function App() {
 
 
   const handleSave = () => {
+    console.log('💾 SAVE ACTION:', {
+      action: 'User saving diagram',
+      timestamp: new Date().toISOString()
+    });
     if (diagramRef.current) {
       const json = diagramRef.current.model.toJson();
       localStorage.setItem('diagramData', json);
+      console.log('💾 DIAGRAM SAVED:', {
+        action: 'Diagram saved to localStorage',
+        timestamp: new Date().toISOString(),
+        dataSize: json.length
+      });
       alert('Diagram saved!');
     }
   };
@@ -28,9 +37,18 @@ function App() {
 
 
   const handleOpen = () => {
+    console.log('📂 OPEN ACTION:', {
+      action: 'User opening diagram',
+      timestamp: new Date().toISOString()
+    });
     const json = localStorage.getItem('diagramData');
     if (json && diagramRef.current) {
       diagramRef.current.model = go.Model.fromJson(json);
+      console.log('📂 DIAGRAM LOADED:', {
+        action: 'Diagram loaded from localStorage',
+        timestamp: new Date().toISOString(),
+        dataSize: json.length
+      });
     }
   };
 
@@ -47,6 +65,11 @@ function App() {
   };
 
   const handleValidate = () => {
+    console.log('✅ VALIDATION STARTED:', {
+      action: 'User initiated validation',
+      timestamp: new Date().toISOString()
+    });
+    
     if (!diagramRef.current) {
       alert('❌ Diagram not ready for validation.');
       return;
@@ -79,6 +102,11 @@ function App() {
     try {
       // validateGoJSDiagram should always work with current selection
       const result = validateGoJSDiagram(diagram);
+      console.log('✅ VALIDATION COMPLETED:', {
+        action: 'Validation finished',
+        timestamp: new Date().toISOString(),
+        result: result
+      });
       alert(result);
     } catch (error) {
       console.error('Validation error:', error);
@@ -122,6 +150,12 @@ function App() {
   function handleAddContainer() {
     const name = prompt('Container name?');
     if (name && !containers.includes(name)) {
+      console.log('📦 CONTAINER ADDED:', {
+        action: 'New container created',
+        timestamp: new Date().toISOString(),
+        containerName: name,
+        totalContainers: containers.length + 1
+      });
       setContainers([...containers, name]);
       setCustomContainerShapes(prev => ({ ...prev, [name]: [] }));
     }

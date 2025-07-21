@@ -1,3 +1,5 @@
+import type { ShapeDefinition, PatternDefinition, LibraryItem } from '../types';
+
 export const shapes: ShapeDefinition[] = [
   //Symbol and data - Information related shapes
   { name: 'symbol', label: 'Symbol', shape: 'Rectangle', color: '#90EE90', stroke: '#2E7D2E', group: 'General' }, // Light green - represents symbols/variables
@@ -20,22 +22,56 @@ export const shapes: ShapeDefinition[] = [
   { name: 'comment', label: 'Comment', shape: 'Rectangle', color: '#F5F5DC', stroke: '#A9A9A9', group: 'Annotation' }, // Beige - neutral for comments
 ];
 
-export type GoShape =
-  | 'Rectangle'
-  | 'RoundedRectangle'
-  | 'Diamond'
-  | 'Ellipse'
-  | 'Triangle'
-  | 'TriangleDown'
-  | 'Hexagon';
+// Define patterns
+export const patterns: PatternDefinition[] = [
+  {
+    name: 'Data-Train-Model Pipeline',
+    description: 'A complete machine learning pipeline from data to trained model',
+    isPattern: true,
+    group: 'General',
+    shapes: [
+      {
+        key: 'data_node',
+        label: 'data',
+        shape: 'Rectangle',
+        color: '#fff2cc',
+        stroke: '#d6b656',
+        loc: '0 0',
+        width: 100,
+        height: 50,
+      },
+      {
+        key: 'train_node',
+        label: 'generate:train',
+        shape: 'RoundedRectangle',
+        color: '#e1d5e7',
+        stroke: '#9673a6',
+        loc: '160 0',
+        width: 100,
+        height: 50,
+      },
+      {
+        key: 'model_node',
+        label: 'model',
+        shape: 'Hexagon',
+        color: '#b0e3e6',
+        stroke: '#0e8088',
+        loc: '325 0',
+        width: 120,
+        height: 50,
+      },
+    ],
+    links: [
+      { from: 'data_node', to: 'train_node' },
+      { from: 'train_node', to: 'model_node' },
+    ],
+    dimensions: {
+      width: 445,
+      height: 50
+    }
+  }
+];
 
-export interface ShapeDefinition {
-  name: string;
-  label: string;
-  shape: GoShape;
-  color: string;
-  stroke: string;
-  group: string;
-  borderRadius?: '45px';
-}
+// Combine shapes and patterns for the library
+export const libraryItems: LibraryItem[] = [...shapes, ...patterns];
 

@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { shapes } from '../data/shape';
-import type { ShapeDefinition } from '../types';
+import { shapes, patterns, libraryItems } from '../data/shape';
+import type { ShapeDefinition, PatternDefinition, LibraryItem } from '../types';
 import ShapeGroup from './ShapeGroup';
 
 interface ShapeGroupMap {
-  [group: string]: ShapeDefinition[];
+  [group: string]: LibraryItem[];
 }
 
-function groupShapesByCategory(shapes: ShapeDefinition[]): ShapeGroupMap {
-  return shapes.reduce((acc, shape) => {
-    acc[shape.group] = acc[shape.group] || [];
-    acc[shape.group].push(shape);
+function groupItemsByCategory(items: LibraryItem[]): ShapeGroupMap {
+  return items.reduce((acc, item) => {
+    const group = item.group || 'General';
+    acc[group] = acc[group] || [];
+    acc[group].push(item);
     return acc;
   }, {} as ShapeGroupMap);
 }
@@ -38,7 +39,7 @@ export default function Sidebar({ containers, onAddContainer, customContainerSha
     }
   };
 
-  const grouped = groupShapesByCategory(shapes);
+  const grouped = groupItemsByCategory(libraryItems);
 
   return (
     <div
