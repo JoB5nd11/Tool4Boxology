@@ -12,6 +12,7 @@ export interface ToolbarProps {
   onExportPNG: () => void;
   onExportJPG: () => void;
   onExportXML: () => void;
+  onCreatePattern: () => void;
 }
 
 export default function Toolbar({
@@ -25,6 +26,7 @@ export default function Toolbar({
   onExportPNG,
   onExportJPG,
   onExportXML,
+  onCreatePattern,
 }: ToolbarProps) {
   return (
     <div className="toolbar">
@@ -77,6 +79,19 @@ export default function Toolbar({
           }}
         >
           ✓ Validate Pattern
+        </button>
+        <button
+          className="toolbar-button create-pattern-button"
+          onClick={onCreatePattern}
+          title="Create pattern from selected shapes"
+          style={{
+            background: '#FF6B35',
+            color: 'white',
+            fontWeight: 'bold',
+            border: '2px solid #E55A2B',
+          }}
+        >
+          🎨 Create Pattern
         </button>
         <button
           className="toolbar-button export-button"

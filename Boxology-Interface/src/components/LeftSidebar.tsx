@@ -1,28 +1,41 @@
-import React, { useState } from 'react';
-import { shapes } from '../data/shape';
-import type { ShapeDefinition } from '../types';
+import React, { useState, useEffect } from 'react';
+import { shapes, patterns, libraryItems } from '../data/shape';
+import type { ShapeDefinition, PatternDefinition, LibraryItem } from '../types/types';
 import ShapeGroup from './ShapeGroup';
 
 interface ShapeGroupMap {
-  [group: string]: ShapeDefinition[];
+  [group: string]: LibraryItem[];
 }
 
-function groupShapesByCategory(shapes: ShapeDefinition[]): ShapeGroupMap {
-  return shapes.reduce((acc, shape) => {
-    acc[shape.group] = acc[shape.group] || [];
-    acc[shape.group].push(shape);
+function groupItemsByCategory(items: LibraryItem[]): ShapeGroupMap {
+  return items.reduce((acc, item) => {
+    const group = item.group || 'General';
+    acc[group] = acc[group] || [];
+    acc[group].push(item);
     return acc;
   }, {} as ShapeGroupMap);
 }
 
 interface LeftSidebarProps {
   containers: string[];
-  onAddContainer: () => void;
+  onAddContainer: (name: string) => void;
   customContainerShapes: { [key: string]: any[] };
 }
 
 export default function Sidebar({ containers, onAddContainer, customContainerShapes }: LeftSidebarProps) {
   const [customGroups, setCustomGroups] = useState<string[]>([]);
+
+  // Add debugging for component lifecycle
+  useEffect(() => {
+    console.log('🔄 LEFTSIDEBAR MOUNTED/UPDATED');
+    return () => {
+      console.log('💀 LEFTSIDEBAR UNMOUNTING');
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log('📦 LEFTSIDEBAR - CONTAINERS PROP CHANGED:', containers);
+  }, [containers]);
 
   const addGroup = () => {
     const name = prompt('Enter name for new shape group:');
@@ -31,14 +44,49 @@ export default function Sidebar({ containers, onAddContainer, customContainerSha
     }
   };
 
-  const addContainer = () => {
-    const name = prompt('Container name?');
-    if (name && name.trim() && !containers.includes(name.trim())) {
-      onAddContainer();
+  const addContainer = (e?: React.MouseEvent) => {
+    // Prevent any default behavior that might cause page refresh
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    console.log('🚀 ADD CONTAINER FUNCTION CALLED IN LEFTSIDEBAR');
+    console.log('🔍 CURRENT CONTAINERS PROP:', containers);
+    console.log('🔍 CONTAINERS TYPE:', typeof containers, 'IS ARRAY:', Array.isArray(containers));
+    
+    try {
+      const name = prompt('Container name?');
+      console.log('📝 USER ENTERED NAME:', name);
+      console.log('📝 TRIMMED NAME:', name?.trim());
+      
+      if (name && name.trim()) {
+        const trimmedName = name.trim();
+        const alreadyExists = containers.includes(trimmedName);
+        
+        console.log('🔍 DETAILED CHECK:', {
+          hasName: !!trimmedName,
+          trimmedName: trimmedName,
+          alreadyExists: alreadyExists,
+          currentContainers: containers,
+          containersLength: containers.length
+        });
+        
+        if (!alreadyExists) {
+          console.log('✅ CALLING onAddContainer with:', trimmedName);
+          onAddContainer(trimmedName);
+        } else {
+          console.log('❌ CONTAINER ALREADY EXISTS');
+        }
+      } else {
+        console.log('❌ NO VALID NAME PROVIDED');
+      }
+    } catch (error) {
+      console.error('❌ ERROR IN ADD CONTAINER:', error);
     }
   };
 
-  const grouped = groupShapesByCategory(shapes);
+  const grouped = groupItemsByCategory(libraryItems);
 
   return (
     <div
@@ -73,7 +121,12 @@ export default function Sidebar({ containers, onAddContainer, customContainerSha
           Shape Library
         </span>
         <button 
-          onClick={addGroup} 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            addContainer(e);
+          }}
+          type="button"
           style={{ 
             background: 'rgba(255,255,255,0.2)',
             border: '1px solid rgba(255,255,255,0.3)',
@@ -97,7 +150,7 @@ export default function Sidebar({ containers, onAddContainer, customContainerSha
             e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
             e.currentTarget.style.transform = 'scale(1)';
           }}
-          title="Add new shape group"
+          title="Add new container"
         >
           ＋
         </button>
@@ -123,6 +176,16 @@ export default function Sidebar({ containers, onAddContainer, customContainerSha
             </div>
           ))}
         </div>
+
+        {/* Custom Containers Section - Show each container with its contents */}
+        {containers.slice(2).map((containerName) => ( // Skip first 2 default containers
+          <div key={containerName} style={{ marginBottom: '16px' }}>
+            <ShapeGroup 
+              title={containerName} 
+              shapes={customContainerShapes[containerName] || []}
+            />
+          </div>
+        ))}
 
         {/* Custom Groups Section */}
         {customGroups.length > 0 && (
@@ -179,7 +242,8 @@ export default function Sidebar({ containers, onAddContainer, customContainerSha
         color: '#6c757d',
         textAlign: 'center'
       }}>
-        {Object.values(grouped).reduce((total, shapes) => total + shapes.length, 0)} shapes available
+        {Object.values(grouped).reduce((total, shapes) => total + shapes.length, 0) + 
+         Object.values(customContainerShapes).reduce((total, shapes) => total + shapes.length, 0)} shapes/patterns available
       </div>
     </div>
   );
