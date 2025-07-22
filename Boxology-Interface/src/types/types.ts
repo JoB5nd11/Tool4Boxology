@@ -1,5 +1,5 @@
 export interface ShapeDefinition {
-  name?: string; // Optional for shapes that don't have a specific name
+  name: string; // Optional for shapes that don't have a specific name
   label: string;
   shape: string;
   color: string;
@@ -11,6 +11,7 @@ export interface ShapeDefinition {
 // New interfaces for patterns
 export interface PatternShape {
   key: string;
+  name: string; // Semantic type for validation
   label: string;
   shape: string;
   color: string;

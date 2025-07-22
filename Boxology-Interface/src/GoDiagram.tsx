@@ -190,6 +190,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         });
         setSelectedData({
           key: data.key,
+          name: data.name || data.label || '', // Use name if available, fallback to label
           label: data.label || '',
           color: data.color || '#ffffff',
           stroke: data.stroke || '#999999',
@@ -254,6 +255,26 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
             oldValue: e.oldValue,
             newValue: e.newValue
           });
+
+          // Update selectedData if this is the currently selected node
+          const selectedNode = diagram.selection.first();
+          if (selectedNode instanceof go.Node && selectedNode.data.key === (e.object as any).key) {
+            console.log('🔄 UPDATING SELECTED DATA:', {
+              action: 'Refreshing selectedData for currently selected node',
+              nodeKey: selectedNode.data.key,
+              updatedProperty: e.propertyName,
+              timestamp: new Date().toISOString()
+            });
+            
+            setSelectedData({
+              key: selectedNode.data.key,
+              name: selectedNode.data.name || selectedNode.data.label || '',
+              label: selectedNode.data.label || '',
+              color: selectedNode.data.color || '#ffffff',
+              stroke: selectedNode.data.stroke || '#999999',
+              shape: selectedNode.data.shape || 'Rectangle',
+            });
+          }
         }
       }
     });
@@ -338,7 +359,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
             const nodeKey = `${item.name}_${patternShape.key}_${Date.now()}_${index}`;
             const nodeData = {
               key: nodeKey,
-              label: patternShape.label,
+              name: patternShape.name || patternShape.label, // Use name if available, otherwise label for semantic type
+              label: patternShape.label, // Display text
               shape: patternShape.shape,
               color: patternShape.color,
               stroke: patternShape.stroke,
@@ -371,7 +393,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           // Handle individual shape drop
           const nodeData: any = {
             key: `node_${Date.now()}`,
-            label: item.label,
+            name: item.name, // Semantic type for validation (e.g., 'symbol', 'data')
+            label: item.label, // Display text (e.g., 'Symbol', 'Data')
             shape: item.shape, // This is crucial for rendering
             color: item.color,
             stroke: item.stroke,
@@ -390,8 +413,9 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
             action: 'Shape dropped and added to diagram',
             timestamp: new Date().toISOString(),
             nodeKey: nodeData.key,
+            name: nodeData.name, // Semantic type for validation
+            label: nodeData.label, // Display text
             shapeType: nodeData.shape,
-            label: nodeData.label,
             position: { x: point.x, y: point.y },
             color: nodeData.color,
             properties: nodeData

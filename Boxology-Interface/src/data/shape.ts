@@ -4,7 +4,7 @@ export const shapes: ShapeDefinition[] = [
   //Symbol and data - Information related shapes
   { name: 'symbol', label: 'Symbol', shape: 'Rectangle', color: '#90EE90', stroke: '#2E7D2E', group: 'General' }, // Light green - represents symbols/variables
   { name: 'data', label: 'Data', shape: 'Rectangle', color: '#87CEEB', stroke: '#1E5F8B', group: 'General' }, // Sky blue - represents data flow
-  { name: 'datasymbol', label: 'Data/Symbol', shape: 'Rectangle', color: '#20B2AA', stroke: '#0D5F5C', group: 'General' }, // Light sea green - hybrid of data & symbol
+  { name: 'symbol/data', label: 'Data/Symbol', shape: 'Rectangle', color: '#20B2AA', stroke: '#0D5F5C', group: 'General' }, // Light sea green - hybrid of data & symbol
   
   //Actor - Human/Agent related
   { name: 'actor', label: 'Actor', shape: 'Triangle', color: '#FFB347', stroke: '#000000ff', group: 'General' }, // Peach/orange - represents human actors
@@ -32,6 +32,7 @@ export const patterns: PatternDefinition[] = [
     shapes: [
       {
         key: 'data_node',
+        name: 'data',
         label: 'data',
         shape: 'Rectangle',
         color: '#fff2cc',
@@ -42,6 +43,7 @@ export const patterns: PatternDefinition[] = [
       },
       {
         key: 'train_node',
+        name: 'generate:train',
         label: 'generate:train',
         shape: 'RoundedRectangle',
         color: '#e1d5e7',
@@ -52,6 +54,7 @@ export const patterns: PatternDefinition[] = [
       },
       {
         key: 'model_node',
+        name: 'model',
         label: 'model',
         shape: 'Hexagon',
         color: '#b0e3e6',
