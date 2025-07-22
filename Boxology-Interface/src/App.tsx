@@ -38,18 +38,9 @@ function App() {
 
 
   const handleSave = () => {
-    console.log('💾 SAVE ACTION:', {
-      action: 'User saving diagram',
-      timestamp: new Date().toISOString()
-    });
     if (diagramRef.current) {
       const json = diagramRef.current.model.toJson();
       localStorage.setItem('diagramData', json);
-      console.log('💾 DIAGRAM SAVED:', {
-        action: 'Diagram saved to localStorage',
-        timestamp: new Date().toISOString(),
-        dataSize: json.length
-      });
       alert('Diagram saved!');
     }
   };
@@ -57,18 +48,9 @@ function App() {
 
 
   const handleOpen = () => {
-    console.log('📂 OPEN ACTION:', {
-      action: 'User opening diagram',
-      timestamp: new Date().toISOString()
-    });
     const json = localStorage.getItem('diagramData');
     if (json && diagramRef.current) {
       diagramRef.current.model = go.Model.fromJson(json);
-      console.log('📂 DIAGRAM LOADED:', {
-        action: 'Diagram loaded from localStorage',
-        timestamp: new Date().toISOString(),
-        dataSize: json.length
-      });
     }
   };
 
@@ -85,11 +67,6 @@ function App() {
   };
 
   const handleValidate = () => {
-    console.log('✅ VALIDATION STARTED:', {
-      action: 'User initiated validation',
-      timestamp: new Date().toISOString()
-    });
-    
     if (!diagramRef.current) {
       alert('❌ Diagram not ready for validation.');
       return;
@@ -122,11 +99,6 @@ function App() {
     try {
       // validateGoJSDiagram should always work with current selection
       const result = validateGoJSDiagram(diagram);
-      console.log('✅ VALIDATION COMPLETED:', {
-        action: 'Validation finished',
-        timestamp: new Date().toISOString(),
-        result: result
-      });
       alert(result);
     } catch (error) {
       console.error('Validation error:', error);
@@ -181,74 +153,12 @@ function App() {
     });
     
     if (name && !containers.includes(name)) {
-      console.log('📦 CONTAINER ADDED:', {
-        action: 'New container created',
-        timestamp: new Date().toISOString(),
-        containerName: name,
-        totalContainers: containers.length + 1,
-        oldContainers: [...containers],
-        newContainers: [...containers, name]
-      });
-      
-      // Update both states
-      setContainers(prev => {
-        const newContainers = [...prev, name];
-        console.log('📦 SETTING NEW CONTAINERS:', newContainers);
-        console.log('📦 PREVIOUS CONTAINERS WERE:', prev);
-        console.log('📦 ADDING CONTAINER:', name);
-        return newContainers;
-      });
-      
-      setCustomContainerShapes(prev => {
-        const newShapes = { ...prev, [name]: [] };
-        console.log('📦 SETTING CUSTOM CONTAINER SHAPES:', newShapes);
-        return newShapes;
-      });
-      
-      // Let's also check after a short delay to see if state updated
-      setTimeout(() => {
-        console.log('📦 STATE CHECK AFTER 100ms:', {
-          containersAfterUpdate: containers,
-          containersLength: containers.length
-        });
-      }, 100);
-      
-    } else if (name && containers.includes(name)) {
-      console.log('⚠️ CONTAINER ALREADY EXISTS:', {
-        containerName: name,
-        existingContainers: containers
-      });
-      alert(`Container "${name}" already exists.`);
+      setContainers([...containers, name]);
+      setCustomContainerShapes(prev => ({ ...prev, [name]: [] }));
     }
   }
 
   function handleCreatePatternFromSelection() {
-    if (!diagramRef.current) return;
-    
-    console.log('🎨 PATTERN CREATION STARTED:', {
-      action: 'Starting pattern creation',
-      timestamp: new Date().toISOString()
-    });
-    
-    // Get current state values directly - React guarantees these are current in event handlers
-    const currentContainers = containers;
-    const currentCustomContainerShapes = customContainerShapes;
-    
-    console.log('🎨 PATTERN CREATION DEBUG:', {
-      action: 'Using current state values',
-      timestamp: new Date().toISOString(),
-      currentContainers: currentContainers,
-      containerCount: currentContainers.length,
-      containersArray: JSON.stringify(currentContainers),
-      currentCustomContainerShapes: Object.keys(currentCustomContainerShapes),
-      customContainerCount: Object.keys(currentCustomContainerShapes).length
-    });
-    
-    // Continue with pattern creation using current values
-    continuePatternCreation(currentContainers, currentCustomContainerShapes);
-  }
-  
-  function continuePatternCreation(currentContainers: string[], currentCustomContainerShapes: { [key: string]: any[] }) {
     if (!diagramRef.current) return;
     
     const diagram = diagramRef.current;
@@ -281,27 +191,11 @@ function App() {
     const patternName = prompt('Enter a name for this pattern:');
     if (!patternName) return;
 
-    // Get all available containers (including custom ones) - use current states
-    const allAvailableContainers = [...new Set([...currentContainers, ...Object.keys(currentCustomContainerShapes)])];
-
-    console.log('🎨 CONTAINER SELECTION DEBUG:', {
-      action: 'About to show container selection',
-      timestamp: new Date().toISOString(),
-      availableContainers: currentContainers,
-      customContainerKeys: Object.keys(currentCustomContainerShapes),
-      allContainers: allAvailableContainers,
-      containerOptions: allAvailableContainers.join(', ')
-    });
-
+    // Get all available containers
+    const allAvailableContainers = [...new Set([...containers, ...Object.keys(customContainerShapes)])];
     const selectedContainer = prompt(`Which container should this pattern be added to?\nAvailable: ${allAvailableContainers.join(', ')}`);
+    
     if (!selectedContainer || !allAvailableContainers.includes(selectedContainer)) {
-      console.log('❌ INVALID CONTAINER:', {
-        selectedContainer,
-        availableContainers: currentContainers,
-        customContainers: Object.keys(currentCustomContainerShapes),
-        allAvailableContainers,
-        isValid: allAvailableContainers.includes(selectedContainer || '')
-      });
       alert(`Invalid container name. Available containers: ${allAvailableContainers.join(', ')}`);
       return;
     }
@@ -357,26 +251,16 @@ function App() {
       }
     };
 
-    // Add to custom container shapes - use currentCustomContainerShapes
+    // Add to custom container shapes
     setCustomContainerShapes(prev => ({
       ...prev,
       [selectedContainer]: [...(prev[selectedContainer] || []), newPattern]
     }));
 
-    // Ensure the container is in the containers list - use currentContainers
-    if (!currentContainers.includes(selectedContainer)) {
+    // Ensure the container is in the containers list
+    if (!containers.includes(selectedContainer)) {
       setContainers(prev => [...prev, selectedContainer]);
     }
-
-    console.log('🎨 PATTERN CREATED:', {
-      action: 'Custom pattern created from selection',
-      timestamp: new Date().toISOString(),
-      patternName: patternName,
-      container: selectedContainer,
-      shapeCount: patternShapes.length,
-      linkCount: patternLinks.length,
-      dimensions: newPattern.dimensions
-    });
 
     alert(`Pattern "${patternName}" added to ${selectedContainer} container!`);
   }
