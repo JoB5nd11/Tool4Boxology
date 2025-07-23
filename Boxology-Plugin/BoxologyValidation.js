@@ -89,6 +89,15 @@ function validatePattern() {
 
     const model = graph.getModel();
 
+    // Helper functions for consistent node data extraction - like GoJS version
+    function getNodeName(cell) {
+        return (cell.name || "").trim();
+    }
+
+    function getNodeLabel(cell) {
+        return (cell.value || "").trim();
+    }
+
     // Updated logic for ignoring non-graphical nodes
     function isIgnorable(cell) {
         const ignoredNames = ["text", "conditions", "description", "note", "pre-conditions", "post-condition"];
@@ -107,19 +116,20 @@ function validatePattern() {
     const edges = selectedCells.filter(cell => cell.edge && cell.source && cell.target);
 
     // Group nodes by their "name" attribute to treat duplicates as single logical nodes
+    // This handles duplication: multiple physical nodes with same name = one logical node
     const nodesByName = {};
     nodes.forEach(node => {
-        const nodeName = node.name || node.value || "";
+        const nodeName = getNodeName(node);
         if (!nodesByName[nodeName]) {
             nodesByName[nodeName] = [];
         }
         nodesByName[nodeName].push(node);
     });
 
-    // Extract edge names as [sourceName, targetName] - using "name" attribute only
+    // Extract edge names as [sourceName, targetName] - using "name" attribute only via helper function
     const edgeNameList = edges.map(edge => [
-        edge.source.name || "",
-        edge.target.name || ""
+        getNodeName(edge.source),
+        getNodeName(edge.target)
     ]);
 
     // Create a mapping from physical node ID to logical node name for tracking
@@ -255,12 +265,22 @@ function validatePattern() {
     }
 }
 
-//If two node has same name and user connect them toghether, consider as one node.
+//If two node has same label and user connect them together, consider as one node.
     function mergeIdenticalNodes(edge) {
         let source = edge.source;
         let target = edge.target;
         if (!source || !target || source === target) return;
-        if (source.value === target.value) {
+        
+        // Helper function for getting node label
+        function getNodeLabel(cell) {
+            return (cell.value || "").trim();
+        }
+        
+        let sourceLabel = getNodeLabel(source);
+        let targetLabel = getNodeLabel(target);
+        
+        // Only merge if labels are identical (like GoJS: sourceLabel === targetLabel)
+        if (sourceLabel === targetLabel) {
             let model = graph.getModel();
             let inEdges = model.getEdges(target, true, false);
             let outEdges = model.getEdges(target, false, true);
@@ -270,6 +290,7 @@ function validatePattern() {
                 outEdges.forEach(e => { if (e !== edge) e.source = source; });
                 model.remove(edge);
                 model.remove(target);
+                console.log(`✅ Merged identical nodes: label="${sourceLabel}"`);
             } finally {
                 model.endUpdate();
             }
@@ -280,17 +301,32 @@ function validatePattern() {
         let edge = evt.getProperty("edge");
         if (!edge || !edge.source || !edge.target) return;
 
-        let source = edge.source.name;
-        let target = edge.target.name;
+        // Helper functions for consistent node data extraction
+        function getNodeName(cell) {
+            return (cell.name || "").trim();
+        }
 
-        if (!validNext[source] || !validNext[source].includes(target)) {
+        function getNodeLabel(cell) {
+            return (cell.value || "").trim();
+        }
+
+        let sourceName = getNodeName(edge.source);
+        let targetName = getNodeName(edge.target);
+
+        console.log(`🔗 Attempting connection: "${sourceName}" → "${targetName}"`);
+
+        if (!validNext[sourceName] || !validNext[sourceName].includes(targetName)) {
+            console.log(`❌ Invalid connection blocked: "${sourceName}" → "${targetName}"`);
             alert("❌ Invalid connection! Edge will be removed.");
             graph.getModel().remove(edge);
             return;
         }
 
+        console.log(`✅ Valid connection allowed: "${sourceName}" → "${targetName}"`);
 
-        if (edge.source.name === edge.target.name) {
+        // If same name nodes are connected, merge them (using name for validation)
+        if (sourceName === targetName) {
+            console.log(`🔄 Merging identical nodes: name="${sourceName}"`);
             mergeIdenticalNodes(edge);
         }
     });
@@ -313,12 +349,18 @@ function validatePattern() {
     graph.removeCells = function(cells, includeEdges) {
         let model = this.getModel();
         model.beginUpdate();
+        
+        // Helper function for getting node name
+        function getNodeName(cell) {
+            return (cell.name || "").trim();
+        }
+        
         try {
             cells.forEach(cell => {
                 if (!cell.edge) {
                     let connectedEdges = model.getEdges(cell, true, true);
                     connectedEdges.forEach(edge => model.remove(edge));
-                    console.log(`🗑️ Deleted node "${cell.name}" with its edges`);
+                    console.log(`🗑️ Deleted node "${getNodeName(cell)}" with its edges`);
                 }
             });
             mxGraph.prototype.removeCells.call(this, cells, includeEdges);
