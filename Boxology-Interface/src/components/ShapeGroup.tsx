@@ -1,19 +1,11 @@
 import React, { useState } from 'react';
 import * as go from 'gojs';
-<<<<<<< HEAD
-import type { ShapeDefinition, PatternDefinition, LibraryItem } from '../types';
-=======
 import type { ShapeDefinition } from '../types';
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
 import { mapShapeToGoJSFigure } from '../utils/shapeMapping';
 
 interface Props {
   title: string;
-<<<<<<< HEAD
-  shapes: LibraryItem[];
-=======
   shapes: ShapeDefinition[];
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
 }
 
 export default function ShapeGroup({ title, shapes }: Props) {
@@ -21,44 +13,11 @@ export default function ShapeGroup({ title, shapes }: Props) {
 
   const toggleCollapse = () => setCollapsed(!collapsed);
 
-<<<<<<< HEAD
-  const handleDragStart = (e: React.DragEvent, item: LibraryItem) => {
-    e.dataTransfer.setData('application/gojs-shape', JSON.stringify(item));
-    e.dataTransfer.effectAllowed = 'copy';
-  };
-
-  const isPattern = (item: LibraryItem): item is PatternDefinition => {
-    return 'isPattern' in item && item.isPattern === true;
-  };
-
-  const renderPatternPreview = (pattern: PatternDefinition): React.CSSProperties => {
-    return {
-      background: 'linear-gradient(90deg, #fff2cc 0%, #e1d5e7 40%, #b0e3e6 100%)',
-      minWidth: '100px',
-      height: '30px',
-      padding: '4px 8px',
-      margin: '8px',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      fontSize: '8px',
-      fontWeight: 'bold',
-      border: '2px dashed #666',
-      borderRadius: '4px',
-      cursor: 'grab',
-      position: 'relative',
-      color: '#000',
-      userSelect: 'none',
-    };
-  };
-
-=======
   const handleDragStart = (e: React.DragEvent, shape: ShapeDefinition) => {
     e.dataTransfer.setData('application/gojs-shape', JSON.stringify(shape));
     e.dataTransfer.effectAllowed = 'copy';
   };
 
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
   const renderShapeStyle = (shape: ShapeDefinition): React.CSSProperties => {
     const base: React.CSSProperties = {
       background: shape.color,
@@ -202,47 +161,6 @@ export default function ShapeGroup({ title, shapes }: Props) {
     };
   };
 
-<<<<<<< HEAD
-  const renderItem = (item: LibraryItem) => {
-    if (isPattern(item)) {
-      return renderPattern(item);
-    } else {
-      return renderShape(item as ShapeDefinition);
-    }
-  };
-
-  const renderPattern = (pattern: PatternDefinition) => {
-    return (
-      <div
-        key={pattern.name}
-        draggable
-        onDragStart={(e) => handleDragStart(e, pattern)}
-        style={{
-          position: 'relative',
-          margin: '4px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-        title={`${pattern.name}: ${pattern.description}`}
-      >
-        <div style={renderPatternPreview(pattern)}>
-          <span style={{ 
-            fontSize: '8px', 
-            fontWeight: 'bold',
-            textAlign: 'center',
-            lineHeight: '1.1'
-          }}>
-            📊 {pattern.name}
-          </span>
-        </div>
-      </div>
-    );
-  };
-
-=======
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
   const renderShape = (shape: ShapeDefinition) => {
     const isTriangle = shape.shape === 'Triangle' || shape.shape === 'TriangleDown';
     
@@ -314,11 +232,7 @@ export default function ShapeGroup({ title, shapes }: Props) {
           justifyContent: 'flex-start',
           alignItems: 'flex-start'
         }}>
-<<<<<<< HEAD
-          {shapes.map((item) => renderItem(item))}
-=======
           {shapes.map((shape) => renderShape(shape))}
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
         </div>
       )}
     </div>

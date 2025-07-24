@@ -39,14 +39,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
   };
 
   useEffect(() => {
-<<<<<<< HEAD
-    console.log('🚀 DIAGRAM INITIALIZING:', {
-      action: 'GoDiagram component starting up',
-      timestamp: new Date().toISOString()
-    });
-    
-=======
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
     if (!diagramDivRef.current) return;
 
     const $ = go.GraphObject.make;
@@ -89,12 +81,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       ),
     });
 
-<<<<<<< HEAD
-    // Initialize with GraphLinksModel to support links
-    diagram.model = new go.GraphLinksModel();
-
-=======
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
     diagram.toolManager.draggingTool.isGridSnapEnabled = true;
     diagram.toolManager.linkingTool.isEnabled = true;
     diagram.toolManager.relinkingTool.isEnabled = true;
@@ -157,49 +143,11 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       )
     );
 
-<<<<<<< HEAD
-    // Add link template for connections
-    diagram.linkTemplate = $(
-      go.Link,
-      {
-        routing: go.Link.AvoidsNodes,
-        curve: go.Link.JumpOver,
-        corner: 5,
-        toShortLength: 4,
-        relinkableFrom: true,
-        relinkableTo: true,
-        selectable: true,
-        resegmentable: true
-      },
-      new go.Binding('points').makeTwoWay(),
-      $(
-        go.Shape,
-        { isPanelMain: true, strokeWidth: 2, stroke: '#333' }
-      ),
-      $(
-        go.Shape,
-        { toArrow: 'standard', strokeWidth: 0, fill: '#333' }
-      )
-    );
-
-=======
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
     // Handle node selection
     diagram.addDiagramListener('ChangedSelection', () => {
       const node = diagram.selection.first();
       if (node instanceof go.Node) {
         const data = node.data;
-<<<<<<< HEAD
-        console.log('🎯 SELECTION CHANGED:', {
-          action: 'Node selected',
-          timestamp: new Date().toISOString(),
-          nodeKey: data.key,
-          label: data.label,
-          shape: data.shape,
-          selectionCount: diagram.selection.count
-        });
-=======
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
         setSelectedData({
           key: data.key,
           label: data.label || '',
@@ -208,93 +156,10 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           shape: data.shape || 'Rectangle',
         });
       } else {
-<<<<<<< HEAD
-        if (diagram.selection.count > 0) {
-          console.log('🎯 SELECTION CHANGED:', {
-            action: 'Multiple items or non-node selected',
-            timestamp: new Date().toISOString(),
-            selectionCount: diagram.selection.count,
-            selectedTypes: Array.from(diagram.selection).map(part => part.constructor.name)
-          });
-        }
-=======
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
         setSelectedData(null);
       }
     });
 
-<<<<<<< HEAD
-    // Add model change listeners for comprehensive tracking
-    diagram.addModelChangedListener((e) => {
-      if (e.change === go.ChangedEvent.Insert) {
-        if (e.modelChange === 'nodeDataArray') {
-          console.log('🎯 NODE INSERTED:', {
-            action: 'Node added to model',
-            timestamp: new Date().toISOString(),
-            nodeData: e.newValue,
-            totalNodes: diagram.nodes.count
-          });
-        } else if (e.modelChange === 'linkDataArray') {
-          console.log('🔗 LINK CREATED:', {
-            action: 'Link created between nodes',
-            timestamp: new Date().toISOString(),
-            linkData: e.newValue,
-            from: e.newValue.from,
-            to: e.newValue.to,
-            totalLinks: diagram.links.count
-          });
-        }
-      } else if (e.change === go.ChangedEvent.Remove) {
-        if (e.modelChange === 'nodeDataArray') {
-          console.log('🗑️ NODE REMOVED:', {
-            action: 'Node removed from model',
-            timestamp: new Date().toISOString(),
-            nodeData: e.oldValue,
-            totalNodes: diagram.nodes.count
-          });
-        } else if (e.modelChange === 'linkDataArray') {
-          console.log('🗑️ LINK REMOVED:', {
-            action: 'Link removed from model',
-            timestamp: new Date().toISOString(),
-            linkData: e.oldValue,
-            totalLinks: diagram.links.count
-          });
-        }
-      } else if (e.change === go.ChangedEvent.Property) {
-        if (e.modelChange === 'nodeDataArray' && e.object) {
-          console.log('✏️ NODE MODIFIED:', {
-            action: 'Node property changed',
-            timestamp: new Date().toISOString(),
-            nodeKey: (e.object as any).key,
-            property: e.propertyName,
-            oldValue: e.oldValue,
-            newValue: e.newValue
-          });
-        }
-      }
-    });
-
-    // Add additional logging for link-related events
-    diagram.toolManager.linkingTool.doActivate = function() {
-      console.log('🔗 LINK TOOL ACTIVATED:', {
-        action: 'User started creating a link',
-        timestamp: new Date().toISOString()
-      });
-      go.LinkingTool.prototype.doActivate.call(this);
-    };
-
-    diagram.toolManager.linkingTool.insertLink = function(fromnode, fromport, tonode, toport) {
-      console.log('🔗 LINK CONNECTING:', {
-        action: 'Link being created between nodes',
-        timestamp: new Date().toISOString(),
-        fromNode: fromnode?.data?.key || 'unknown',
-        toNode: tonode?.data?.key || 'unknown'
-      });
-      return go.LinkingTool.prototype.insertLink.call(this, fromnode, fromport, tonode, toport);
-    };
-
-=======
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
     // Handle node double-click to edit
     diagram.addDiagramListener('ObjectDoubleClicked', (e) => {
       const node = e.subject.part;
@@ -319,11 +184,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       const shapeData = e.dataTransfer?.getData('application/gojs-shape');
       
       if (shapeData && diagramRef.current) {
-<<<<<<< HEAD
-        const item = JSON.parse(shapeData);
-=======
         const shape = JSON.parse(shapeData);
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
         const diagram = diagramRef.current;
         
         // Get the diagram div's position to calculate correct coordinates
@@ -337,94 +198,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         // Convert to diagram coordinates
         const point = diagram.transformViewToDoc(new go.Point(x, y));
         
-<<<<<<< HEAD
-        // Check if it's a pattern
-        if (item.isPattern && item.shapes && item.links) {
-          // Handle pattern drop
-          console.log('📊 PATTERN ADDED:', {
-            action: 'Pattern dropped and added to diagram',
-            timestamp: new Date().toISOString(),
-            patternName: item.name,
-            position: { x: point.x, y: point.y },
-            shapeCount: item.shapes.length,
-            linkCount: item.links.length
-          });
-          
-          diagram.startTransaction("add pattern");
-          
-          // Create nodes for the pattern
-          const nodeMap = new Map();
-          item.shapes.forEach((patternShape: any, index: number) => {
-            const loc = go.Point.parse(patternShape.loc);
-            const adjustedLoc = new go.Point(point.x + loc.x, point.y + loc.y);
-            
-            const nodeKey = `${item.name}_${patternShape.key}_${Date.now()}_${index}`;
-            const nodeData = {
-              key: nodeKey,
-              label: patternShape.label,
-              shape: patternShape.shape,
-              color: patternShape.color,
-              stroke: patternShape.stroke,
-              loc: go.Point.stringify(adjustedLoc),
-              width: patternShape.width,
-              height: patternShape.height,
-            };
-            
-            // Map old key to new key for link creation
-            nodeMap.set(patternShape.key, nodeKey);
-            diagram.model.addNodeData(nodeData);
-          });
-          
-          // Create links for the pattern
-          item.links.forEach((patternLink: any) => {
-            const fromKey = nodeMap.get(patternLink.from);
-            const toKey = nodeMap.get(patternLink.to);
-            
-            if (fromKey && toKey) {
-              const linkData = {
-                from: fromKey,
-                to: toKey,
-              };
-              (diagram.model as go.GraphLinksModel).addLinkData(linkData);
-            }
-          });
-          
-          diagram.commitTransaction("add pattern");
-        } else {
-          // Handle individual shape drop
-          const nodeData: any = {
-            key: `node_${Date.now()}`,
-            label: item.label,
-            shape: item.shape, // This is crucial for rendering
-            color: item.color,
-            stroke: item.stroke,
-            loc: go.Point.stringify(point),
-            ...(item.width && { width: item.width }),
-            ...(item.height && { height: item.height }),
-          };
-
-          // Handle specific shape parameters
-          if (item.shape === 'RoundedRectangle' && item.borderRadius) {
-            nodeData.parameter1 = parseFloat(item.borderRadius) || 8;
-          }
-          
-          // Console log when shape is being added
-          console.log('🎯 SHAPE ADDED:', {
-            action: 'Shape dropped and added to diagram',
-            timestamp: new Date().toISOString(),
-            nodeKey: nodeData.key,
-            shapeType: nodeData.shape,
-            label: nodeData.label,
-            position: { x: point.x, y: point.y },
-            color: nodeData.color,
-            properties: nodeData
-          });
-          
-          diagram.startTransaction("add node");
-          diagram.model.addNodeData(nodeData);
-          diagram.commitTransaction("add node");
-        }
-=======
         // Create node data with all necessary properties
         const nodeData: any = {
           key: `node_${Date.now()}`,
@@ -445,7 +218,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         diagram.startTransaction("add node");
         diagram.model.addNodeData(nodeData);
         diagram.commitTransaction("add node");
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
       }
     };
 

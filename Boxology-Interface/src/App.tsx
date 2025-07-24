@@ -18,24 +18,9 @@ function App() {
 
 
   const handleSave = () => {
-<<<<<<< HEAD
-    console.log('💾 SAVE ACTION:', {
-      action: 'User saving diagram',
-      timestamp: new Date().toISOString()
-    });
     if (diagramRef.current) {
       const json = diagramRef.current.model.toJson();
       localStorage.setItem('diagramData', json);
-      console.log('💾 DIAGRAM SAVED:', {
-        action: 'Diagram saved to localStorage',
-        timestamp: new Date().toISOString(),
-        dataSize: json.length
-      });
-=======
-    if (diagramRef.current) {
-      const json = diagramRef.current.model.toJson();
-      localStorage.setItem('diagramData', json);
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
       alert('Diagram saved!');
     }
   };
@@ -43,24 +28,9 @@ function App() {
 
 
   const handleOpen = () => {
-<<<<<<< HEAD
-    console.log('📂 OPEN ACTION:', {
-      action: 'User opening diagram',
-      timestamp: new Date().toISOString()
-    });
     const json = localStorage.getItem('diagramData');
     if (json && diagramRef.current) {
       diagramRef.current.model = go.Model.fromJson(json);
-      console.log('📂 DIAGRAM LOADED:', {
-        action: 'Diagram loaded from localStorage',
-        timestamp: new Date().toISOString(),
-        dataSize: json.length
-      });
-=======
-    const json = localStorage.getItem('diagramData');
-    if (json && diagramRef.current) {
-      diagramRef.current.model = go.Model.fromJson(json);
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
     }
   };
 
@@ -77,62 +47,15 @@ function App() {
   };
 
   const handleValidate = () => {
-<<<<<<< HEAD
-    console.log('✅ VALIDATION STARTED:', {
-      action: 'User initiated validation',
-      timestamp: new Date().toISOString()
-    });
-    
-=======
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
-    if (!diagramRef.current) {
-      alert('❌ Diagram not ready for validation.');
-      return;
-    }
-
-    const diagram = diagramRef.current;
-    
-    // Always get fresh selection - don't cache
-    const currentSelection = diagram.selection;
-    const selectedCount = currentSelection.count;
-    
-    console.log(`🔍 Validation started - ${selectedCount} items selected`);
-    
-    if (selectedCount === 0) {
-      alert("⚠️ No selection made! Please select shapes to validate.");
-      return;
-    }
-    
-    // Clear any previous validation state/cache
-    // Force fresh validation by clearing selection and reselecting
-    const selectedParts: go.Part[] = [];
-    currentSelection.each(part => selectedParts.push(part));
-    
-    // Clear selection temporarily
-    diagram.clearSelection();
-    
-    // Reselect the same parts (this ensures fresh state)
-    selectedParts.forEach(part => part.isSelected = true);
-    
-    try {
-      // validateGoJSDiagram should always work with current selection
-      const result = validateGoJSDiagram(diagram);
-<<<<<<< HEAD
-      console.log('✅ VALIDATION COMPLETED:', {
-        action: 'Validation finished',
-        timestamp: new Date().toISOString(),
-        result: result
-      });
-=======
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
+    // This function calls validateGoJSDiagram() which works with SELECTED items
+    if (diagramRef.current) {
+      const result = validateGoJSDiagram(diagramRef.current);
+      // Optionally, show result to user
       alert(result);
-    } catch (error) {
-      console.error('Validation error:', error);
-      alert('❌ Validation failed. Check console for details.');
+    } else {
+      alert('Diagram is not loaded.');
     }
-    
-    console.log('✅ Validation completed');
-  };
+  }
 
   interface ContextMenuPosition {
     x: number;
@@ -168,15 +91,6 @@ function App() {
   function handleAddContainer() {
     const name = prompt('Container name?');
     if (name && !containers.includes(name)) {
-<<<<<<< HEAD
-      console.log('📦 CONTAINER ADDED:', {
-        action: 'New container created',
-        timestamp: new Date().toISOString(),
-        containerName: name,
-        totalContainers: containers.length + 1
-      });
-=======
->>>>>>> 3e663fba2bac71f2cce0bf0e263fc66b0855dfec
       setContainers([...containers, name]);
       setCustomContainerShapes(prev => ({ ...prev, [name]: [] }));
     }
