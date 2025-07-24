@@ -11,7 +11,6 @@ export interface ShapeDefinition {
 // New interfaces for patterns
 export interface PatternShape {
   key: string;
-  name: string; // Semantic type for validation
   label: string;
   shape: string;
   color: string;

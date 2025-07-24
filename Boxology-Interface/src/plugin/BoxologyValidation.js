@@ -108,13 +108,13 @@ function validatePattern() {
 
     // Group nodes by their "name" attribute to treat duplicates as single logical nodes
     const nodesByName = {};
-    nodes.forEach(node => {
-        const nodeName = node.name || node.value || "";
-        if (!nodesByName[nodeName]) {
-            nodesByName[nodeName] = [];
-        }
-        nodesByName[nodeName].push(node);
-    });
+nodes.forEach(node => {
+    const nodeName = node.name || "";
+    if (!nodesByName[nodeName]) {
+        nodesByName[nodeName] = [];
+    }
+    nodesByName[nodeName].push(node);
+});
 
     // Extract edge names as [sourceName, targetName] - using "name" attribute only
     const edgeNameList = edges.map(edge => [
