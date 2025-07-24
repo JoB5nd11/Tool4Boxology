@@ -2,7 +2,7 @@ export const shapes: ShapeDefinition[] = [
   //Symbol and data - Information related shapes
   { name: 'symbol', label: 'Symbol', shape: 'Rectangle', color: '#ccffccff', stroke: '#218721ff', group: 'General' }, // Light green - represents symbols/variables
   { name: 'data', label: 'Data', shape: 'Rectangle', color: '#b7eaffff', stroke: '#1E5F8B', group: 'General' }, // Sky blue - represents data flow
-  { name: 'datasymbol', label: 'Data/Symbol', shape: 'Rectangle', color: '#99e5e1ff', stroke: '#0D5F5C', group: 'General' }, // Light sea green - hybrid of data & symbol
+  { name: 'data/symbol', label: 'Data/Symbol', shape: 'Rectangle', color: '#99e5e1ff', stroke: '#0D5F5C', group: 'General' }, // Light sea green - hybrid of data & symbol
   
   //Actor - Human/Agent related
   { name: 'actor', label: 'Actor', shape: 'Triangle', color: '#f8ce92ff', stroke: '#000000ff', group: 'General' }, // Peach/orange - represents human actors

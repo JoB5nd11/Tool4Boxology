@@ -47,46 +47,15 @@ function App() {
   };
 
   const handleValidate = () => {
-    if (!diagramRef.current) {
-      alert('❌ Diagram not ready for validation.');
-      return;
-    }
-
-    const diagram = diagramRef.current;
-    
-    // Always get fresh selection - don't cache
-    const currentSelection = diagram.selection;
-    const selectedCount = currentSelection.count;
-    
-    console.log(`🔍 Validation started - ${selectedCount} items selected`);
-    
-    if (selectedCount === 0) {
-      alert("⚠️ No selection made! Please select shapes to validate.");
-      return;
-    }
-    
-    // Clear any previous validation state/cache
-    // Force fresh validation by clearing selection and reselecting
-    const selectedParts: go.Part[] = [];
-    currentSelection.each(part => selectedParts.push(part));
-    
-    // Clear selection temporarily
-    diagram.clearSelection();
-    
-    // Reselect the same parts (this ensures fresh state)
-    selectedParts.forEach(part => part.isSelected = true);
-    
-    try {
-      // validateGoJSDiagram should always work with current selection
-      const result = validateGoJSDiagram(diagram);
+    // This function calls validateGoJSDiagram() which works with SELECTED items
+    if (diagramRef.current) {
+      const result = validateGoJSDiagram(diagramRef.current);
+      // Optionally, show result to user
       alert(result);
-    } catch (error) {
-      console.error('Validation error:', error);
-      alert('❌ Validation failed. Check console for details.');
+    } else {
+      alert('Diagram is not loaded.');
     }
-    
-    console.log('✅ Validation completed');
-  };
+  }
 
   interface ContextMenuPosition {
     x: number;

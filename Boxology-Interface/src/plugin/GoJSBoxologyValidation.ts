@@ -93,30 +93,35 @@ function isIgnorable(nodeData: any): boolean {
   const ignoredNames = ["text", "conditions", "description", "note", "pre-conditions", "post-condition"];
   const ignoredTypes = ["group", "swimlane"];
   
-  const name = ( nodeData.name || "").toLowerCase();
+  const label = (nodeData.label || nodeData.name || "").toLowerCase();
   const shape = (nodeData.shape || "").toLowerCase();
   
-  return ignoredNames.includes(name) || ignoredTypes.includes(shape);
+  return ignoredNames.includes(label) || ignoredTypes.includes(shape);
 }
 
-// FIXED: Get the correct node name for validation (semantic type)
-function getNodeName(nodeData: any): string {
-  return (nodeData.name || "").trim().toLowerCase();
-}
-
-// FIXED: Get the correct node label for display and merging
+// FIXED: Get the correct node label with case normalization
 function getNodeLabel(nodeData: any): string {
-  return (nodeData.label || "").trim();
+  return (nodeData.label || nodeData.name || "").trim();
 }
 
-// FIXED: Check if connection is valid using node names (not labels)
-function isValidConnection(sourceName: string, targetName: string): boolean {
-  // Normalize to lowercase for validation
-  const sourceLower = sourceName.toLowerCase();
-  const targetLower = targetName.toLowerCase();
+// FIXED: Check if connection is valid (handle case variations)
+function isValidConnection(source: string, target: string): boolean {
+  // Try exact match first
+  if (validNext[source] && validNext[source].includes(target)) {
+    return true;
+  }
   
-  // Check if connection is valid based on semantic types
+  // Try lowercase match
+  const sourceLower = source.toLowerCase();
+  const targetLower = target.toLowerCase();
   if (validNext[sourceLower] && validNext[sourceLower].includes(targetLower)) {
+    return true;
+  }
+  
+  // Try capitalized match
+  const sourceCapital = source.charAt(0).toUpperCase() + source.slice(1).toLowerCase();
+  const targetCapital = target.charAt(0).toUpperCase() + target.slice(1).toLowerCase();
+  if (validNext[sourceCapital] && validNext[sourceCapital].includes(targetCapital)) {
     return true;
   }
   
@@ -241,7 +246,7 @@ export function setupDiagramValidation(diagram: go.Diagram): void {
   console.log("✅ GoJS Boxology Plugin Loaded Successfully");
 }
 
-// The function which checks validation for each pattern separately
+// UPDATED: More flexible pattern matching that allows partial patterns
 export function validateGoJSDiagram(diagram: go.Diagram): string {
   const selectedCells = diagram.selection;
   if (selectedCells.count === 0) {
@@ -262,90 +267,266 @@ export function validateGoJSDiagram(diagram: go.Diagram): string {
 
   console.log(`🔍 Validating ${nodes.length} nodes and ${edges.length} edges`);
 
-  // Extract edge names as [sourceName, targetName] - FIXED: normalize to lowercase
-  const edgeNameList = edges.map(edge => {
+  // Group edges by their types for flexible pattern matching
+  const edgesByType: { [key: string]: Array<{from: string, to: string, edge: go.Link}> } = {};
+  
+  edges.forEach(edge => {
     const source = getNodeLabel(edge.fromNode!.data).toLowerCase();
     const target = getNodeLabel(edge.toNode!.data).toLowerCase();
-    return [source, target];
+    const edgeType = `${source}->${target}`;
+    
+    if (!edgesByType[edgeType]) {
+      edgesByType[edgeType] = [];
+    }
+    edgesByType[edgeType].push({from: source, to: target, edge});
   });
 
-  const matchedPatterns: { name: string }[] = [];
-  const matchedNodeIds = new Set<string>();
-  const matchedNodesByPattern: { [key: string]: Set<string> } = {};
-  const usedEdgeIndices = new Set<number>();
+  const matchedPatterns: { name: string, instances: number, type: string }[] = [];
+  const usedEdges = new Set<go.Link>();
 
-  // Pattern matching logic - exactly like original
+  // Enhanced pattern matching logic - now allows partial patterns
   allPatterns.forEach(pattern => {
-    const required = [...pattern.edges];
-    const tempEdges = edgeNameList.map((edge, i) => ({ edge, i }));
-
-    while (true) {
-      const currentMatchIndices: number[] = [];
-      const involvedNodeIds = new Set<string>();
-      let stillValid = true;
-
-      for (const [from, to] of required) {
-        const match = tempEdges.find(({ edge: [s, t], i }) => 
-          s === from && t === to && !usedEdgeIndices.has(i)
-        );
-
-        if (!match) {
-          stillValid = false;
-          break;
-        }
-
-        currentMatchIndices.push(match.i);
-        if (edges[match.i].fromNode) involvedNodeIds.add(edges[match.i].fromNode!.data.key);
-        if (edges[match.i].toNode) involvedNodeIds.add(edges[match.i].toNode!.data.key);
-      }
-
-      if (!stillValid) break;
-
-      // Record the matched pattern instance
-      matchedPatterns.push({ name: pattern.name });
-      matchedNodesByPattern[pattern.name] = matchedNodesByPattern[pattern.name] || new Set();
-      currentMatchIndices.forEach(i => usedEdgeIndices.add(i));
-      involvedNodeIds.forEach(id => {
-        matchedNodeIds.add(id);
-        matchedNodesByPattern[pattern.name].add(id);
+    console.log(`🔍 Checking pattern: ${pattern.name}`);
+    
+    const requiredEdges = [...pattern.edges];
+    
+    // Check for complete pattern instances first
+    let completeInstances = checkCompletePattern(pattern, edgesByType, usedEdges);
+    if (completeInstances > 0) {
+      matchedPatterns.push({ 
+        name: pattern.name, 
+        instances: completeInstances, 
+        type: "complete" 
+      });
+    }
+    
+    // Then check for partial patterns (multiple inputs OR multiple outputs)
+    let partialInstances = checkPartialPattern(pattern, edgesByType, usedEdges);
+    if (partialInstances > 0) {
+      matchedPatterns.push({ 
+        name: `${pattern.name} (partial)`, 
+        instances: partialInstances, 
+        type: "partial" 
       });
     }
   });
 
   // Build result summary
-  const unmatchedNodes = nodes.filter(n => !matchedNodeIds.has(n.data.key));
+  const allUsedNodes = new Set<string>();
+  usedEdges.forEach(edge => {
+    allUsedNodes.add(edge.fromNode!.data.key);
+    allUsedNodes.add(edge.toNode!.data.key);
+  });
+
+  const unmatchedNodes = nodes.filter(n => !allUsedNodes.has(n.data.key));
   const isolatedNodes = nodes.filter(n => {
     let hasConnections = false;
     n.findLinksConnected().each(() => { hasConnections = true; });
     return !hasConnections;
   });
 
-  if (matchedPatterns.length > 0 && unmatchedNodes.length === 0 && isolatedNodes.length === 0) {
+  if (matchedPatterns.length > 0) {
     let summary = "✅ Valid pattern(s) detected:\n\n";
-    for (const [pattern, nodeSet] of Object.entries(matchedNodesByPattern)) {
-      summary += `• ${pattern}\n`;
-    }
-    return summary;
-  } else {
-    let summary = "❌ Invalid pattern: Issues detected.\n\n";
-    if (matchedPatterns.length > 0) {
-      summary += "✅ Partial matches found:\n";
-      for (const [pattern, nodeSet] of Object.entries(matchedNodesByPattern)) {
-        summary += `  • ${pattern} (${nodeSet.size} nodes)\n`;
+    matchedPatterns.forEach(({ name, instances, type }) => {
+      const emoji = type === "complete" ? "🎯" : "🔄";
+      if (instances === 1) {
+        summary += `${emoji} ${name}\n`;
+      } else {
+        summary += `${emoji} ${name} (${instances} instances)\n`;
       }
-      summary += "\n";
-    }
+    });
     
     if (unmatchedNodes.length > 0) {
-      summary += `❌ ${unmatchedNodes.length} unmatched nodes\n`;
-    }
-    
-    if (isolatedNodes.length > 0) {
-      summary += `❌ ${isolatedNodes.length} isolated nodes\n`;
+      summary += `\n⚠️ ${unmatchedNodes.length} unmatched nodes:\n`;
+      unmatchedNodes.forEach(node => {
+        summary += `  • ${getNodeLabel(node.data)}\n`;
+      });
     }
     
     return summary;
+  } else {
+    return `❌ No valid patterns found in selection.\n\nSelected: ${nodes.map(n => getNodeLabel(n.data)).join(', ')}`;
   }
+}
+
+// Check for complete pattern instances (all edges must exist)
+function checkCompletePattern(
+  pattern: any, 
+  edgesByType: { [key: string]: Array<{from: string, to: string, edge: go.Link}> },
+  usedEdges: Set<go.Link>
+): number {
+  const requiredEdges = [...pattern.edges];
+  let maxPossibleInstances = Infinity;
+  
+  // Check availability of each required edge type
+  for (const [from, to] of requiredEdges) {
+    const edgeType = `${from}->${to}`;
+    const availableEdges = edgesByType[edgeType] || [];
+    const unusedEdges = availableEdges.filter(e => !usedEdges.has(e.edge));
+    
+    if (unusedEdges.length === 0) {
+      return 0; // Can't form complete pattern without this edge type
+    }
+    
+    maxPossibleInstances = Math.min(maxPossibleInstances, unusedEdges.length);
+  }
+  
+  // Try to match complete instances
+  let actualInstances = 0;
+  for (let i = 0; i < maxPossibleInstances; i++) {
+    const edgesForThisInstance = new Set<go.Link>();
+    let canFormInstance = true;
+    
+    // Try to find all required edges for one complete instance
+    for (const [from, to] of requiredEdges) {
+      const edgeType = `${from}->${to}`;
+      const availableEdges = edgesByType[edgeType] || [];
+      const unusedEdges = availableEdges.filter(e => 
+        !usedEdges.has(e.edge) && !edgesForThisInstance.has(e.edge)
+      );
+      
+      if (unusedEdges.length === 0) {
+        canFormInstance = false;
+        break;
+      }
+      
+      edgesForThisInstance.add(unusedEdges[0].edge);
+    }
+    
+    if (canFormInstance) {
+      edgesForThisInstance.forEach(edge => usedEdges.add(edge));
+      actualInstances++;
+    } else {
+      break;
+    }
+  }
+  
+  console.log(`  Complete instances: ${actualInstances}`);
+  return actualInstances;
+}
+
+// Check for partial pattern instances (multiple inputs OR multiple outputs)
+function checkPartialPattern(
+  pattern: any, 
+  edgesByType: { [key: string]: Array<{from: string, to: string, edge: go.Link}> },
+  usedEdges: Set<go.Link>
+): number {
+  const requiredEdges = [...pattern.edges];
+  
+  // For 2-edge patterns like ["symbol", "generate:train"], ["generate:train", "model"]
+  if (requiredEdges.length === 2) {
+    const [edge1, edge2] = requiredEdges;
+    const [from1, to1] = edge1;
+    const [from2, to2] = edge2;
+    
+    // Check if we have the connecting node (middle node)
+    const middleNode = to1 === from2 ? to1 : (from1 === to2 ? from1 : null);
+    
+    if (middleNode) {
+      let partialInstances = 0;
+      
+      const inputEdges = edgesByType[`${from1}->${to1}`] || [];
+      const outputEdges = edgesByType[`${from2}->${to2}`] || [];
+      
+      const unusedInputs = inputEdges.filter(e => !usedEdges.has(e.edge));
+      const unusedOutputs = outputEdges.filter(e => !usedEdges.has(e.edge));
+      
+      console.log(`  Checking partial pattern for ${pattern.name}:`);
+      console.log(`    Input edges (${from1}->${to1}): ${unusedInputs.length}`);
+      console.log(`    Output edges (${from2}->${to2}): ${unusedOutputs.length}`);
+      
+      // Case 1: Multiple inputs (≥2) with any number of outputs (≥0)
+      if (unusedInputs.length >= 2) {
+        console.log(`  ✅ Found MULTIPLE INPUTS pattern: ${unusedInputs.length} inputs`);
+        
+        // Find middle nodes that have multiple inputs
+        const inputMiddleNodes = new Map<string, number>();
+        unusedInputs.forEach(e => {
+          const key = e.edge.toNode!.data.key;
+          inputMiddleNodes.set(key, (inputMiddleNodes.get(key) || 0) + 1);
+        });
+        
+        // Count middle nodes that have 2+ inputs
+        const multiInputMiddleNodes = Array.from(inputMiddleNodes.entries())
+          .filter(([key, count]) => count >= 2);
+        
+        partialInstances += multiInputMiddleNodes.length;
+        console.log(`    Found ${multiInputMiddleNodes.length} nodes with multiple inputs`);
+        
+        // Mark all input edges as used
+        unusedInputs.forEach(e => usedEdges.add(e.edge));
+        
+        // If there are also output edges from these middle nodes, mark them as used too
+        if (unusedOutputs.length > 0) {
+          const validOutputs = unusedOutputs.filter(e => 
+            multiInputMiddleNodes.some(([key]) => e.edge.fromNode!.data.key === key)
+          );
+          validOutputs.forEach(e => usedEdges.add(e.edge));
+        }
+      }
+      
+      // Case 2: Multiple outputs (≥2) with any number of inputs (≥0) 
+      // Only check this if we haven't already found multiple inputs
+      else if (unusedOutputs.length >= 2) {
+        console.log(`  ✅ Found MULTIPLE OUTPUTS pattern: ${unusedOutputs.length} outputs`);
+        
+        // Find middle nodes that have multiple outputs
+        const outputMiddleNodes = new Map<string, number>();
+        unusedOutputs.forEach(e => {
+          const key = e.edge.fromNode!.data.key;
+          outputMiddleNodes.set(key, (outputMiddleNodes.get(key) || 0) + 1);
+        });
+        
+        // Count middle nodes that have 2+ outputs
+        const multiOutputMiddleNodes = Array.from(outputMiddleNodes.entries())
+          .filter(([key, count]) => count >= 2);
+        
+        partialInstances += multiOutputMiddleNodes.length;
+        console.log(`    Found ${multiOutputMiddleNodes.length} nodes with multiple outputs`);
+        
+        // Mark all output edges as used
+        unusedOutputs.forEach(e => usedEdges.add(e.edge));
+        
+        // If there are also input edges to these middle nodes, mark them as used too
+        if (unusedInputs.length > 0) {
+          const validInputs = unusedInputs.filter(e => 
+            multiOutputMiddleNodes.some(([key]) => e.edge.toNode!.data.key === key)
+          );
+          validInputs.forEach(e => usedEdges.add(e.edge));
+        }
+      }
+      
+      console.log(`  Partial instances found: ${partialInstances}`);
+      return partialInstances;
+    }
+  }
+  
+  // For 3+ edge patterns, check for partial matches
+  else if (requiredEdges.length >= 3) {
+    // For complex patterns like inference, check if we have some of the required edges
+    let foundEdgeTypes = 0;
+    const totalEdgeTypes = requiredEdges.length;
+    
+    for (const [from, to] of requiredEdges) {
+      const edgeType = `${from}->${to}`;
+      const availableEdges = edgesByType[edgeType] || [];
+      const unusedEdges = availableEdges.filter(e => !usedEdges.has(e.edge));
+      
+      if (unusedEdges.length > 0) {
+        foundEdgeTypes++;
+        // Mark first edge of each type as used for this partial pattern
+        usedEdges.add(unusedEdges[0].edge);
+      }
+    }
+    
+    // Consider it a partial match if we have at least 2 out of 3+ required edges
+    if (foundEdgeTypes >= 2) {
+      console.log(`  ✅ Found PARTIAL COMPLEX pattern: ${foundEdgeTypes}/${totalEdgeTypes} edge types`);
+      return 1;
+    }
+  }
+  
+  return 0;
 }
 
 // Export validation shapes and patterns for external use
