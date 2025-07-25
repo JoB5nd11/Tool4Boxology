@@ -103,7 +103,11 @@ Open the GoJS-based visual editor from the `Boxology-interface` folder. Instruct
 
 ## 📜 License
 
-This project is licensed under the **Creative Commons Attribution 4.0 International License**.
+- 🧠 **Code** is licensed under the [MIT License](LICENSE).
+- 📄 **Documentation, diagrams, and examples** are licensed under the [Creative Commons Attribution 4.0 International License](LICENSE-CC-BY-4.0).
+
+[![License: CC BY 4.0](https://licensebuttons.net/l/by/4.0/88x31.png)](https://creativecommons.org/licenses/by/4.0/)
+
 
 ---
 
