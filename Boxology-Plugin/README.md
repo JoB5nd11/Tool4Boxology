@@ -30,14 +30,14 @@ This repository contains:
    Press `F12` or `Ctrl+Shift+I` to open the Developer Tools console.
 
 3. **Inject the Plugin**  
-   Copy the entire contents of `BoxologyValidation-v1.2.js` and paste it into the **Console** tab. Press `Enter` to execute.
+   Copy the entire contents of `BoxologyValidation.js` and paste it into the **Console** tab. Press `Enter` to execute.
 
    ✅ You'll see a message:  
    `"✅ Boxology Guided Plugin Loaded"`
 
 4. **Import the Vocabulary**  
    - From the **File** menu, choose **Import from... > Device**
-   - Select the `VocabularyLibrary.drawio` file to load your Boxology components
+   - Select the `ShapeLib.xml` , 'PatternLin.xml' and 'AnnotationLib.xml' files to load your Boxology components
 
 5. **Use and Validate**  
    - Drag and connect nodes from the vocabulary as needed
@@ -110,6 +110,7 @@ Defined in the plugin (`validNext` object), enforcing valid next components.
 2. Connect to `generate:train` or `transform`.
 3. Link to a `model` node.
 4. Validate the pattern to confirm its logic.
+
 
 ---
 
