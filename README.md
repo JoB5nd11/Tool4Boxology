@@ -1,67 +1,111 @@
-
 # 🧰 Tool4Boxology
 
-**Tool4Boxology** is a modular, visual toolkit designed to support the Boxology framework—an approach for modeling and validating AI and knowledge-based systems. It includes a Draw.io plugin, structured vocabulary libraries, and a set of elementary patterns that help users build valid and meaningful Boxology models. This tool is primarily based on the design patterns and taxonomy introduced by **Frank van Harmelen** and colleagues in their paper *"Modular Design Patterns for Hybrid Learning and Reasoning Systems"*, which serves as the core reference and inspiration for our implementation.
+**Tool4Boxology** is a modular visual toolkit for designing and validating hybrid AI systems using the Boxology methodology. It provides a shared conceptual and visual language to describe systems that combine symbolic reasoning and machine learning.
 
-To document the development process, I have also uploaded a detailed progress report. This report outlines how I started building the Tool4Boxology plugin from scratch, including the initial design decisions, implementation milestones, challenges faced, and how the concepts from the foundational Boxology paper were translated into interactive tooling. It serves as a transparent overview of the step-by-step development journey and the rationale behind key components of the toolkit. You can find it [here](ProgressReport-Phase1.pdf)
-
-
----
-
-## 🌍 What is Boxology?
-
-Boxology is a visual methodology for describing AI system architectures using interconnected conceptual components such as:
-
-- **Data**
-- **Symbols**
-- **Models**
-- **Processes** (e.g. infer, transform, generate)
-
-Each connection between components is subject to logic constraints. This toolkit helps enforce and validate those constraints.
+This project is inspired by the work of **Frank van Harmelen** et al. in their paper:
+> *"Modular Design Patterns for Hybrid Learning and Reasoning Systems: A Taxonomy, Patterns and Use Cases"* ([Web Semantics, 2023](https://doi.org/10.1016/j.websem.2023.100769))
 
 ---
 
-## 📂 Repository Structure
+## 🎯 Motivation
+
+Hybrid AI systems lack a common language for design, validation, and communication. Tool4Boxology addresses this by:
+
+- Providing a **visual grammar and formal syntax** for system components
+- Enabling **modular, explainable design** with reusable patterns
+- Offering real-time **validation tools** to reduce design errors early
+- Enhancing documentation, automation, and traceability
+
+---
+
+## 🧩 Key Features
+
+- ✅ Draw.io Plugin with validation logic
+- 🧠 Formal grammar for elementary Boxology patterns
+- 🧰 Custom vocabulary libraries
+- 🖥️ GoJS-based interface for direct interaction
+- 🐳 Dockerized setup for reproducible deployment
+
+---
+
+## 📦 Repository Structure
 
 | Folder | Description |
 |--------|-------------|
-| [ElementaryPattern](https://github.com/SDM-TIB/Tool4Boxology/tree/main/ElementaryPattern) | Elementary Boxology patterns written in DOT language for visualization |
-| [BoxologyPlugin](https://github.com/SDM-TIB/Tool4Boxology/tree/main/BoxologyPlugin) | Validation plugin for Draw.io and vocabulary components for modeling |
-
-👉 **Each folder includes its own README with specific instructions**—we recommend checking them out to understand how to use the contents effectively.
-
----
-
-## 🖋️ [Elementary Patterns in DOT Language](https://github.com/SDM-TIB/Tool4Boxology/tree/main/ElementaryPattern)
-
-This section includes Boxology representations written in **DOT language**—a plain text graph description syntax used with Graphviz. These are used **only for visualization**, not for validation.
-
-You can view and edit them using tools like the [Graphviz Visual Editor](https://magjac.com/graphviz-visual-editor/). Either insert shapes manually or copy from the provided `Vocabulary` file. Each **elementary pattern** is stored separately to support modular design.
-
-> 🔄 **Important Notes**:
-> - DOT is **case-sensitive** (`Symbol` ≠ `symbol`)
-> - Nodes must have **unique identifiers** (`Symbol1`, `Symbol2`, etc.)
-> - Use `rankdir=LR` or `rankdir=TB` for organized layouts
-
-📌 For logic validation, use the Draw.io plugin described below.
+| `Boxology-Docker` | Docker container setup based on `fjudith/drawio`, including preloaded plugins and custom libraries. |
+| `Boxology-interface` | Custom visual interface for Boxology models using GoJS. |
+| `Boxology-plugin` | Draw.io plugin and vocabulary library for manual integration. |
+| `ElementaryPattern` | Elementary patterns written in DOT language for modular visualization. |
+| `Report` | Development report tracing project progress from scratch to implementation. |
 
 ---
 
-## 📦 [Boxology Plugin & Vocabulary Library](https://github.com/SDM-TIB/Tool4Boxology/tree/main/BoxologyPlugin)
+## 🚀 Quick Start
 
-A plugin and validation tool for hybrid AI system modeling using the Boxology methodology. This ensures the construction of valid design patterns by enforcing logical flows in both **web** and **desktop app** environments.
+### 1. Use the Plugin
+- Open Draw.io (web or desktop)
+- Import the plugin from the `Boxology-plugin` folder
+- Load the vocabulary `.drawio` file to access custom shapes
 
-### 🔍 Overview
+### 2. Run with Docker
+```bash
+git clone https://github.com/SDM-TIB/Tool4Boxology.git
+cd Tool4Boxology/Boxology-Docker
+docker-compose up
+```
+Access Draw.io at `http://localhost:8080` with Boxology support.
 
-- **Boxology Plugin**: Extends Draw.io with validation logic for Boxology patterns
-- **Vocabulary Library**: `.drawio` file containing reusable modular components
+### 3. Use the Interface
+Open the GoJS-based visual editor from the `Boxology-interface` folder. Instructions are included in its README.
 
-### 🚀 Features
+---
 
-- ✅ Validates logical flow and connectivity  
-- 🔁 Prevents invalid or dangling edges  
-- ♻️ Automatically merges duplicate nodes  
-- 🛠️ Adds validation buttons directly into the Draw.io toolbar
+## 📘 Example
 
-📖 See the [BoxologyPlugin folder README](https://github.com/SDM-TIB/Tool4Boxology/tree/main/BoxologyPlugin) for setup instructions for both **browser-based** and **desktop** usage.
+> _A sample hybrid AI pipeline using Boxology grammar._
+
+![Example Diagram](example/example_diagram.png)
+
+This diagram models a simple pipeline:
+- Input data
+- A learning process (train model)
+- A symbolic inference process (infer conclusion)
+- Output
+
+(📂 See `example/example_diagram.drawio` for the editable source.)
+
+---
+
+## 🔮 Future Work
+
+- RDF export for integration into knowledge graphs
+- SHACL-based validation for semantic consistency
+- Enhanced support for reasoning templates and ontology-based rules
+
+---
+
+## 📄 Reference
+
+- Harmelen, F. van, Liao, B., Ifrim, G., & Groth, P. (2023). Modular Design Patterns for Hybrid Learning and Reasoning Systems. *Journal of Web Semantics*, 79, 100769. [DOI](https://doi.org/10.1016/j.websem.2023.100769)
+- Keet, C. M., & Rodríguez-Muro, M. (2023). Combining Machine Learning and Semantic Web: A Systematic Mapping Study. *ACM Computing Surveys*, 55(7), Article 140.
+
+---
+
+## 👤 Author & Contact
+
+📧 Mahsa Forghani Tehrani  
+🎓 Master Student, Leibniz University Hannover  
+📮 mahsa.forghani.tehrani@stud.uni-hannover.de
+
+---
+
+## 📜 License
+
+This project is licensed under the **Creative Commons Attribution 4.0 International License**.
+
+---
+
+## 🤝 Contributing
+
+Pull requests and feedback are welcome! Please open issues for bugs, ideas, or questions.
 
