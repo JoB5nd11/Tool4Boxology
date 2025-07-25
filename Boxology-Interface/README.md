@@ -1,4 +1,5 @@
-# 🖼️ Boxology-Interface
+
+# Boxology-Interface
 
 This module contains a custom **web-based interface** for designing hybrid AI systems using **Boxology** principles. It is built with **React**, **TypeScript**, **Vite**, and **GoJS**, and provides an interactive diagramming environment for creating modular, validated AI system architectures.
 
