@@ -11,8 +11,7 @@ This module contains a custom **web-based interface** for designing hybrid AI sy
 - 📦 Drag-and-drop Boxology components
 - 🔗 Connect components with semantically meaningful edges
 - 🔍 Real-time preview and layout
-- 🧠 Supports custom validation logic (coming soon)
-- 💾 Export/import diagrams for reuse and sharing
+- 💾 Export diagrams for reuse and sharing
 
 ---
 
