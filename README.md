@@ -3,10 +3,17 @@
 
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Docker](https://img.shields.io/badge/docker-image-blue)](https://hub.docker.com/)  <!-- Update link -->
+[![Docker](https://img.shields.io/badge/docker-image-blue)](https://hub.docker.com/)
 [![Status](https://img.shields.io/badge/status-beta-orange)]()
 [![Version](https://img.shields.io/badge/version-v0.1.0-blueviolet)]()
 [![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11-blue)]()
+[![GoJS](https://img.shields.io/badge/built%20with-GoJS-blue)](https://gojs.net/)
+[![Vite](https://img.shields.io/badge/tooling-vite-yellow)](https://vitejs.dev/)
+[![TypeScript](https://img.shields.io/badge/language-typescript-3178c6)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/library-react-61DAFB)](https://reactjs.org/)
+[![JavaScript](https://img.shields.io/badge/language-javascript-F7DF1E)](https://developer.mozilla.org/docs/Web/JavaScript)
+[![HTML](https://img.shields.io/badge/markup-html-e34c26)](https://developer.mozilla.org/docs/Web/HTML)
+[![CSS](https://img.shields.io/badge/style-css-264de4)](https://developer.mozilla.org/docs/Web/CSS)
 
 
 **Tool4Boxology** is a modular visual toolkit for designing and validating hybrid AI systems using the Boxology methodology. It provides a shared conceptual and visual language to describe systems that combine symbolic reasoning and machine learning.
