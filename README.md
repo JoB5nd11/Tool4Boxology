@@ -1,6 +1,14 @@
 
 # 🧰 Tool4Boxology
 
+[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docker](https://img.shields.io/badge/docker-image-blue)](https://hub.docker.com/)  <!-- Update link -->
+[![Status](https://img.shields.io/badge/status-beta-orange)]()
+[![Version](https://img.shields.io/badge/version-v0.1.0-blueviolet)]()
+[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11-blue)]()
+
+
 **Tool4Boxology** is a modular visual toolkit for designing and validating hybrid AI systems using the Boxology methodology. It provides a shared conceptual and visual language to describe systems that combine symbolic reasoning and machine learning.
 
 This project is inspired by the work of **Frank van Harmelen** et al. in their paper:
