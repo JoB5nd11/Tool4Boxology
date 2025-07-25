@@ -1,3 +1,5 @@
+"license": "CC-BY-4.0"
+
 # 🧰 Tool4Boxology
 
 **Tool4Boxology** is a modular visual toolkit for designing and validating hybrid AI systems using the Boxology methodology. It provides a shared conceptual and visual language to describe systems that combine symbolic reasoning and machine learning.
