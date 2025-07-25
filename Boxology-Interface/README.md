@@ -1,59 +1,88 @@
-# Boxology Webapp (React + TypeScript + Vite)
+# 🖼️ Boxology-Interface
 
-This webapp is an interactive diagram editor built with React, TypeScript, and Vite. It allows users to create, edit, and validate diagrams using the Boxology methodology, supporting custom shapes, patterns, and annotation.
+This module contains a custom **web-based interface** for designing hybrid AI systems using **Boxology** principles. It is built with **React**, **TypeScript**, **Vite**, and **GoJS**, and provides an interactive diagramming environment for creating modular, validated AI system architectures.
 
-## Features
+⚠️ **Note:** This interface is under **active development**. New features and visual enhancements are being added frequently.
 
-- **Drag-and-drop diagram editor:** Build diagrams using a sidebar of shapes and patterns.
-- **GoJS integration:** Render and manage diagram nodes and links with GoJS.
-- **Pattern libraries:** Includes a PatternLib container for reusable Boxology patterns.
-- **Validation:** Validate diagrams against Boxology rules and patterns using a custom plugin.
-- **Context menu:** Right-click nodes to move them to groups or containers.
-- **Sidebar editing:** Edit node properties in the right sidebar.
-- **Custom groups:** Create your own groups and organize shapes.
-- **Annotation:** Add comments and notes to your diagrams.
+---
 
-## Usage
+## ✨ Features (in progress)
 
-1. **Add shapes:** Drag shapes from the left sidebar onto the canvas.
-2. **Create groups:** Use the sidebar to add new groups and organize shapes.
-3. **PatternLib:** Access predefined Boxology patterns in the PatternLib container.
-4. **Edit nodes:** Select a node to edit its properties in the right sidebar.
-5. **Validate:** Click "Validate Pattern" in the toolbar to check your diagram against Boxology rules.
-6. **Context menu:** Right-click a node to move it to a group or container.
+- 📦 Drag-and-drop Boxology components
+- 🔗 Connect components with semantically meaningful edges
+- 🔍 Real-time preview and layout
+- 🧠 Supports custom validation logic (coming soon)
+- 💾 Export/import diagrams for reuse and sharing
 
-## Development
+---
 
-This project uses Vite for fast development and HMR.  
-See below for ESLint and TypeScript configuration tips.
+## 🧰 Built With
 
-## ESLint Configuration
+- [React](https://reactjs.org/)
+- [Vite](https://vitejs.dev/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [GoJS](https://gojs.net/)
+- [HTML5/CSS3](https://developer.mozilla.org/en-US/docs/Web)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      ...tseslint.configs.recommendedTypeChecked,
-      ...tseslint.configs.strictTypeChecked,
-      ...tseslint.configs.stylisticTypeChecked,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-    },
-  },
-])
+## 🚀 Getting Started
+
+### 1. Clone and Install
+```bash
+git clone https://github.com/SDM-TIB/Tool4Boxology.git
+cd Tool4Boxology/Boxology-Interface
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules.
+### 2. Run the Development Server
+```bash
+npm run dev
+```
 
-## License
+Then open [http://localhost:5173](http://localhost:5173) in your browser.
 
-This webapp is for academic and research use.  
-GoJS is licensed separately. Please refer to the GoJS license for usage terms.
+---
+
+## 📂 Folder Structure
+
+| Folder/File       | Purpose                          |
+|------------------|----------------------------------|
+| `src/`           | React components and diagram logic |
+| `public/`        | Static assets                    |
+| `vite.config.ts` | Vite build configuration         |
+| `tsconfig.json`  | TypeScript settings              |
+
+---
+
+## 🔧 Planned Improvements
+
+- ⬜ Add validation engine using Boxology grammar
+- ⬜ Enable RDF/SHACL export of diagrams
+- ⬜ UI/UX refinements and theme integration
+- ⬜ Dynamic shape library loading and categorization
+
+We are working continuously to improve the UI, stability, and functionality of the Boxology Interface. Contributions and feedback are welcome!
+
+---
+
+## 📄 License
+
+- Code is licensed under the [MIT License](../LICENSE)
+- UI diagrams and Boxology shapes are under [CC BY 4.0 License](../LICENSE-CC-BY-4.0)
+
+---
+
+## 🧠 Acknowledgments
+
+This project uses [GoJS](https://gojs.net/) for diagram rendering.  
+We currently use the **evaluation version**, which includes a watermark, in compliance with the GoJS [license agreement](https://gojs.net/latest/license.html).
+
+For commercial use or removal of the watermark, a license from [Northwoods Software](https://nwoods.com/) is required.
+
+---
+
+## 🙋 Contact
+
+Developed by: **Mahsa Forghani Tehrani**  
+📧 mahsa.forghani.tehrani@stud.uni-hannover.de
