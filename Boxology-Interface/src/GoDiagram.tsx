@@ -64,7 +64,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       fig.add(new go.PathSegment(go.PathSegment.Line, 0, h * 0.75));
       fig.add(new go.PathSegment(go.PathSegment.Line, 0, h * 0.25));
       fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.5, 0).close());
-      
+      // Rotate to make it upright
+      fig.add(new go.PathSegment(go.PathSegment.Arc, 0, 0, w, h, 0, 360));
       geo.add(fig);
       return geo;
     });
@@ -201,11 +202,12 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         // Create node data with all necessary properties
         const nodeData: any = {
           key: `node_${Date.now()}`,
-          label: shape.label,
-          shape: shape.shape, // This is crucial for rendering
-          color: shape.color,
-          stroke: shape.stroke,
-          loc: go.Point.stringify(point),
+          name: shape.name,        // Important: Copy the semantic name for validation
+          label: shape.label,      // Copy the display label
+          shape: shape.shape,      // Copy the shape type
+          color: shape.color,      // Copy the fill color
+          stroke: shape.stroke,    // Copy the stroke color
+          loc: go.Point.stringify(point), // Set the position
           ...(shape.width && { width: shape.width }),
           ...(shape.height && { height: shape.height }),
         };
@@ -214,6 +216,15 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         if (shape.shape === 'RoundedRectangle' && shape.borderRadius) {
           nodeData.parameter1 = parseFloat(shape.borderRadius) || 8;
         }
+        
+        // Handle Hexagon shape parameters
+        if (shape.shape === 'Hexagon') {
+          // Ensure hexagon renders correctly
+          nodeData.parameter1 = 1; // Default parameter for hexagon
+          console.log('📐 Adding Hexagon with shape:', shape.shape);
+        }
+        
+        console.log('🎨 Adding node to diagram:', nodeData);
         
         diagram.startTransaction("add node");
         diagram.model.addNodeData(nodeData);

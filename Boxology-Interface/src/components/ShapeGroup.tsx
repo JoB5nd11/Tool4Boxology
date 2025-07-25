@@ -94,7 +94,7 @@ export default function ShapeGroup({ title, shapes }: Props) {
         return {
           ...base,
           clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
-          width: 60,
+          width: 70,
           height: 40,
           stroke: shape.stroke || '#999',
         };

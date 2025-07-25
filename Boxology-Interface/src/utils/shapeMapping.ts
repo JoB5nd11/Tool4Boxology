@@ -3,40 +3,27 @@ import * as go from "gojs";
 /**
  * Maps custom shape names to GoJS figure names
  */
-export const mapShapeToGoJSFigure = (shapeType: string): string => {
+export function mapShapeToGoJSFigure(shapeType: string): string {
   switch (shapeType) {
     case 'Rectangle':
-      return "Rectangle";
-      
+      return 'Rectangle';
     case 'RoundedRectangle':
-      return "RoundedRectangle";
-      
-    case 'Ellipse':
-    case 'Circle':
-      return "Ellipse";
-      
+      return 'RoundedRectangle';
     case 'Diamond':
-      return "Diamond";
-      
+      return 'Diamond';
+    case 'Ellipse':
+      return 'Ellipse';
     case 'Triangle':
-      return "Triangle";
-      
+      return 'TriangleUp';
     case 'TriangleDown':
-      return "TriangleDown";
-      
+      return 'TriangleDown';
     case 'Hexagon':
-      return "CustomHexagon"; // Use our custom hexagon definition
-      
-    case 'Pentagon':
-      return "Pentagon"; // Try basic pentagon name
-      
-    case 'Star':
-      return "FivePointedStar";
-      
+      return 'CustomHexagon'; // Use the built-in GoJS Hexagon figure
     default:
-      return "Rectangle";
+      console.warn(`Unknown shape type: ${shapeType}, falling back to Rectangle`);
+      return 'Rectangle';
   }
-};
+}
 
 go.Shape.defineFigureGenerator("CustomHexagon", function(shape, w, h) {
   const geo = new go.Geometry();
