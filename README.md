@@ -63,16 +63,17 @@ Open the GoJS-based visual editor from the `Boxology-interface` folder. Instruct
 ## 📘 Example
 
 > _A sample hybrid AI pipeline using Boxology grammar._
+> This diagram is a use case from Boxology paper (Robot in Action).
 
-![Example Diagram](example/example_diagram.png)
 
-This diagram models a simple pipeline:
-- Input data
-- A learning process (train model)
-- A symbolic inference process (infer conclusion)
-- Output
+![Example Diagram](images/Robot-in-action.png)
 
-(📂 See `example/example_diagram.drawio` for the editable source.)
+> ✅ Check for validation!
+
+
+![Example Diagram](images/Robot-in-action-validate.png)
+
+
 
 ---
 
