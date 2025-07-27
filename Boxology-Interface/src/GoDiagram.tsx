@@ -58,13 +58,25 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       const fig = new go.PathFigure(w * 0.5, 0, true); // start point at top center
       
       // Create hexagon points
-      fig.add(new go.PathSegment(go.PathSegment.Line, w, h * 0.25));
-      fig.add(new go.PathSegment(go.PathSegment.Line, w, h * 0.75));
-      fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.5, h));
-      fig.add(new go.PathSegment(go.PathSegment.Line, 0, h * 0.75));
-      fig.add(new go.PathSegment(go.PathSegment.Line, 0, h * 0.25));
-      fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.5, 0).close());
-      
+      // Define custom figures for GoJS
+      go.Shape.defineFigureGenerator("CustomHexagon", function(shape, w, h) {
+        let param1 = shape ? shape.parameter1 : NaN;
+        if (isNaN(param1)) param1 = 1; // default corner radius
+        
+        const geo = new go.Geometry();
+        const fig = new go.PathFigure(0, h * 0.5, true); // start point at left center
+        
+        // Create hexagon points - rotated 90 degrees to match sidebar
+        fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.25, 0));      // top-left
+        fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.75, 0));      // top-right  
+        fig.add(new go.PathSegment(go.PathSegment.Line, w, h * 0.5));       // right point
+        fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.75, h));      // bottom-right
+        fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.25, h));      // bottom-left
+        fig.add(new go.PathSegment(go.PathSegment.Line, 0, h * 0.5).close()); // back to left point
+        
+        geo.add(fig);
+        return geo;
+      });
       geo.add(fig);
       return geo;
     });
@@ -201,11 +213,12 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         // Create node data with all necessary properties
         const nodeData: any = {
           key: `node_${Date.now()}`,
-          label: shape.label,
-          shape: shape.shape, // This is crucial for rendering
-          color: shape.color,
-          stroke: shape.stroke,
-          loc: go.Point.stringify(point),
+          name: shape.name,        // Important: Copy the semantic name for validation
+          label: shape.label,      // Copy the display label
+          shape: shape.shape,      // Copy the shape type
+          color: shape.color,      // Copy the fill color
+          stroke: shape.stroke,    // Copy the stroke color
+          loc: go.Point.stringify(point), // Set the position
           ...(shape.width && { width: shape.width }),
           ...(shape.height && { height: shape.height }),
         };
@@ -214,6 +227,15 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         if (shape.shape === 'RoundedRectangle' && shape.borderRadius) {
           nodeData.parameter1 = parseFloat(shape.borderRadius) || 8;
         }
+        
+        // Handle Hexagon shape parameters
+        if (shape.shape === 'Hexagon') {
+          // Ensure hexagon renders correctly
+          nodeData.parameter1 = 1; // Default parameter for hexagon
+          console.log('📐 Adding Hexagon with shape:', shape.shape);
+        }
+        
+        console.log('🎨 Adding node to diagram:', nodeData);
         
         diagram.startTransaction("add node");
         diagram.model.addNodeData(nodeData);
