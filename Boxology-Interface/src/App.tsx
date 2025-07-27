@@ -20,7 +20,18 @@ function App() {
   const handleSave = () => {
     if (diagramRef.current) {
       const json = diagramRef.current.model.toJson();
-      localStorage.setItem('diagramData', json);
+      
+      // Download as file instead of localStorage
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `diagram_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
       alert('Diagram saved!');
     }
   };
@@ -28,10 +39,29 @@ function App() {
 
 
   const handleOpen = () => {
-    const json = localStorage.getItem('diagramData');
-    if (json && diagramRef.current) {
-      diagramRef.current.model = go.Model.fromJson(json);
-    }
+    // Create a file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file && diagramRef.current) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const json = event.target?.result as string;
+            diagramRef.current!.model = go.Model.fromJson(json);
+            alert('Diagram loaded successfully!');
+          } catch (error) {
+            alert('Error loading diagram: Invalid file format');
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    
+    input.click();
   };
 
   const handleUndo = () => {

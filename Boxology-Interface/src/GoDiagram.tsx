@@ -58,14 +58,25 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       const fig = new go.PathFigure(w * 0.5, 0, true); // start point at top center
       
       // Create hexagon points
-      fig.add(new go.PathSegment(go.PathSegment.Line, w, h * 0.25));
-      fig.add(new go.PathSegment(go.PathSegment.Line, w, h * 0.75));
-      fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.5, h));
-      fig.add(new go.PathSegment(go.PathSegment.Line, 0, h * 0.75));
-      fig.add(new go.PathSegment(go.PathSegment.Line, 0, h * 0.25));
-      fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.5, 0).close());
-      // Rotate to make it upright
-      fig.add(new go.PathSegment(go.PathSegment.Arc, 0, 0, w, h, 0, 360));
+      // Define custom figures for GoJS
+      go.Shape.defineFigureGenerator("CustomHexagon", function(shape, w, h) {
+        let param1 = shape ? shape.parameter1 : NaN;
+        if (isNaN(param1)) param1 = 1; // default corner radius
+        
+        const geo = new go.Geometry();
+        const fig = new go.PathFigure(0, h * 0.5, true); // start point at left center
+        
+        // Create hexagon points - rotated 90 degrees to match sidebar
+        fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.25, 0));      // top-left
+        fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.75, 0));      // top-right  
+        fig.add(new go.PathSegment(go.PathSegment.Line, w, h * 0.5));       // right point
+        fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.75, h));      // bottom-right
+        fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.25, h));      // bottom-left
+        fig.add(new go.PathSegment(go.PathSegment.Line, 0, h * 0.5).close()); // back to left point
+        
+        geo.add(fig);
+        return geo;
+      });
       geo.add(fig);
       return geo;
     });
