@@ -15,26 +15,34 @@ function groupShapesByCategory(shapes: ShapeDefinition[]): ShapeGroupMap {
   }, {} as ShapeGroupMap);
 }
 
-interface LeftSidebarProps {
+export interface LeftSidebarProps {
   containers: string[];
-  onAddContainer: () => void;
   customContainerShapes: { [key: string]: any[] };
+  customGroups: { [key: string]: any[] };
+  onAddContainer: (containerName: string) => void;
+  onCustomGroupAction: (action: 'create' | 'save', groupName?: string) => void;
 }
 
-export default function Sidebar({ containers, onAddContainer, customContainerShapes }: LeftSidebarProps) {
-  const [customGroups, setCustomGroups] = useState<string[]>([]);
+export default function Sidebar({ 
+  containers, 
+  onAddContainer, 
+  customContainerShapes,
+  customGroups,
+  onCustomGroupAction
+}: LeftSidebarProps) {
+  const [newGroupName, setNewGroupName] = useState<string>('');
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
-  const addGroup = () => {
-    const name = prompt('Enter name for new shape group:');
-    if (name && name.trim()) {
-      setCustomGroups([...customGroups, name.trim()]);
+  const handleAddGroup = () => {
+    if (newGroupName.trim()) {
+      onCustomGroupAction('create');
+      setNewGroupName('');
     }
   };
 
-  const addContainer = () => {
-    const name = prompt('Container name?');
-    if (name && name.trim() && !containers.includes(name.trim())) {
-      onAddContainer();
+  const handleSaveAsCustomShape = () => {
+    if (selectedGroup) {
+      onCustomGroupAction('save', selectedGroup);
     }
   };
 
@@ -73,7 +81,7 @@ export default function Sidebar({ containers, onAddContainer, customContainerSha
           Shape Library
         </span>
         <button 
-          onClick={addGroup} 
+          onClick={handleAddGroup} 
           style={{ 
             background: 'rgba(255,255,255,0.2)',
             border: '1px solid rgba(255,255,255,0.3)',
@@ -125,35 +133,120 @@ export default function Sidebar({ containers, onAddContainer, customContainerSha
         </div>
 
         {/* Custom Groups Section */}
-        {customGroups.length > 0 && (
-          <div>
-            <div style={{
-              padding: '8px 12px',
-              background: '#e3f2fd',
-              border: '1px solid #bbdefb',
-              borderRadius: '6px',
-              marginBottom: '8px',
-              fontSize: '12px',
-              fontWeight: '600',
-              color: '#1976d2',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
-            }}>
-              Custom Groups
+        <div>
+          <div style={{
+            padding: '8px 12px',
+            background: '#e3f2fd',
+            border: '1px solid #bbdefb',
+            borderRadius: '6px',
+            marginBottom: '8px',
+            fontSize: '12px',
+            fontWeight: '600',
+            color: '#1976d2',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            Custom Groups
+          </div>
+          {Object.entries(customGroups).map(([group, shapes]) => (
+            <div key={group} style={{ marginBottom: '8px' }}>
+              <ShapeGroup 
+                title={group} 
+                shapes={shapes}
+                onSelect={() => setSelectedGroup(group)}
+                isSelected={selectedGroup === group}
+              />
             </div>
-            {customGroups.map((group) => (
-              <div key={group} style={{ marginBottom: '8px' }}>
-                <ShapeGroup 
-                  title={group} 
-                  shapes={[]}
-                />
-              </div>
-            ))}
+          ))}
+        </div>
+
+        {/* New Custom Group Input */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          marginBottom: '16px' 
+        }}>
+          <input 
+            type="text" 
+            value={newGroupName} 
+            onChange={(e) => setNewGroupName(e.target.value)} 
+            placeholder="New custom group name"
+            style={{
+              flex: 1,
+              padding: '8px',
+              borderRadius: '4px',
+              border: '1px solid #ced4da',
+              fontSize: '14px',
+              marginRight: '8px',
+              outline: 'none',
+              transition: 'border-color 0.2s',
+            }}
+            onFocus={(e) => e.currentTarget.style.borderColor = '#80bdff'}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#ced4da'}
+          />
+          <button 
+            onClick={handleAddGroup}
+            style={{
+              padding: '8px 12px',
+              background: '#007bff',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'background 0.2s',
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = '#0056b3'}
+            onMouseOut={(e) => e.currentTarget.style.background = '#007bff'}
+          >
+            Create Group
+          </button>
+        </div>
+
+        {/* Save to Custom Group Button */}
+        {selectedGroup && (
+          <div style={{ 
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            background: '#e8f5e9',
+            padding: '8px',
+            borderRadius: '4px',
+            border: '1px solid #c8e6c9',
+          }}>
+            <span style={{ 
+              flex: 1, 
+              fontSize: '14px', 
+              color: '#2e7d32',
+              fontWeight: '500',
+              marginRight: '8px'
+            }}>
+              Save to "{selectedGroup}"
+            </span>
+            <button 
+              onClick={handleSaveAsCustomShape}
+              style={{
+                padding: '8px 12px',
+                background: '#2e7d32',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'background 0.2s',
+              }}
+              onMouseOver={(e) => e.currentTarget.style.background = '#256029'}
+              onMouseOut={(e) => e.currentTarget.style.background = '#2e7d32'}
+            >
+              Save Shape
+            </button>
           </div>
         )}
 
         {/* Empty State for Custom Groups */}
-        {customGroups.length === 0 && (
+        {Object.keys(customGroups).length === 0 && (
           <div style={{
             padding: '16px',
             textAlign: 'center',
@@ -165,7 +258,7 @@ export default function Sidebar({ containers, onAddContainer, customContainerSha
             borderRadius: '6px',
             margin: '8px 0'
           }}>
-            Click + to add custom shape groups
+            No custom groups found. Create a new group to save shapes.
           </div>
         )}
       </div>

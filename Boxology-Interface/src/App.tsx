@@ -16,12 +16,102 @@ function App() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [customGroups, setCustomGroups] = useState<{ [key: string]: any[] }>({});
 
+  // Consolidated container management
+  const handleAddContainer = (containerName: string) => {
+    if (containerName && !containers.includes(containerName)) {
+      setContainers(prev => [...prev, containerName]);
+      alert(`Container "${containerName}" added!`);
+    } else if (containerName) {
+      alert('Container already exists!');
+    }
+  };
 
-  const handleSave = () => {
-    if (diagramRef.current) {
-      const json = diagramRef.current.model.toJson();
+  // Consolidated custom group management
+  const handleCustomGroupAction = (action: 'create' | 'save', groupName?: string) => {
+    if (action === 'create') {
+      const newGroupName = prompt('Enter custom group name:');
+      if (newGroupName && !customGroups[newGroupName]) {
+        setCustomGroups(prev => ({
+          ...prev,
+          [newGroupName]: []
+        }));
+        alert(`Custom group "${newGroupName}" created!`);
+      } else if (newGroupName) {
+        alert('Group already exists!');
+      }
+    } else if (action === 'save' && groupName) {
+      handleSaveToCustomGroup(groupName);
+    }
+  };
+
+  // Consolidated save to custom group function
+  const handleSaveToCustomGroup = (groupName: string) => {
+    if (!diagramRef.current) {
+      alert('No diagram available');
+      return;
+    }
+
+    const diagram = diagramRef.current;
+    const selectedNodes = diagram.selection.toArray();
+    let dataToSave;
+
+    if (selectedNodes.length > 0) {
+      // Save selected nodes and their connections
+      const selectedKeys = selectedNodes.map(node => node.key);
+      const nodeData = selectedNodes.map(node => diagram.model.copyNodeData(node.data));
+      const links = Array.from(diagram.links).filter(link => 
+        selectedKeys.includes(link.fromNode?.key) && selectedKeys.includes(link.toNode?.key)
+      );
+      const linkData = links.map(link => ({ ...link.data }));
+
+      dataToSave = {
+        nodeDataArray: nodeData,
+        linkDataArray: linkData,
+        name: `Custom Shape ${Date.now()}`,
+        type: 'selection',
+        thumbnail: null as string | null
+      };
+    } else {
+      // Save entire diagram
+      const model = diagram.model;
+      const json = JSON.parse(model.toJson());
       
-      // Download as file instead of localStorage
+      dataToSave = {
+        nodeDataArray: model.nodeDataArray.map(node => model.copyNodeData(node)),
+        linkDataArray: json.linkDataArray || [],
+        name: `Diagram Template ${Date.now()}`,
+        type: 'diagram',
+        thumbnail: null as string | null
+      };
+    }
+
+    // Generate thumbnail
+    try {
+      const img = diagram.makeImage({
+        scale: 0.3,
+        background: 'white',
+        type: 'image/png'
+      });
+      if (img) dataToSave.thumbnail = img.src;
+    } catch (error) {
+      console.warn('Could not generate thumbnail:', error);
+    }
+
+    // Add to custom group
+    setCustomGroups(prev => ({
+      ...prev,
+      [groupName]: [...(prev[groupName] || []), dataToSave]
+    }));
+
+    alert(`${selectedNodes.length > 0 ? 'Selection' : 'Diagram'} saved as custom shape in "${groupName}" group!`);
+  };
+
+  // Consolidated file operations
+  const handleFileOperation = (operation: 'save' | 'open') => {
+    if (!diagramRef.current) return;
+
+    if (operation === 'save') {
+      const json = diagramRef.current.model.toJson();
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -31,179 +121,71 @@ function App() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
       alert('Diagram saved!');
-    }
-  };
-
-
-
-  const handleOpen = () => {
-    // Create a file input element
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file && diagramRef.current) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const json = event.target?.result as string;
-            diagramRef.current!.model = go.Model.fromJson(json);
-            alert('Diagram loaded successfully!');
-          } catch (error) {
-            alert('Error loading diagram: Invalid file format');
-          }
-        };
-        reader.readAsText(file);
-      }
-    };
-    
-    input.click();
-  };
-
-  const handleUndo = () => {
-    diagramRef.current?.undoManager?.undo();
-  };
-
-  const handleRedo = () => {
-    diagramRef.current?.undoManager?.redo();
-  };
-
-  const handleAbout = () => {
-    alert('Custom Diagram Editor using GoJS');
-  };
-
-  const handleValidate = () => {
-    // This function calls validateGoJSDiagram() which works with SELECTED items
-    if (diagramRef.current) {
-      const result = validateGoJSDiagram(diagramRef.current);
-      // Optionally, show result to user
-      alert(result);
-    } else {
-      alert('Diagram is not loaded.');
-    }
-  }
-
-  interface ContextMenuPosition {
-    x: number;
-    y: number;
-  }
-
-  interface SelectedData {
-    key: string;
-    [key: string]: any;
-  }
-
-  const handleMoveNodeToContainer = (container: string | null) => {
-    // ALWAYS close the context menu first
-    setContextMenu(null);
-    
-    if (container) {
-      // Handle moving node to container logic here
-      console.log('Moving node to:', container);
-      // Add your actual move logic here
-    }
-  };
-
-  const handleAddToGroup = (group: string, shape: any) => {
-    // ALWAYS close the context menu first
-    setContextMenu(null);
-    
-    if (group) {
-      console.log('Adding to group:', group);
-      // Add your actual group logic here
-    }
-  };
-
-  function handleAddContainer() {
-    const name = prompt('Container name?');
-    if (name && !containers.includes(name)) {
-      setContainers([...containers, name]);
-      setCustomContainerShapes(prev => ({ ...prev, [name]: [] }));
-    }
-  }
-
-  const handleExportSVG = () => {
-    if (diagramRef.current) {
-      const svg = diagramRef.current.makeSvg({
-        scale: 1,
-        background: 'white',
-        document: document
-      });
-
-      if (!svg) {
-        alert('Failed to export SVG: Diagram rendering failed.');
-        return;
-      }
+    } else if (operation === 'open') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
       
-      const svgBlob = new Blob([svg.outerHTML], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(svgBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `diagram_${new Date().toISOString().slice(0, 10)}.svg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file && diagramRef.current) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            try {
+              const json = event.target?.result as string;
+              diagramRef.current!.model = go.Model.fromJson(json);
+              alert('Diagram loaded successfully!');
+            } catch (error) {
+              alert('Error loading diagram: Invalid file format');
+            }
+          };
+          reader.readAsText(file);
+        }
+      };
+      input.click();
     }
   };
 
-  const handleExportPNG = () => {
-    if (diagramRef.current) {
-      const img = diagramRef.current.makeImage({
-        scale: 2, // Higher resolution
-        background: 'white',
-        type: 'image/png',
-        details: 0.05
-      });
+  // Consolidated export function
+  const handleExport = (format: 'svg' | 'png' | 'jpg' | 'xml') => {
+    if (!diagramRef.current) return;
 
-      if (!img) {
-        alert('Failed to export PNG: Diagram rendering failed.');
-        return;
-      }
-      
-      const link = document.createElement('a');
-      link.href = img.src;
-      link.download = `diagram_${new Date().toISOString().slice(0, 10)}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
+    const diagram = diagramRef.current;
+    const timestamp = new Date().toISOString().slice(0, 10);
 
-  const handleExportJPG = () => {
-    if (diagramRef.current) {
-      const img = diagramRef.current.makeImage({
-        scale: 2,
-        background: 'white',
-        type: 'image/jpeg',
-        details: 0.05
-      });
+    switch (format) {
+      case 'svg':
+        const svg = diagram.makeSvg({ scale: 1, background: 'white', document: document });
+        if (!svg) {
+          alert('Failed to export SVG: Diagram rendering failed.');
+          return;
+        }
+        const svgBlob = new Blob([svg.outerHTML], { type: 'image/svg+xml;charset=utf-8' });
+        downloadFile(svgBlob, `diagram_${timestamp}.svg`);
+        break;
 
-      if (!img) {
-        alert('Failed to export JPG: Diagram rendering failed.');
-        return;
-      }
-      
-      const link = document.createElement('a');
-      link.href = img.src;
-      link.download = `diagram_${new Date().toISOString().slice(0, 10)}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
+      case 'png':
+        const pngImg = diagram.makeImage({ scale: 2, background: 'white', type: 'image/png', details: 0.05 });
+        if (!pngImg) {
+          alert('Failed to export PNG: Diagram rendering failed.');
+          return;
+        }
+        downloadImageFile(pngImg.src, `diagram_${timestamp}.png`);
+        break;
 
-  const handleExportXML = () => {
-    if (diagramRef.current) {
-      const model = diagramRef.current.model;
-      const json = model.toJson();
-      
-      // Convert JSON to XML format
-      const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+      case 'jpg':
+        const jpgImg = diagram.makeImage({ scale: 2, background: 'white', type: 'image/jpeg', details: 0.05 });
+        if (!jpgImg) {
+          alert('Failed to export JPG: Diagram rendering failed.');
+          return;
+        }
+        downloadImageFile(jpgImg.src, `diagram_${timestamp}.jpg`);
+        break;
+
+      case 'xml':
+        const json = diagram.model.toJson();
+        const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <diagram>
   <metadata>
     <created>${new Date().toISOString()}</created>
@@ -213,80 +195,112 @@ function App() {
     ${json}
   </data>
 </diagram>`;
-      
-      const xmlBlob = new Blob([xmlContent], { type: 'application/xml;charset=utf-8' });
-      const url = URL.createObjectURL(xmlBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `diagram_${new Date().toISOString().slice(0, 10)}.xml`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+        const xmlBlob = new Blob([xmlContent], { type: 'application/xml;charset=utf-8' });
+        downloadFile(xmlBlob, `diagram_${timestamp}.xml`);
+        break;
     }
+  };
+
+  // Helper functions for downloads
+  const downloadFile = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadImageFile = (src: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = src;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Diagram operations
+  const handleDiagramOperation = (operation: 'undo' | 'redo' | 'validate') => {
+    if (!diagramRef.current) return;
+
+    switch (operation) {
+      case 'undo':
+        diagramRef.current.undoManager?.undo();
+        break;
+      case 'redo':
+        diagramRef.current.undoManager?.redo();
+        break;
+      case 'validate':
+        const result = validateGoJSDiagram(diagramRef.current);
+        alert(result);
+        break;
+    }
+  };
+
+  // Context menu handler
+  const handleContextMenuAction = (action: string, target?: string) => {
+    setContextMenu(null);
+    
+    switch (action) {
+      case 'move':
+        if (target) {
+          console.log('Moving node to:', target);
+          // Add your actual move logic here
+        }
+        break;
+      case 'create_group':
+        handleCustomGroupAction('create');
+        break;
+      case 'save_to_group':
+        const groupNames = Object.keys(customGroups);
+        if (groupNames.length === 0) {
+          alert('No custom groups available. Create a group first.');
+          return;
+        }
+        const selectedGroup = prompt(`Save to which group?\nAvailable groups: ${groupNames.join(', ')}`);
+        if (selectedGroup && customGroups[selectedGroup] !== undefined) {
+          handleCustomGroupAction('save', selectedGroup);
+        }
+        break;
+      default:
+        if (target) {
+          console.log('Adding to group:', target);
+        }
+    }
+  };
+
+  const handleAbout = () => {
+    alert('Custom Diagram Editor using GoJS');
   };
 
   return (
     <div className="app" style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>
       <Toolbar
-        onOpen={handleOpen}
-        onSave={handleSave}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
+        onOpen={() => handleFileOperation('open')}
+        onSave={() => handleFileOperation('save')}
+        onUndo={() => handleDiagramOperation('undo')}
+        onRedo={() => handleDiagramOperation('redo')}
         onAbout={handleAbout}
-        onValidate={handleValidate}
-        onExportSVG={handleExportSVG}
-        onExportPNG={handleExportPNG}
-        onExportJPG={handleExportJPG}
-        onExportXML={handleExportXML}
+        onValidate={() => handleDiagramOperation('validate')}
+        onExportSVG={() => handleExport('svg')}
+        onExportPNG={() => handleExport('png')}
+        onExportJPG={() => handleExport('jpg')}
+        onExportXML={() => handleExport('xml')}
       />
-      <div
-        className="main"
-        style={{
-          flex: 1,
-          display: 'flex',
-          minHeight: 0,
-          minWidth: 0,
-          height: '100%',
-          width: '100%',
-        }}
-      >
-        {/* Left Sidebar */}
-        <div
-          style={{
-            width: 300,
-            minWidth: 180,
-            maxWidth: 400,
-            background: '#f9f9f9',
-            borderRight: '1px solid #ddd',
-            height: '100%',
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            position: 'relative',
-            zIndex: 1, // Ensure it appears above the canvas
-            boxShadow: '0 0 5px rgba(0,0,0,0.1)',
-            boxSizing: 'content-box',
-            overflowX: 'hidden',
-          }}
-        >
+      <div className="main" style={{ flex: 1, display: 'flex', minHeight: 0, minWidth: 0, height: '100%', width: '100%' }}>
+        <div style={{ width: 300, minWidth: 180, maxWidth: 400, background: '#f9f9f9', borderRight: '1px solid #ddd', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1, boxShadow: '0 0 5px rgba(0,0,0,0.1)', boxSizing: 'content-box', overflowX: 'hidden' }}>
           <LeftSidebar
             containers={containers}
             customContainerShapes={customContainerShapes}
+            customGroups={customGroups}
             onAddContainer={handleAddContainer}
+            onCustomGroupAction={handleCustomGroupAction}
           />
         </div>
-        {/* Canvas */}
-        <div
-          style={{
-            flex: 1,
-            minWidth: 0,
-            minHeight: 0,
-            position: 'relative',
-            height: '100%',
-            display: 'flex',
-          }}
-        >
+        <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative', height: '100%', display: 'flex' }}>
           <GoDiagram
             diagramRef={diagramRef}
             setSelectedData={setSelectedData}
@@ -296,25 +310,13 @@ function App() {
           <ContextMenu 
             contextMenu={contextMenu} 
             containers={containers} 
-            customGroups={Object.keys(customGroups)}
-            onMove={handleMoveNodeToContainer}
-            onAddToGroup={handleAddToGroup}
+            customGroups={[...Object.keys(customGroups), 'CREATE_NEW', 'SAVE_TO_GROUP']}
+            onAction={handleContextMenuAction}
           />
         </div>
-        {/* Right Sidebar */}
-        <div
-          style={{
-            width: 280,
-            minWidth: 200,
-            maxWidth: 340,
-            background: '#f9f9f9',
-            borderLeft: '1px solid #ddd',
-            height: '100%',
-            overflowY: 'auto',
-          }}
-        >
+        <div style={{ width: 280, minWidth: 200, maxWidth: 340, background: '#f9f9f9', borderLeft: '1px solid #ddd', height: '100%', overflowY: 'auto' }}>
           <RightSidebar
-            selectedData={selectedData} // <-- Replace null with actual selected node data from GoDiagram
+            selectedData={selectedData}
             diagramRef={diagramRef}
           />
         </div>

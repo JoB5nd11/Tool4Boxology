@@ -1,19 +1,22 @@
 import React, { useEffect, useRef } from 'react';
 
-interface ContextMenuProps {
-  contextMenu: { x: number; y: number } | null;
+export interface ContextMenuPosition {
+  x: number;
+  y: number;
+}
+
+export interface ContextMenuProps {
+  contextMenu: ContextMenuPosition | null;
   containers: string[];
-  customGroups?: string[];
-  onMove: (container: string | null) => void;
-  onAddToGroup: (group: string, shape: any) => void;
+  customGroups: string[];
+  onAction: (action: string, target?: string) => void;
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ 
   contextMenu, 
   containers, 
-  customGroups = [],
-  onMove,
-  onAddToGroup
+  customGroups,
+  onAction
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -21,13 +24,13 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onMove(null); // Fix: Use onMove(null) instead of closeMenu()
+        onAction('close');
       }
     };
 
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onMove(null); // Close menu
+        onAction('close');
       }
     };
 
@@ -40,21 +43,23 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscapeKey);
     };
-  }, [contextMenu, onMove]);
+  }, [contextMenu, onAction]);
 
   if (!contextMenu) return null;
 
   // Separate containers and groups for better organization
   const systemContainers = containers.filter(c => c !== 'PatternLib');
-  const allGroups = [...customGroups];
+  const allGroups = customGroups.filter(g => g !== 'CREATE_NEW' && g !== 'SAVE_TO_GROUP');
+  const hasCreateNew = customGroups.includes('CREATE_NEW');
+  const hasSaveToGroup = customGroups.includes('SAVE_TO_GROUP');
 
   return (
     <div
       ref={menuRef}
       style={{
-        position: 'fixed', // Use fixed instead of absolute for better positioning
-        left: Math.min(contextMenu.x, window.innerWidth - 200), // Prevent overflow
-        top: Math.min(contextMenu.y, window.innerHeight - 300), // Prevent overflow
+        position: 'fixed',
+        left: Math.min(contextMenu.x, window.innerWidth - 200),
+        top: Math.min(contextMenu.y, window.innerHeight - 300),
         background: '#fff',
         border: '1px solid #ccc',
         borderRadius: '4px',
@@ -89,7 +94,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
                 transition: 'background-color 0.2s ease',
                 borderBottom: '1px solid #f0f0f0'
               }}
-              onClick={() => onMove(container)}
+              onClick={() => onAction('move', container)}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#e3f2fd';
               }}
@@ -126,7 +131,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
                 transition: 'background-color 0.2s ease',
                 borderBottom: '1px solid #f0f0f0'
               }}
-              onClick={() => onAddToGroup(group, null)}
+              onClick={() => onAction('add_to_group', group)}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#e8f5e8';
               }}
@@ -141,31 +146,52 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       )}
 
       {/* Create New Group Option */}
-      <div
-        style={{ 
-          cursor: 'pointer', 
-          padding: '8px 12px',
-          fontSize: '14px',
-          color: '#007bff',
-          fontWeight: '500',
-          borderBottom: '1px solid #f0f0f0',
-          transition: 'background-color 0.2s ease'
-        }}
-        onClick={() => {
-          const groupName = prompt('Enter new group name:');
-          if (groupName && groupName.trim()) {
-            onAddToGroup(groupName.trim(), null);
-          }
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#f0f8ff';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'transparent';
-        }}
-      >
-        ➕ Create New Group
-      </div>
+      {hasCreateNew && (
+        <div
+          style={{ 
+            cursor: 'pointer', 
+            padding: '8px 12px',
+            fontSize: '14px',
+            color: '#007bff',
+            fontWeight: '500',
+            borderBottom: '1px solid #f0f0f0',
+            transition: 'background-color 0.2s ease'
+          }}
+          onClick={() => onAction('create_group')}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#f0f8ff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+        >
+          ➕ Create New Group
+        </div>
+      )}
+
+      {/* Save to Group Option */}
+      {hasSaveToGroup && (
+        <div
+          style={{ 
+            cursor: 'pointer', 
+            padding: '8px 12px',
+            fontSize: '14px',
+            color: '#28a745',
+            fontWeight: '500',
+            borderBottom: '1px solid #f0f0f0',
+            transition: 'background-color 0.2s ease'
+          }}
+          onClick={() => onAction('save_to_group')}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#f0fff0';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+        >
+          💾 Save to Group
+        </div>
+      )}
 
       {/* Cancel Option */}
       <div
@@ -178,7 +204,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           fontWeight: '500',
           transition: 'background-color 0.2s ease'
         }}
-        onClick={() => onMove(null)}
+        onClick={() => onAction('close')}
         onMouseEnter={(e) => {
           e.currentTarget.style.backgroundColor = '#fff3cd';
         }}
