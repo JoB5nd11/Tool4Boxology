@@ -29,16 +29,14 @@ function App() {
   // Consolidated custom group management
   const handleCustomGroupAction = (action: 'create' | 'save', groupName?: string) => {
     if (action === 'create') {
-      const newGroupName = prompt('Enter custom group name:');
-      if (newGroupName && !customGroups[newGroupName]) {
-        setCustomGroups(prev => ({
-          ...prev,
-          [newGroupName]: []
-        }));
-        alert(`Custom group "${newGroupName}" created!`);
-      } else if (newGroupName) {
-        alert('Group already exists!');
+      const name = prompt('Enter a name for your new group:');
+      if (!name) return;
+      if (customGroups[name]) {
+        alert('A group with this name already exists.');
+        return;
       }
+      setCustomGroups(prev => ({ ...prev, [name]: [] }));
+      return;
     } else if (action === 'save' && groupName) {
       handleSaveToCustomGroup(groupName);
     }
@@ -243,7 +241,8 @@ function App() {
   // Context menu handler
   const handleContextMenuAction = (action: string, target?: string) => {
     setContextMenu(null);
-    
+  
+
     switch (action) {
       case 'move':
         if (target) {
@@ -255,14 +254,9 @@ function App() {
         handleCustomGroupAction('create');
         break;
       case 'save_to_group':
-        const groupNames = Object.keys(customGroups);
-        if (groupNames.length === 0) {
-          alert('No custom groups available. Create a group first.');
+        if (target) {
+          handleCustomGroupAction('save', target);
           return;
-        }
-        const selectedGroup = prompt(`Save to which group?\nAvailable groups: ${groupNames.join(', ')}`);
-        if (selectedGroup && customGroups[selectedGroup] !== undefined) {
-          handleCustomGroupAction('save', selectedGroup);
         }
         break;
       default:

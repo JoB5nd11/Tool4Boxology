@@ -50,7 +50,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   // Separate containers and groups for better organization
   const systemContainers = containers.filter(c => c !== 'PatternLib');
   const allGroups = customGroups.filter(g => g !== 'CREATE_NEW' && g !== 'SAVE_TO_GROUP');
-  const hasCreateNew = customGroups.includes('CREATE_NEW');
   const hasSaveToGroup = customGroups.includes('SAVE_TO_GROUP');
 
   return (
@@ -111,62 +110,32 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       {/* Add to Group Section */}
       {allGroups.length > 0 && (
         <>
-          <div style={{ 
-            padding: '8px 12px', 
-            fontWeight: 'bold', 
-            fontSize: '12px',
-            color: '#666',
-            borderBottom: '1px solid #eee',
-            backgroundColor: '#f8f9fa'
+          <div style={{
+            fontWeight: 600,
+            fontSize: '13px',
+            color: '#444',
+            padding: '8px 16px 4px 16px'
           }}>
             Add to Group:
           </div>
           {allGroups.map(group => (
             <div
               key={group}
-              style={{ 
-                cursor: 'pointer', 
-                padding: '8px 12px',
-                fontSize: '14px',
-                transition: 'background-color 0.2s ease',
-                borderBottom: '1px solid #f0f0f0'
+              style={{
+                padding: '6px 24px',
+                cursor: 'pointer',
+                color: '#512da8',
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center'
               }}
-              onClick={() => onAction('add_to_group', group)}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#e8f5e8';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
+              onClick={() => onAction('save_to_group', group)}
             >
-              👥 {group}
+              <span style={{ marginRight: 8 }}>👥</span>
+              {group}
             </div>
           ))}
         </>
-      )}
-
-      {/* Create New Group Option */}
-      {hasCreateNew && (
-        <div
-          style={{ 
-            cursor: 'pointer', 
-            padding: '8px 12px',
-            fontSize: '14px',
-            color: '#007bff',
-            fontWeight: '500',
-            borderBottom: '1px solid #f0f0f0',
-            transition: 'background-color 0.2s ease'
-          }}
-          onClick={() => onAction('create_group')}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#f0f8ff';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
-        >
-          ➕ Create New Group
-        </div>
       )}
 
       {/* Save to Group Option */}

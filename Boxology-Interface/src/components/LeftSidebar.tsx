@@ -23,7 +23,7 @@ export interface LeftSidebarProps {
   onCustomGroupAction: (action: 'create' | 'save', groupName?: string) => void;
 }
 
-export default function Sidebar({ 
+export default function LeftSidebar({ 
   containers, 
   onAddContainer, 
   customContainerShapes,
@@ -81,7 +81,7 @@ export default function Sidebar({
           Shape Library
         </span>
         <button 
-          onClick={handleAddGroup} 
+          onClick={() => onCustomGroupAction('create')} 
           style={{ 
             background: 'rgba(255,255,255,0.2)',
             border: '1px solid rgba(255,255,255,0.3)',
@@ -160,108 +160,7 @@ export default function Sidebar({
           ))}
         </div>
 
-        {/* New Custom Group Input */}
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          marginBottom: '16px' 
-        }}>
-          <input 
-            type="text" 
-            value={newGroupName} 
-            onChange={(e) => setNewGroupName(e.target.value)} 
-            placeholder="New custom group name"
-            style={{
-              flex: 1,
-              padding: '8px',
-              borderRadius: '4px',
-              border: '1px solid #ced4da',
-              fontSize: '14px',
-              marginRight: '8px',
-              outline: 'none',
-              transition: 'border-color 0.2s',
-            }}
-            onFocus={(e) => e.currentTarget.style.borderColor = '#80bdff'}
-            onBlur={(e) => e.currentTarget.style.borderColor = '#ced4da'}
-          />
-          <button 
-            onClick={handleAddGroup}
-            style={{
-              padding: '8px 12px',
-              background: '#007bff',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'background 0.2s',
-            }}
-            onMouseOver={(e) => e.currentTarget.style.background = '#0056b3'}
-            onMouseOut={(e) => e.currentTarget.style.background = '#007bff'}
-          >
-            Create Group
-          </button>
-        </div>
-
-        {/* Save to Custom Group Button */}
-        {selectedGroup && (
-          <div style={{ 
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            background: '#e8f5e9',
-            padding: '8px',
-            borderRadius: '4px',
-            border: '1px solid #c8e6c9',
-          }}>
-            <span style={{ 
-              flex: 1, 
-              fontSize: '14px', 
-              color: '#2e7d32',
-              fontWeight: '500',
-              marginRight: '8px'
-            }}>
-              Save to "{selectedGroup}"
-            </span>
-            <button 
-              onClick={handleSaveAsCustomShape}
-              style={{
-                padding: '8px 12px',
-                background: '#2e7d32',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                transition: 'background 0.2s',
-              }}
-              onMouseOver={(e) => e.currentTarget.style.background = '#256029'}
-              onMouseOut={(e) => e.currentTarget.style.background = '#2e7d32'}
-            >
-              Save Shape
-            </button>
-          </div>
-        )}
-
-        {/* Empty State for Custom Groups */}
-        {Object.keys(customGroups).length === 0 && (
-          <div style={{
-            padding: '16px',
-            textAlign: 'center',
-            color: '#6c757d',
-            fontSize: '12px',
-            fontStyle: 'italic',
-            background: '#f8f9fa',
-            border: '1px dashed #dee2e6',
-            borderRadius: '6px',
-            margin: '8px 0'
-          }}>
-            No custom groups found. Create a new group to save shapes.
-          </div>
-        )}
-      </div>
+        
 
       {/* Footer */}
       <div style={{
@@ -273,6 +172,7 @@ export default function Sidebar({
         textAlign: 'center'
       }}>
         {Object.values(grouped).reduce((total, shapes) => total + shapes.length, 0)} shapes available
+      </div>
       </div>
     </div>
   );

@@ -234,7 +234,7 @@ export default function ShapeGroup({ title, shapes, onSelect, isSelected }: Prop
           justifyContent: 'flex-start',
           alignItems: 'flex-start'
         }}>
-          {shapes.map((shape) => renderShape(shape))}
+{shapes.map(shape => renderShape(shape))}
         </div>
       )}
     </div>
