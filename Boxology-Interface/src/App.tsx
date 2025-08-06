@@ -7,6 +7,7 @@ import * as go from 'gojs';
 import RightSidebar from './components/RightSidebar';
 import ContextMenu from './ContextMenu';
 import { validateGoJSDiagram, setupDiagramValidation } from './plugin/GoJSBoxologyValidation';
+import { v4 as uuidv4 } from 'uuid';
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
@@ -53,6 +54,9 @@ function App() {
     const selectedNodes = diagram.selection.toArray();
     let dataToSave;
 
+    let shapeName = prompt('Enter a name for this shape:', `Custom Shape ${Date.now()}`);
+    if (!shapeName) shapeName = `Custom Shape ${Date.now()}`;
+
     if (selectedNodes.length > 0) {
       // Save selected nodes and their connections
       const selectedKeys = selectedNodes.map(node => node.key);
@@ -65,7 +69,7 @@ function App() {
       dataToSave = {
         nodeDataArray: nodeData,
         linkDataArray: linkData,
-        name: `Custom Shape ${Date.now()}`,
+        name: shapeName,
         type: 'selection',
         thumbnail: null as string | null
       };
@@ -73,11 +77,10 @@ function App() {
       // Save entire diagram
       const model = diagram.model;
       const json = JSON.parse(model.toJson());
-      
       dataToSave = {
         nodeDataArray: model.nodeDataArray.map(node => model.copyNodeData(node)),
         linkDataArray: json.linkDataArray || [],
-        name: `Diagram Template ${Date.now()}`,
+        name: shapeName,
         type: 'diagram',
         thumbnail: null as string | null
       };
@@ -85,17 +88,23 @@ function App() {
 
     // Generate thumbnail
     try {
-      const img = diagram.makeImage({
+      const img = diagram.makeImageData({
         scale: 0.3,
         background: 'white',
+        parts: selectedNodes.length > 0 ? selectedNodes : undefined,
         type: 'image/png'
       });
-      if (img) dataToSave.thumbnail = img.src;
+      if (typeof img === 'string') {
+        dataToSave.thumbnail = img;
+      } else if (img instanceof HTMLImageElement) {
+        dataToSave.thumbnail = img.src;
+      } else {
+        dataToSave.thumbnail = null;
+      }
     } catch (error) {
       console.warn('Could not generate thumbnail:', error);
     }
 
-    // Add to custom group
     setCustomGroups(prev => ({
       ...prev,
       [groupName]: [...(prev[groupName] || []), dataToSave]

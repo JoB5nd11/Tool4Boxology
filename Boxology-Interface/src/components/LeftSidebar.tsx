@@ -150,12 +150,59 @@ export default function LeftSidebar({
           </div>
           {Object.entries(customGroups).map(([group, shapes]) => (
             <div key={group} style={{ marginBottom: '8px' }}>
-              <ShapeGroup 
-                title={group} 
-                shapes={shapes}
-                onSelect={() => setSelectedGroup(group)}
-                isSelected={selectedGroup === group}
-              />
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{group}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {shapes.map((shape: any) => (
+                  <div
+                    key={shape.id}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      marginBottom: 8,
+                      cursor: 'pointer',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: 4,
+                      padding: 4,
+                      background: '#fff',
+                      width: 64
+                    }}
+                    title={shape.name}
+                  >
+                    {shape.thumbnail ? (
+                      <img
+                        src={shape.thumbnail}
+                        alt={shape.name}
+                        style={{ width: 48, height: 48, objectFit: 'contain', marginBottom: 4 }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: 48,
+                        height: 48,
+                        background: '#f5f5f5',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#aaa',
+                        marginBottom: 4
+                      }}>
+                        ?
+                      </div>
+                    )}
+                    <div style={{
+                      fontSize: 12,
+                      fontWeight: 500,
+                      textAlign: 'center',
+                      maxWidth: 60,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {shape.name}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
