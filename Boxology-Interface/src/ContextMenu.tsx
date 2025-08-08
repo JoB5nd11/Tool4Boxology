@@ -1,19 +1,26 @@
 import React, { useEffect, useRef } from 'react';
 
-interface ContextMenuProps {
-  contextMenu: { x: number; y: number } | null;
+export interface ContextMenuPosition {
+  x: number;
+  y: number;
+}
+
+export interface ContextMenuProps {
+  contextMenu: ContextMenuPosition | null;
   containers: string[];
-  customGroups?: string[];
-  onMove: (container: string | null) => void;
-  onAddToGroup: (group: string, shape: any) => void;
+  customGroups: string[];
+  onAction: (action: string, target?: string) => void;
+  selectedData?: {
+    isSuperNode?: boolean;
+  };
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ 
   contextMenu, 
   containers, 
-  customGroups = [],
-  onMove,
-  onAddToGroup
+  customGroups,
+  onAction,
+  selectedData
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -21,13 +28,13 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onMove(null); // Fix: Use onMove(null) instead of closeMenu()
+        onAction('close');
       }
     };
 
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onMove(null); // Close menu
+        onAction('close');
       }
     };
 
@@ -40,21 +47,22 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscapeKey);
     };
-  }, [contextMenu, onMove]);
+  }, [contextMenu, onAction]);
 
   if (!contextMenu) return null;
 
   // Separate containers and groups for better organization
   const systemContainers = containers.filter(c => c !== 'PatternLib');
-  const allGroups = [...customGroups];
+  const allGroups = customGroups.filter(g => g !== 'CREATE_NEW' && g !== 'SAVE_TO_GROUP');
+  const hasSaveToGroup = customGroups.includes('SAVE_TO_GROUP');
 
   return (
     <div
       ref={menuRef}
       style={{
-        position: 'fixed', // Use fixed instead of absolute for better positioning
-        left: Math.min(contextMenu.x, window.innerWidth - 200), // Prevent overflow
-        top: Math.min(contextMenu.y, window.innerHeight - 300), // Prevent overflow
+        position: 'fixed',
+        left: Math.min(contextMenu.x, window.innerWidth - 200),
+        top: Math.min(contextMenu.y, window.innerHeight - 300),
         background: '#fff',
         border: '1px solid #ccc',
         borderRadius: '4px',
@@ -89,7 +97,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
                 transition: 'background-color 0.2s ease',
                 borderBottom: '1px solid #f0f0f0'
               }}
-              onClick={() => onMove(container)}
+              onClick={() => onAction('move', container)}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#e3f2fd';
               }}
@@ -106,66 +114,145 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       {/* Add to Group Section */}
       {allGroups.length > 0 && (
         <>
-          <div style={{ 
-            padding: '8px 12px', 
-            fontWeight: 'bold', 
-            fontSize: '12px',
-            color: '#666',
-            borderBottom: '1px solid #eee',
-            backgroundColor: '#f8f9fa'
+          <div style={{
+            fontWeight: 600,
+            fontSize: '13px',
+            color: '#444',
+            padding: '8px 16px 4px 16px'
           }}>
             Add to Group:
           </div>
           {allGroups.map(group => (
             <div
               key={group}
-              style={{ 
-                cursor: 'pointer', 
-                padding: '8px 12px',
-                fontSize: '14px',
-                transition: 'background-color 0.2s ease',
-                borderBottom: '1px solid #f0f0f0'
+              style={{
+                padding: '6px 24px',
+                cursor: 'pointer',
+                color: '#512da8',
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center'
               }}
-              onClick={() => onAddToGroup(group, null)}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#e8f5e8';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
+              onClick={() => onAction('save_to_group', group)}
             >
-              👥 {group}
+              <span style={{ marginRight: 8 }}>👥</span>
+              {group}
             </div>
           ))}
         </>
       )}
 
-      {/* Create New Group Option */}
-      <div
-        style={{ 
-          cursor: 'pointer', 
-          padding: '8px 12px',
-          fontSize: '14px',
-          color: '#007bff',
-          fontWeight: '500',
-          borderBottom: '1px solid #f0f0f0',
-          transition: 'background-color 0.2s ease'
-        }}
-        onClick={() => {
-          const groupName = prompt('Enter new group name:');
-          if (groupName && groupName.trim()) {
-            onAddToGroup(groupName.trim(), null);
-          }
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#f0f8ff';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'transparent';
-        }}
-      >
-        ➕ Create New Group
-      </div>
+      {/* Save to Group Option */}
+      {hasSaveToGroup && (
+        <div
+          style={{ 
+            cursor: 'pointer', 
+            padding: '8px 12px',
+            fontSize: '14px',
+            color: '#28a745',
+            fontWeight: '500',
+            borderBottom: '1px solid #f0f0f0',
+            transition: 'background-color 0.2s ease'
+          }}
+          onClick={() => onAction('save_to_group')}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#f0fff0';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+        >
+          💾 Save to Group
+        </div>
+      )}
+
+      {/* Enhanced Super Node Section */}
+      {selectedData && (
+        <>
+          <div style={{
+            padding: '8px 12px',
+            fontWeight: 'bold',
+            fontSize: '12px',
+            color: '#666',
+            borderBottom: '1px solid #eee',
+            backgroundColor: '#f8f9fa'
+          }}>
+            Super Node Actions:
+          </div>
+          
+          {!selectedData.isSuperNode ? (
+            <div
+              style={{
+                padding: '8px 16px',
+                cursor: 'pointer',
+                color: '#1976d2',
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'background-color 0.2s ease'
+              }}
+              onClick={() => onAction('mark_as_super_node')}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e3f2fd';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <span style={{ marginRight: 8 }}>🔗</span>
+              Mark as Super Node
+            </div>
+          ) : (
+            <>
+              <div
+                style={{
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  color: '#1976d2',
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onClick={() => onAction('edit_linked_diagram')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e3f2fd';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <span style={{ marginRight: 8 }}>✏️</span>
+                Edit Linked Diagram
+              </div>
+              
+              {/* Optional: Add remove super node option */}
+              <div
+                style={{
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  color: '#dc3545',
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onClick={() => onAction('remove_super_node')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffebee';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <span style={{ marginRight: 8 }}>🔗❌</span>
+                Remove Super Node
+              </div>
+            </>
+          )}
+          <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #eee' }} />
+        </>
+      )}
 
       {/* Cancel Option */}
       <div
@@ -178,7 +265,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           fontWeight: '500',
           transition: 'background-color 0.2s ease'
         }}
-        onClick={() => onMove(null)}
+        onClick={() => onAction('close')}
         onMouseEnter={(e) => {
           e.currentTarget.style.backgroundColor = '#fff3cd';
         }}

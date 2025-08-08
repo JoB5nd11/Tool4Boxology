@@ -1,0 +1,17 @@
+// Add this to handle right-click on tabs for renaming
+const handleTabContextMenu = (e: React.MouseEvent, tabId: string) => {
+  e.preventDefault();
+  const newName = prompt('Enter new page name:', tabs.find(t => t.id === tabId)?.name);
+  if (newName && newName.trim()) {
+    setTabs(prev => prev.map(tab => 
+      tab.id === tabId ? { ...tab, name: newName.trim() } : tab
+    ));
+  }
+};
+
+// Then in the tab rendering, add:
+<div
+  key={tab.id}
+  onContextMenu={(e) => handleTabContextMenu(e, tab.id)}
+  // ...existing props...
+>

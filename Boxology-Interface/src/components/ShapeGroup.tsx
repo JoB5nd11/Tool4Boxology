@@ -6,9 +6,11 @@ import { mapShapeToGoJSFigure } from '../utils/shapeMapping';
 interface Props {
   title: string;
   shapes: ShapeDefinition[];
+  onSelect?: () => void;
+  isSelected?: boolean;
 }
 
-export default function ShapeGroup({ title, shapes }: Props) {
+export default function ShapeGroup({ title, shapes, onSelect, isSelected }: Props) {
   const [collapsed, setCollapsed] = useState(false);
 
   const toggleCollapse = () => setCollapsed(!collapsed);
