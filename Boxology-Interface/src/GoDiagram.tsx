@@ -85,6 +85,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     diagram.toolManager.linkingTool.isEnabled = true;
     diagram.toolManager.relinkingTool.isEnabled = true;
 
+    // Add visual indicator for super nodes in your node template
     diagram.nodeTemplate = $(
       go.Node,
       'Auto',
@@ -93,6 +94,18 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         selectable: true,
         movable: true,
         cursor: 'move',
+        // Double-click to edit subdiagram for super nodes
+        doubleClick: (e, obj) => {
+          const node = obj.part;
+          if (node instanceof go.Node && node.data.isSuperNode) {
+            // Trigger edit linked diagram action
+            setContextMenu({ x: e.documentPoint.x, y: e.documentPoint.y });
+            setTimeout(() => {
+              const event = new CustomEvent('editLinkedDiagram', { detail: node.data });
+              window.dispatchEvent(event);
+            }, 100);
+          }
+        },
         contextClick: (e, obj) => {
           const node = obj.part;
           if (node instanceof go.Node) {
@@ -136,7 +149,23 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           overflow: go.TextBlock.OverflowEllipsis
         },
         new go.Binding('text', 'label').makeTwoWay()
-      )
+      ),
+      // Add super node indicator
+      $(
+        go.Panel,
+        'Spot',
+        $(
+          go.TextBlock,
+          {
+            text: '🔗',
+            font: '14px sans-serif',
+            alignment: go.Spot.TopRight,
+            alignmentFocus: go.Spot.TopRight,
+            margin: new go.Margin(2, 2, 0, 0)
+          },
+          new go.Binding('visible', 'isSuperNode')
+        )
+      ),
     );
 
     diagram.linkTemplate = $(

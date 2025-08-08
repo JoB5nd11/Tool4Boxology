@@ -23,19 +23,25 @@ function App() {
     name: string;
     nodeDataArray: any[];
     linkDataArray: any[];
+    parentNodeId?: string; // For backtracking to parent page
+    isSubDiagram?: boolean;
+  };
+
+  type SuperNodeMapping = {
+    [nodeId: string]: string; // nodeId → pageId
   };
 
   const [pages, setPages] = useState<PageData[]>([
     {
       id: uuidv4(),
-      name: "Page 1",
+      name: "Main Page",
       nodeDataArray: [],
       linkDataArray: [],
     },
   ]);
 
   const [currentPageId, setCurrentPageId] = useState(pages[0].id);
-  const currentPage = pages.find((p) => p.id === currentPageId);
+  const [superNodeMap, setSuperNodeMap] = useState<SuperNodeMapping>({});
 
   // Update current page data
   const updateCurrentPage = (nodeDataArray: any[], linkDataArray: any[]) => {
@@ -86,6 +92,14 @@ function App() {
       setCurrentPageId(remainingPages[0].id);
     }
   };
+
+  // Removed duplicate declaration of currentPage
+
+  // Removed duplicate declaration of currentPage
+
+  // Get current page
+  const currentPage = pages.find((p) => p.id === currentPageId);
+  const isSubDiagram = currentPage?.isSubDiagram || false;
 
   // Load diagram data when page changes
   useEffect(() => {
@@ -334,10 +348,15 @@ function App() {
   
 
     switch (action) {
+      case 'mark_as_super_node':
+        handleMarkAsSuperNode();
+        break;
+      case 'edit_linked_diagram':
+        handleEditLinkedDiagram();
+        break;
       case 'move':
         if (target) {
           console.log('Moving node to:', target);
-          // Add your actual move logic here
         }
         break;
       case 'create_group':
@@ -360,6 +379,95 @@ function App() {
     alert('Custom Diagram Editor using GoJS');
   };
 
+  // Function to mark a node as super node
+  const handleMarkAsSuperNode = () => {
+    if (!selectedData || !diagramRef.current) return;
+
+    const nodeId = selectedData.key;
+    if (superNodeMap[nodeId]) {
+      alert('This node is already a super node!');
+      return;
+    }
+
+    // Create new sub-page
+    const newPageId = uuidv4();
+    const newSubPage: PageData = {
+      id: newPageId,
+      name: `${selectedData.label} - Subdiagram`,
+      nodeDataArray: [],
+      linkDataArray: [],
+      parentNodeId: nodeId,
+      isSubDiagram: true
+    };
+
+    setPages(prev => [...prev, newSubPage]);
+    setSuperNodeMap(prev => ({
+      ...prev,
+      [nodeId]: newPageId
+    }));
+
+    // Update the node to show it's a super node
+    const diagram = diagramRef.current;
+    const model = diagram.model;
+    model.startTransaction('mark as super node');
+    const nodeData = model.findNodeDataForKey(nodeId);
+    if (nodeData) {
+      model.setDataProperty(nodeData, 'isSuperNode', true);
+      model.setDataProperty(nodeData, 'label', `${selectedData.label} 🔗`);
+    }
+    model.commitTransaction('mark as super node');
+
+    alert('Node marked as super node with linked subdiagram!');
+  };
+
+  // Function to edit linked diagram
+  const handleEditLinkedDiagram = () => {
+    if (!selectedData) return;
+
+    const nodeId = selectedData.key;
+    const subPageId = superNodeMap[nodeId];
+    
+    if (subPageId) {
+      // Save current page data before switching
+      if (diagramRef.current && currentPageId) {
+        const model = diagramRef.current.model as go.GraphLinksModel;
+        updateCurrentPage(model.nodeDataArray, model.linkDataArray);
+      }
+      
+      setCurrentPageId(subPageId);
+    }
+  };
+
+  // Function to go back to parent page
+  const handleBackToParent = () => {
+    const currentPage = pages.find(p => p.id === currentPageId);
+    if (!currentPage?.parentNodeId) return;
+
+    // Save current subdiagram data
+    if (diagramRef.current) {
+      const model = diagramRef.current.model as go.GraphLinksModel;
+      updateCurrentPage(model.nodeDataArray, model.linkDataArray);
+    }
+
+    // Find parent page
+    const parentPageId = Object.keys(superNodeMap).find(nodeId => 
+      superNodeMap[nodeId] === currentPageId
+    );
+    
+    if (parentPageId) {
+      // Find which page contains this parent node
+      const parentPage = pages.find(page => 
+        page.nodeDataArray.some(node => node.key === parentPageId)
+      );
+      
+      if (parentPage) {
+        setCurrentPageId(parentPage.id);
+      }
+    }
+  };
+
+
+
   return (
     <div className="app" style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>
       {/* Toolbar */}
@@ -376,7 +484,40 @@ function App() {
         onExportXML={() => handleExport('xml')}
       />
 
-      {/* Improved Tab Bar */}
+      {/* Back Button for Subdiagrams */}
+      {isSubDiagram && (
+        <div style={{
+          padding: '8px 16px',
+          backgroundColor: '#e3f2fd',
+          borderBottom: '1px solid #bbdefb',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <button
+            onClick={handleBackToParent}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: '#1976d2',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            ⬅️ Back to Parent
+          </button>
+          <span style={{ fontSize: '14px', color: '#1976d2', fontWeight: '500' }}>
+            Editing: {currentPage?.name}
+          </span>
+        </div>
+      )}
+
+      {/* Tab Bar */}
       <div style={{
         display: 'flex',
         gap: '8px',
@@ -385,7 +526,7 @@ function App() {
         backgroundColor: '#f8f9fa',
         alignItems: 'center'
       }}>
-        {pages.map((page) => (
+        {pages.filter(page => !page.isSubDiagram).map((page) => (
           <button
             key={page.id}
             onClick={() => handlePageSwitch(page.id)}
@@ -414,7 +555,7 @@ function App() {
             }}>
               {page.name}
             </span>
-            {pages.length > 1 && (
+            {pages.filter(p => !p.isSubDiagram).length > 1 && (
               <span
                 onClick={(e) => {
                   e.stopPropagation();
@@ -491,6 +632,7 @@ function App() {
             containers={containers} 
             customGroups={[...Object.keys(customGroups), 'CREATE_NEW', 'SAVE_TO_GROUP']}
             onAction={handleContextMenuAction}
+            selectedData={selectedData} // ✅ Make sure this is passed
           />
         </div>
 
