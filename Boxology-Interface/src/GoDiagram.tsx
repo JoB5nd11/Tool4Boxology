@@ -118,7 +118,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       $(
         go.Shape,
         {
-          strokeWidth: 1,
+          strokeWidth: 1, // Default stroke width
           stroke: '#999',
           portId: '',
           fromLinkable: true,
@@ -127,7 +127,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           height: 60,
           minSize: new go.Size(60, 40),
           maxSize: new go.Size(200, 120),
-          parameter1: 360, // Default border radius for rectangles
         },
         new go.Binding('fill', 'color'),
         new go.Binding('stroke', 'stroke'),
@@ -137,7 +136,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         }),
         new go.Binding('width', 'width'),
         new go.Binding('height', 'height'),
-        new go.Binding('parameter1', 'parameter1')
+        new go.Binding('strokeWidth', 'strokeWidth') // ← Add this binding for stroke width
       ),
       $(
         go.TextBlock,
@@ -151,21 +150,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         new go.Binding('text', 'label').makeTwoWay()
       ),
       // Add super node indicator
-      $(
-        go.Panel,
-        'Spot',
-        $(
-          go.TextBlock,
-          {
-            text: '🔗',
-            font: '14px sans-serif',
-            alignment: go.Spot.TopRight,
-            alignmentFocus: go.Spot.TopRight,
-            margin: new go.Margin(2, 2, 0, 0)
-          },
-          new go.Binding('visible', 'isSuperNode')
-        )
-      ),
+     
     );
 
     diagram.linkTemplate = $(
@@ -242,7 +227,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         };
 
         if (shape.shape === 'RoundedRectangle' && shape.borderRadius) {
-          nodeData.parameter1 = parseFloat(shape.borderRadius) || 8;
+            nodeData.parameter1 = shape.borderRadius ? parseFloat(shape.borderRadius) : '45px';
         }
         
         if (shape.shape === 'Hexagon') {

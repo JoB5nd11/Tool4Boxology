@@ -406,14 +406,16 @@ function App() {
       [nodeId]: newPageId
     }));
 
-    // Update the node to show it's a super node
+    // Update the node to show it's a super node with thicker stroke
     const diagram = diagramRef.current;
     const model = diagram.model;
     model.startTransaction('mark as super node');
     const nodeData = model.findNodeDataForKey(nodeId);
     if (nodeData) {
       model.setDataProperty(nodeData, 'isSuperNode', true);
-      model.setDataProperty(nodeData, 'label', `${selectedData.label} 🔗`);
+      model.setDataProperty(nodeData, 'strokeWidth', 4); // ← Change stroke width instead
+      // Keep the original label
+      // model.setDataProperty(nodeData, 'label', selectedData.label); // Optional: keep original label
     }
     model.commitTransaction('mark as super node');
 
