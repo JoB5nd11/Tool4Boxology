@@ -155,6 +155,13 @@ export default function LeftSidebar({
                 {shapes.map((shape: any) => (
                   <div
                     key={shape.id}
+                    draggable
+                    onDragStart={e => {
+                      e.dataTransfer.setData('application/custom-group-shape', JSON.stringify({
+                        group: group,
+                        shapeId: shape.id
+                      }));
+                    }}
                     style={{
                       display: 'flex',
                       flexDirection: 'column',

@@ -309,6 +309,7 @@ function App() {
             setSelectedData={setSelectedData}
             setContextMenu={setContextMenu}
             containers={containers}
+            customGroups={customGroups} // <-- add this prop
           />
           <ContextMenu 
             contextMenu={contextMenu} 

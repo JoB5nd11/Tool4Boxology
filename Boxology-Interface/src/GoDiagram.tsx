@@ -13,13 +13,15 @@ interface GoDiagramProps {
   setSelectedData: Dispatch<SetStateAction<any>>;
   setContextMenu: Dispatch<SetStateAction<ContextMenuPosition | null>>;
   containers: string[];
+  customGroups: Record<string, any[]>; // <-- add this prop type
 }
 
 const GoDiagram: React.FC<GoDiagramProps> = ({
   diagramRef,
   setSelectedData,
   setContextMenu,
-  containers
+  containers,
+  customGroups // <-- pass this prop from App
 }) => {
   const diagramDivRef = useRef<HTMLDivElement>(null);
 
@@ -135,6 +137,13 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         },
         new go.Binding('text', 'label').makeTwoWay()
       )
+    );
+
+    diagram.linkTemplate = $(
+      go.Link,
+      { routing: go.Link.AvoidsNodes, corner: 5, selectable: true },
+      $(go.Shape, { strokeWidth: 2, stroke: "#555" }), // the link line
+      $(go.Shape, { toArrow: "Triangle", fill: "#555", stroke: null }) // the arrowhead
     );
 
     // Handle node selection
@@ -276,6 +285,80 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       validateGoJSDiagram(diagram);
     }
   };
+
+  useEffect(() => {
+    const diagramDiv = diagramRef.current?.div;
+    if (!diagramDiv) return;
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      const data = e.dataTransfer?.getData('application/custom-group-shape');
+      if (data) {
+        const { group, shapeId } = JSON.parse(data);
+        const shape = customGroups[group]?.find((s: any) => s.id === shapeId);
+        if (shape && diagramRef.current) {
+          const diagram = diagramRef.current;
+          const diagramDiv = diagram.div;
+          if (!diagramDiv) return;
+
+          const rect = diagramDiv.getBoundingClientRect();
+          const pt = diagram.transformViewToDoc(
+            new go.Point(e.clientX - rect.left, e.clientY - rect.top)
+          );
+
+          diagram.startTransaction('drop custom group shape');
+
+          // Find min location for offset
+          const minLoc = shape.nodeDataArray.reduce(
+            (min: { x: number; y: number }, n: any) => {
+              const [x, y] = (n.loc || "0 0").split(' ').map(Number);
+              return {
+                x: Math.min(min.x, x),
+                y: Math.min(min.y, y)
+              };
+            },
+            { x: Infinity, y: Infinity }
+          );
+          const offsetX = pt.x - minLoc.x;
+          const offsetY = pt.y - minLoc.y;
+
+          // Generate new keys and locations for nodes
+          const keyMap: Record<string, string> = {};
+          const newNodes = shape.nodeDataArray.map((n: any) => {
+            const newKey = `node_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+            keyMap[n.key] = newKey;
+            const [x, y] = (n.loc || "0 0").split(' ').map(Number);
+            return {
+              ...n,
+              key: newKey,
+              loc: `${x + offsetX} ${y + offsetY}`
+            };
+          });
+
+          // Add all new nodes first
+          newNodes.forEach((n: any) => diagram.model.addNodeData(n));
+
+          // Now add links, using new keys
+          const newLinks = shape.linkDataArray.map((l: any) => ({
+            ...l,
+            from: keyMap[l.from],
+            to: keyMap[l.to]
+          }));
+          newLinks.forEach((l: any) => (diagram.model as go.GraphLinksModel).addLinkData(l));
+
+          diagram.commitTransaction('drop custom group shape');
+        }
+      }
+    };
+
+    diagramDiv.addEventListener('dragover', e => e.preventDefault());
+    diagramDiv.addEventListener('drop', handleDrop);
+
+    return () => {
+      diagramDiv.removeEventListener('dragover', e => e.preventDefault());
+      diagramDiv.removeEventListener('drop', handleDrop);
+    };
+  }, [diagramRef, customGroups]);
 
   return (
     <div
