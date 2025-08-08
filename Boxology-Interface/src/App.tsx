@@ -17,6 +17,87 @@ function App() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [customGroups, setCustomGroups] = useState<{ [key: string]: any[] }>({});
 
+  // Page management for GoJS diagrams
+  type PageData = {
+    id: string;
+    name: string;
+    nodeDataArray: any[];
+    linkDataArray: any[];
+  };
+
+  const [pages, setPages] = useState<PageData[]>([
+    {
+      id: uuidv4(),
+      name: "Page 1",
+      nodeDataArray: [],
+      linkDataArray: [],
+    },
+  ]);
+
+  const [currentPageId, setCurrentPageId] = useState(pages[0].id);
+  const currentPage = pages.find((p) => p.id === currentPageId);
+
+  // Update current page data
+  const updateCurrentPage = (nodeDataArray: any[], linkDataArray: any[]) => {
+    setPages(pages.map(p => 
+      p.id === currentPageId ? { ...p, nodeDataArray, linkDataArray } : p
+    ));
+  };
+
+  // Add new page function
+  const handleAddNewPage = () => {
+    // Save current diagram before switching
+    if (diagramRef.current && currentPageId) {
+      const model = diagramRef.current.model as go.GraphLinksModel;
+      updateCurrentPage(model.nodeDataArray, model.linkDataArray);
+    }
+
+    const newPage: PageData = {
+      id: uuidv4(),
+      name: `Page ${pages.length + 1}`,
+      nodeDataArray: [],
+      linkDataArray: [],
+    };
+    
+    setPages(prev => [...prev, newPage]);
+    setCurrentPageId(newPage.id);
+  };
+
+  // Switch to different page
+  const handlePageSwitch = (pageId: string) => {
+    // Save current diagram data before switching
+    if (diagramRef.current && currentPageId) {
+      const model = diagramRef.current.model as go.GraphLinksModel;
+      updateCurrentPage(model.nodeDataArray, model.linkDataArray);
+    }
+    
+    setCurrentPageId(pageId);
+  };
+
+  // Close page
+  const handleClosePage = (pageId: string) => {
+    if (pages.length === 1) return; // Can't close last page
+    
+    setPages(prev => prev.filter(page => page.id !== pageId));
+    
+    // If closing current page, switch to first remaining page
+    if (currentPageId === pageId) {
+      const remainingPages = pages.filter(page => page.id !== pageId);
+      setCurrentPageId(remainingPages[0].id);
+    }
+  };
+
+  // Load diagram data when page changes
+  useEffect(() => {
+    if (diagramRef.current && currentPage) {
+      const diagram = diagramRef.current;
+      diagram.model = new go.GraphLinksModel(
+        currentPage.nodeDataArray,
+        currentPage.linkDataArray
+      );
+    }
+  }, [currentPageId, currentPage]);
+
   // Consolidated container management
   const handleAddContainer = (containerName: string) => {
     if (containerName && !containers.includes(containerName)) {
@@ -281,6 +362,7 @@ function App() {
 
   return (
     <div className="app" style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>
+      {/* Toolbar */}
       <Toolbar
         onOpen={() => handleFileOperation('open')}
         onSave={() => handleFileOperation('save')}
@@ -293,7 +375,98 @@ function App() {
         onExportJPG={() => handleExport('jpg')}
         onExportXML={() => handleExport('xml')}
       />
+
+      {/* Improved Tab Bar */}
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        padding: '10px',
+        borderBottom: '1px solid #ddd',
+        backgroundColor: '#f8f9fa',
+        alignItems: 'center'
+      }}>
+        {pages.map((page) => (
+          <button
+            key={page.id}
+            onClick={() => handlePageSwitch(page.id)}
+            style={{
+              backgroundColor: page.id === currentPageId ? '#1976d2' : '#e0e0e0',
+              color: page.id === currentPageId ? '#fff' : '#000',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: page.id === currentPageId ? '600' : '400',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              minWidth: '100px',
+              maxWidth: '200px'
+            }}
+          >
+            <span style={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              flex: 1
+            }}>
+              {page.name}
+            </span>
+            {pages.length > 1 && (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClosePage(page.id);
+                }}
+                style={{
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  padding: '0 4px',
+                  borderRadius: '2px',
+                  opacity: 0.7,
+                  transition: 'opacity 0.2s ease'
+                }}
+                onMouseEnter={(e) => (e.target as HTMLElement).style.opacity = '1'}
+                onMouseLeave={(e) => (e.target as HTMLElement).style.opacity = '0.7'}
+              >
+                ×
+              </span>
+            )}
+          </button>
+        ))}
+        
+        {/* Add New Page Button */}
+        <button
+          onClick={handleAddNewPage}
+          style={{
+            marginLeft: 'auto',
+            padding: '8px 16px',
+            borderRadius: '4px',
+            backgroundColor: '#4caf50',
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'background-color 0.2s ease'
+          }}
+          onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#45a049'}
+          onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = '#4caf50'}
+          title="Add new page"
+        >
+          ➕ Add Page
+        </button>
+      </div>
+
+      {/* Main Content */}
       <div className="main" style={{ flex: 1, display: 'flex', minHeight: 0, minWidth: 0, height: '100%', width: '100%' }}>
+        {/* Left Sidebar */}
         <div style={{ width: 300, minWidth: 180, maxWidth: 400, background: '#f9f9f9', borderRight: '1px solid #ddd', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1, boxShadow: '0 0 5px rgba(0,0,0,0.1)', boxSizing: 'content-box', overflowX: 'hidden' }}>
           <LeftSidebar
             containers={containers}
@@ -303,13 +476,15 @@ function App() {
             onCustomGroupAction={handleCustomGroupAction}
           />
         </div>
+
+        {/* Diagram Area */}
         <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative', height: '100%', display: 'flex' }}>
           <GoDiagram
             diagramRef={diagramRef}
             setSelectedData={setSelectedData}
             setContextMenu={setContextMenu}
             containers={containers}
-            customGroups={customGroups} // <-- add this prop
+            customGroups={customGroups}
           />
           <ContextMenu 
             contextMenu={contextMenu} 
@@ -318,6 +493,8 @@ function App() {
             onAction={handleContextMenuAction}
           />
         </div>
+
+        {/* Right Sidebar */}
         <div style={{ width: 280, minWidth: 200, maxWidth: 340, background: '#f9f9f9', borderLeft: '1px solid #ddd', height: '100%', overflowY: 'auto' }}>
           <RightSidebar
             selectedData={selectedData}
