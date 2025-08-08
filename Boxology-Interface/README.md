@@ -1,4 +1,3 @@
-
 # Boxology-Interface
 
 This module contains a custom **web-based interface** for designing hybrid AI systems using **Boxology** principles. It is built with **React**, **TypeScript**, **Vite**, and **GoJS**, and provides an interactive diagramming environment for creating modular, validated AI system architectures.
@@ -7,22 +6,34 @@ This module contains a custom **web-based interface** for designing hybrid AI sy
 
 ---
 
-## ✨ Features (in progress)
+## ✨ Features
 
-- 📦 Drag-and-drop Boxology components
-- 🔗 Connect components with semantically meaningful edges
-- 🔍 Real-time preview and layout
-- 💾 Export diagrams for reuse and sharing
+- 📦 **Drag-and-drop Boxology components** - Interactive shape library with custom shapes
+- 🔗 **Connect components** with semantically meaningful edges
+- 📑 **Multi-page support** - Create multiple diagram pages like Excel/Draw.io
+- 🏗️ **Hierarchical diagrams** - Mark nodes as "super nodes" with linked sub-diagrams
+- 🔍 **Real-time preview and layout** - Live diagram editing and validation
+- 💾 **Export diagrams** - Save/load projects with full hierarchy preservation
+- 🎨 **Custom shape groups** - Create and save custom component collections
+- ⚡ **Context-sensitive menus** - Right-click for quick actions and navigation
+
+### 🆕 Hierarchical Design Features
+
+- **Super Nodes**: Right-click any node → "Mark as Super Node" to create detailed sub-diagrams
+- **Sub-diagram Navigation**: Edit linked diagrams with seamless back-and-forth navigation
+- **Visual Indicators**: Super nodes are highlighted with thicker borders for easy identification
+- **Hierarchy Management**: Each super node maintains its own independent diagram canvas
+- **Data Persistence**: All hierarchical relationships and sub-diagrams are preserved during save/load
 
 ---
 
 ## 🧰 Built With
 
-- [React](https://reactjs.org/)
-- [Vite](https://vitejs.dev/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [GoJS](https://gojs.net/)
-- [HTML5/CSS3](https://developer.mozilla.org/en-US/docs/Web)
+- [React](https://reactjs.org/) - Frontend framework
+- [Vite](https://vitejs.dev/) - Build tool and development server
+- [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript
+- [GoJS](https://gojs.net/) - Interactive diagramming library
+- [HTML5/CSS3](https://developer.mozilla.org/en-US/docs/Web) - Web standards
 
 ---
 
