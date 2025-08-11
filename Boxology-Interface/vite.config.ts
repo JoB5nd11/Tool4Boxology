@@ -3,9 +3,10 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/Tool4Boxology/Boxology-Interface/',
+  base: '/',
   server: {
     port: 5173,
+    host: '0.0.0.0',
     open: true
   },
   build: {
