@@ -468,7 +468,32 @@ function App() {
     }
   };
 
+  // Prevent Ctrl+A from selecting all page elements
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent Ctrl+A (or Cmd+A on Mac) from selecting all page elements
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault();
+        
+        // Optional: If you want Ctrl+A to work within the diagram only
+        if (diagramRef.current && document.activeElement === diagramRef.current.div) {
+          // Let GoJS handle Ctrl+A for selecting all diagram elements
+          return;
+        }
+        
+        // Prevent default browser "select all" behavior
+        return false;
+      }
+    };
 
+    // Add event listener to document
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup event listener on component unmount
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   return (
     <div className="app" style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>

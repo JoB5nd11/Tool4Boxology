@@ -99,7 +99,7 @@ export function setupDiagramValidation(diagram: go.Diagram) {
       (diagram.model as go.GraphLinksModel).removeLinkData(link.data);
       diagram.model.commitTransaction("remove invalid link");
       // Optionally, show a warning (you can use a toast or alert)
-      // alert("❌ Invalid connection! Edge will be removed.");
+      alert("❌ Invalid connection! Edge will be removed.");
       return;
     }
 

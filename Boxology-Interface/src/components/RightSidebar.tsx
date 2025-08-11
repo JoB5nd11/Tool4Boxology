@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import * as go from 'gojs';
-import { 
-  FormatAlignLeft,
-  FormatAlignCenter, 
-  FormatAlignRight,
-  VerticalAlignTop,
-  VerticalAlignCenter,
-  VerticalAlignBottom,
-  SwapHoriz,
-  SwapVert
-} from '@mui/icons-material';
+import AlignHorizontalLeftIcon from '@mui/icons-material/AlignHorizontalLeft';
+import AlignHorizontalRightIcon from '@mui/icons-material/AlignHorizontalRight';
+import AlignVerticalBottomIcon from '@mui/icons-material/AlignVerticalBottom';
+import AlignVerticalCenterIcon from '@mui/icons-material/AlignVerticalCenter';
+import AlignVerticalTopIcon from '@mui/icons-material/AlignVerticalTop';
+import AlignHorizontalCenterIcon from '@mui/icons-material/AlignHorizontalCenter';
+import ViewColumnIcon from '@mui/icons-material/ViewColumn';
+import ViewStreamIcon from '@mui/icons-material/ViewStream';
 
 interface RightSidebarProps {
   selectedData: {
@@ -19,6 +17,7 @@ interface RightSidebarProps {
     color: string;
     stroke: string;
     shape: string;
+    isSuperNode?: boolean;
   } | null;
   diagramRef: React.RefObject<go.Diagram | null>;
 }
@@ -44,19 +43,39 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
   const [localColor, setLocalColor] = useState('#ffffff');
   const [localStroke, setLocalStroke] = useState('#000000');
   const [localShape, setLocalShape] = useState('Rectangle');
+  const [selectedCount, setSelectedCount] = useState(0);
 
-  // Sync local state when selectedData changes
+  // Check how many objects are selected
   useEffect(() => {
-    if (selectedData) {
+    if (diagramRef.current) {
+      const diagram = diagramRef.current;
+      setSelectedCount(diagram.selection.count);
+      
+      // Listen for selection changes
+      const handleSelectionChanged = () => {
+        setSelectedCount(diagram.selection.count);
+      };
+      
+      diagram.addDiagramListener('ChangedSelection', handleSelectionChanged);
+      
+      return () => {
+        diagram.removeDiagramListener('ChangedSelection', handleSelectionChanged);
+      };
+    }
+  }, [diagramRef]);
+
+  // Sync local state when selectedData changes (only for single selection)
+  useEffect(() => {
+    if (selectedData && selectedCount === 1) {
       setLocalLabel(selectedData.label || '');
       setLocalColor(selectedData.color || '#ffffff');
       setLocalStroke(selectedData.stroke || '#000000');
       setLocalShape(selectedData.shape || 'Rectangle');
     }
-  }, [selectedData]);
+  }, [selectedData, selectedCount]);
 
   const handleSidebarChange = (field: string, value: string) => {
-    if (!selectedData || !diagramRef.current) return;
+    if (!selectedData || !diagramRef.current || selectedCount !== 1) return;
     
     try {
       const diagram = diagramRef.current;
@@ -102,7 +121,7 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
     handleSidebarChange('stroke', preset.stroke);
   };
 
-  // Alignment functions
+  // Alignment functions (work with multiple selections)
   const alignNodes = (alignment: string) => {
     if (!diagramRef.current) return;
     
@@ -158,7 +177,7 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
     diagram.commitTransaction('align nodes');
   };
 
-  // Distribution functions
+  // Distribution functions (work with multiple selections)
   const distributeNodes = (direction: 'horizontal' | 'vertical') => {
     if (!diagramRef.current) return;
     
@@ -201,6 +220,78 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
     diagram.commitTransaction('distribute nodes');
   };
 
+  // Organize shapes horizontally with 80px spacing
+  const organizeHorizontally = () => {
+    if (!diagramRef.current) return;
+    
+    const diagram = diagramRef.current;
+    const selectedNodes = diagram.selection.filter(part => part instanceof go.Node);
+    
+    if (selectedNodes.count < 2) {
+      alert('Please select at least 2 nodes to organize horizontally');
+      return;
+    }
+
+    diagram.startTransaction('organize horizontally');
+    
+    try {
+      const nodes = selectedNodes.toArray() as go.Node[];
+      
+      nodes.sort((a, b) => a.position.x - b.position.x);
+      
+      let currentX = nodes[0].position.x;
+      const baseY = nodes[0].position.y;
+      
+      nodes.forEach((node, index) => {
+        node.move(new go.Point(currentX, baseY));
+        
+        if (index < nodes.length - 1) {
+          currentX += node.actualBounds.width + 80;
+        }
+      });
+    } catch (error) {
+      console.error('Error organizing nodes horizontally:', error);
+    }
+    
+    diagram.commitTransaction('organize horizontally');
+  };
+
+  // Organize shapes vertically with 80px spacing
+  const organizeVertically = () => {
+    if (!diagramRef.current) return;
+    
+    const diagram = diagramRef.current;
+    const selectedNodes = diagram.selection.filter(part => part instanceof go.Node);
+    
+    if (selectedNodes.count < 2) {
+      alert('Please select at least 2 nodes to organize vertically');
+      return;
+    }
+
+    diagram.startTransaction('organize vertically');
+    
+    try {
+      const nodes = selectedNodes.toArray() as go.Node[];
+      
+      nodes.sort((a, b) => a.position.y - b.position.y);
+      
+      const baseX = nodes[0].position.x;
+      let currentY = nodes[0].position.y;
+      
+      nodes.forEach((node, index) => {
+        node.move(new go.Point(baseX, currentY));
+        
+        if (index < nodes.length - 1) {
+          currentY += node.actualBounds.height + 80;
+        }
+      });
+    } catch (error) {
+      console.error('Error organizing nodes vertically:', error);
+    }
+    
+    diagram.commitTransaction('organize vertically');
+  };
+
   const iconButtonStyle: React.CSSProperties = {
     padding: '6px',
     border: '1px solid #ccc',
@@ -235,7 +326,8 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
     >
       <h3 style={{ marginTop: 0, marginBottom: 16, color: '#333', fontSize: '16px' }}>Properties</h3>
       
-      {selectedData && (
+      {/* Show properties only when exactly ONE shape is selected */}
+      {selectedData && selectedCount === 1 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Simple Label Editor */}
           <div>
@@ -328,14 +420,79 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
               <option value="Hexagon">Hexagon</option>
             </select>
           </div>
+
+          {/* Show object type only (no ID) */}
+          <div style={{
+            backgroundColor: '#fff',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            padding: '12px'
+          }}>
+            <h4 style={{ 
+              fontSize: '14px', 
+              color: '#555', 
+              marginBottom: '8px',
+              marginTop: 0,
+              fontWeight: '600'
+            }}>
+              Object Info
+            </h4>
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              <p style={{ margin: '4px 0' }}>
+                <strong>Type:</strong> {selectedData.shape || 'Unknown'}
+              </p>
+              {selectedData.isSuperNode && (
+                <p style={{ 
+                  margin: '4px 0', 
+                  color: '#1976d2',
+                  fontWeight: '500'
+                }}>
+                  🔗 Super Node
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Alignment Tools with Material-UI Icons */}
+      {/* Show message when multiple objects are selected */}
+      {selectedCount > 1 && (
+        <div style={{ 
+          padding: '16px', 
+          textAlign: 'center', 
+          color: '#666',
+          backgroundColor: '#fff',
+          border: '1px solid #ddd',
+          borderRadius: '4px',
+          marginBottom: '16px'
+        }}>
+          <p style={{ margin: 0, fontSize: '14px' }}>
+            <strong>{selectedCount} objects selected</strong>
+          </p>
+          <p style={{ margin: '8px 0 0 0', fontSize: '12px' }}>
+            Use alignment tools below to organize multiple objects
+          </p>
+        </div>
+      )}
+
+      {/* Show message when no objects are selected */}
+      {selectedCount === 0 && (
+        <div style={{ 
+          padding: '16px', 
+          textAlign: 'center', 
+          color: '#666'
+        }}>
+          <p style={{ margin: 0, fontSize: '14px' }}>
+            Select an object to edit its properties
+          </p>
+        </div>
+      )}
+
+      {/* Alignment Tools - Always visible */}
       <div style={{ marginTop: 20 }}>
         <h4 style={{ margin: '0 0 12px 0', color: '#333', fontSize: '14px' }}>Alignment Tools</h4>
         
-        {/* Horizontal & Vertical Alignment */}
+        {/* Alignment Grid - 3x2 Layout */}
         <div style={{ marginBottom: 12 }}>
           <p style={{ fontSize: '11px', color: '#666', margin: '0 0 6px 0' }}>Align Objects:</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
@@ -343,80 +500,118 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
               onClick={() => alignNodes('left')} 
               style={iconButtonStyle} 
               title="Align Left"
-              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
-              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
             >
-              <FormatAlignLeft fontSize="small" />
+              <AlignHorizontalLeftIcon fontSize="small" />
             </button>
             <button 
               onClick={() => alignNodes('centerV')} 
               style={iconButtonStyle} 
-              title="Center Vertically"
-              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
-              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+              title="Align Center Vertically"
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
             >
-              <FormatAlignCenter fontSize="small" />
+              <AlignHorizontalCenterIcon fontSize="small" />
             </button>
             <button 
               onClick={() => alignNodes('right')} 
               style={iconButtonStyle} 
               title="Align Right"
-              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
-              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
             >
-              <FormatAlignRight fontSize="small" />
+              <AlignHorizontalRightIcon fontSize="small" />
             </button>
+            
             <button 
               onClick={() => alignNodes('top')} 
               style={iconButtonStyle} 
               title="Align Top"
-              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
-              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
             >
-              <VerticalAlignTop fontSize="small" />
+              <AlignVerticalTopIcon fontSize="small" />
             </button>
             <button 
               onClick={() => alignNodes('centerH')} 
               style={iconButtonStyle} 
-              title="Center Horizontally"
-              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
-              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+              title="Align Center Horizontally"
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
             >
-              <VerticalAlignCenter fontSize="small" />
+              <AlignVerticalCenterIcon fontSize="small" />
             </button>
             <button 
               onClick={() => alignNodes('bottom')} 
               style={iconButtonStyle} 
               title="Align Bottom"
-              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
-              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
             >
-              <VerticalAlignBottom fontSize="small" />
+              <AlignVerticalBottomIcon fontSize="small" />
             </button>
           </div>
         </div>
 
         {/* Distribution */}
-        <div>
+        <div style={{ marginBottom: 12 }}>
           <p style={{ fontSize: '11px', color: '#666', margin: '0 0 6px 0' }}>Distribute Objects:</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
             <button 
               onClick={() => distributeNodes('horizontal')} 
               style={iconButtonStyle} 
-              title="Distribute Horizontally"
-              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
-              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+              title="Distribute Horizontal Center"
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
             >
-              <SwapHoriz fontSize="small" />
+              <AlignHorizontalCenterIcon fontSize="small" />
+              <span style={{ fontSize: '10px', marginLeft: '2px' }}>⟷</span>
             </button>
             <button 
               onClick={() => distributeNodes('vertical')} 
               style={iconButtonStyle} 
-              title="Distribute Vertically"
-              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
-              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+              title="Distribute Vertical Center"
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
             >
-              <SwapVert fontSize="small" />
+              <AlignVerticalCenterIcon fontSize="small" />
+              <span style={{ fontSize: '10px', marginLeft: '2px' }}>⟱</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Organize with 80px spacing */}
+        <div>
+          <p style={{ fontSize: '11px', color: '#666', margin: '0 0 6px 0' }}>Organize (80px spacing):</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+            <button 
+              onClick={organizeHorizontally} 
+              style={{
+                ...iconButtonStyle,
+                backgroundColor: '#e3f2fd',
+                borderColor: '#1976d2',
+                color: '#1976d2'
+              }} 
+              title="Organize Horizontally (80px spacing)"
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, { backgroundColor: '#bbdefb', borderColor: '#1565c0' })}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, { backgroundColor: '#e3f2fd', borderColor: '#1976d2' })}
+            >
+              <ViewStreamIcon fontSize="small" />
+            </button>
+            <button 
+              onClick={organizeVertically} 
+              style={{
+                ...iconButtonStyle,
+                backgroundColor: '#e3f2fd',
+                borderColor: '#1976d2',
+                color: '#1976d2'
+              }} 
+              title="Organize Vertically (80px spacing)"
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, { backgroundColor: '#bbdefb', borderColor: '#1565c0' })}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, { backgroundColor: '#e3f2fd', borderColor: '#1976d2' })}
+            >
+              <ViewColumnIcon fontSize="small" />
             </button>
           </div>
         </div>
@@ -430,7 +625,7 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
           fontSize: '11px',
           color: '#1976d2'
         }}>
-          💡 <strong>Tip:</strong> Select multiple objects first, then use alignment tools
+          💡 <strong>Tip:</strong> Select multiple objects to use alignment tools
         </div>
       </div>
     </div>
