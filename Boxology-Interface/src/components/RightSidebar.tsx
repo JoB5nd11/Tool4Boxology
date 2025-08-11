@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import * as go from 'gojs';
+import { 
+  FormatAlignLeft,
+  FormatAlignCenter, 
+  FormatAlignRight,
+  VerticalAlignTop,
+  VerticalAlignCenter,
+  VerticalAlignBottom,
+  SwapHoriz,
+  SwapVert
+} from '@mui/icons-material';
 
 interface RightSidebarProps {
   selectedData: {
@@ -191,6 +201,26 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
     diagram.commitTransaction('distribute nodes');
   };
 
+  const iconButtonStyle: React.CSSProperties = {
+    padding: '6px',
+    border: '1px solid #ccc',
+    backgroundColor: '#fff',
+    borderRadius: 4,
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '36px',
+    minWidth: '36px',
+    color: '#555',
+  };
+
+  const iconButtonHoverStyle = {
+    backgroundColor: '#f0f0f0',
+    borderColor: '#999',
+  };
+
   return (
     <div
       style={{
@@ -301,59 +331,108 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
         </div>
       )}
 
-      {/* Alignment Tools */}
+      {/* Alignment Tools with Material-UI Icons */}
       <div style={{ marginTop: 20 }}>
-        <h4 style={{ margin: '0 0 10px 0', color: '#333', fontSize: '14px' }}>Alignment</h4>
+        <h4 style={{ margin: '0 0 12px 0', color: '#333', fontSize: '14px' }}>Alignment Tools</h4>
         
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
-            <button onClick={() => alignNodes('left')} style={iconButtonStyle} title="Align Left">
-              ⫸
+        {/* Horizontal & Vertical Alignment */}
+        <div style={{ marginBottom: 12 }}>
+          <p style={{ fontSize: '11px', color: '#666', margin: '0 0 6px 0' }}>Align Objects:</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+            <button 
+              onClick={() => alignNodes('left')} 
+              style={iconButtonStyle} 
+              title="Align Left"
+              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+            >
+              <FormatAlignLeft fontSize="small" />
             </button>
-            <button onClick={() => alignNodes('centerV')} style={iconButtonStyle} title="Center Vertically">
-              ⫴
+            <button 
+              onClick={() => alignNodes('centerV')} 
+              style={iconButtonStyle} 
+              title="Center Vertically"
+              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+            >
+              <FormatAlignCenter fontSize="small" />
             </button>
-            <button onClick={() => alignNodes('right')} style={iconButtonStyle} title="Align Right">
-              ⫷
+            <button 
+              onClick={() => alignNodes('right')} 
+              style={iconButtonStyle} 
+              title="Align Right"
+              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+            >
+              <FormatAlignRight fontSize="small" />
             </button>
-            <button onClick={() => alignNodes('top')} style={iconButtonStyle} title="Align Top">
-              ⫵
+            <button 
+              onClick={() => alignNodes('top')} 
+              style={iconButtonStyle} 
+              title="Align Top"
+              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+            >
+              <VerticalAlignTop fontSize="small" />
             </button>
-            <button onClick={() => alignNodes('centerH')} style={iconButtonStyle} title="Center Horizontally">
-              ⫶
+            <button 
+              onClick={() => alignNodes('centerH')} 
+              style={iconButtonStyle} 
+              title="Center Horizontally"
+              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+            >
+              <VerticalAlignCenter fontSize="small" />
             </button>
-            <button onClick={() => alignNodes('bottom')} style={iconButtonStyle} title="Align Bottom">
-              ⫯
+            <button 
+              onClick={() => alignNodes('bottom')} 
+              style={iconButtonStyle} 
+              title="Align Bottom"
+              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+            >
+              <VerticalAlignBottom fontSize="small" />
             </button>
           </div>
         </div>
 
+        {/* Distribution */}
         <div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
-            <button onClick={() => distributeNodes('horizontal')} style={iconButtonStyle} title="Distribute Horizontally">
-              ⟷
+          <p style={{ fontSize: '11px', color: '#666', margin: '0 0 6px 0' }}>Distribute Objects:</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+            <button 
+              onClick={() => distributeNodes('horizontal')} 
+              style={iconButtonStyle} 
+              title="Distribute Horizontally"
+              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+            >
+              <SwapHoriz fontSize="small" />
             </button>
-            <button onClick={() => distributeNodes('vertical')} style={iconButtonStyle} title="Distribute Vertically">
-              ⟺
+            <button 
+              onClick={() => distributeNodes('vertical')} 
+              style={iconButtonStyle} 
+              title="Distribute Vertically"
+              onMouseEnter={(e) => Object.assign(e.target.style, iconButtonHoverStyle)}
+              onMouseLeave={(e) => Object.assign(e.target.style, iconButtonStyle)}
+            >
+              <SwapVert fontSize="small" />
             </button>
           </div>
+        </div>
+
+        {/* Help Text */}
+        <div style={{ 
+          marginTop: 12, 
+          padding: 8, 
+          backgroundColor: '#e3f2fd', 
+          borderRadius: 4,
+          fontSize: '11px',
+          color: '#1976d2'
+        }}>
+          💡 <strong>Tip:</strong> Select multiple objects first, then use alignment tools
         </div>
       </div>
     </div>
   );
 }
-
-const iconButtonStyle: React.CSSProperties = {
-  padding: '8px',
-  border: '1px solid #ccc',
-  backgroundColor: '#f8f9fa',
-  borderRadius: 3,
-  cursor: 'pointer',
-  fontSize: '14px',
-  fontWeight: 'bold',
-  transition: 'background-color 0.1s',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: '32px',
-};
