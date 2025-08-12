@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import './App.css';
-import Toolbar from './Toolbar';
+import Toolbar from './components/Toolbar';
 import LeftSidebar from './components/LeftSidebar';
 import GoDiagram from './GoDiagram';
 import * as go from 'gojs';
@@ -499,6 +499,7 @@ function App() {
     <div className="app" style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>
       {/* Toolbar */}
       <Toolbar
+        diagram={diagramRef.current}
         onOpen={() => handleFileOperation('open')}
         onSave={() => handleFileOperation('save')}
         onUndo={() => handleDiagramOperation('undo')}
