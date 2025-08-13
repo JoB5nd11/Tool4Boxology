@@ -9,6 +9,7 @@ import AlignVerticalTopIcon from '@mui/icons-material/AlignVerticalTop';
 import AlignHorizontalCenterIcon from '@mui/icons-material/AlignHorizontalCenter';
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import ViewStreamIcon from '@mui/icons-material/ViewStream';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 // Define ToolbarProps type
 type ToolbarProps = {
@@ -19,10 +20,12 @@ type ToolbarProps = {
   onRedo: () => void;
   onAbout: () => void;
   onValidate: () => void;
+  onValidateSuperNode: () => void; // Add this new prop
   onExportSVG: () => void;
   onExportPNG: () => void;
   onExportJPG: () => void;
   onExportXML: () => void;
+  isSuperNodeSelected: boolean; // Add this new prop
 };
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -33,10 +36,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onRedo,
   onAbout,
   onValidate,
+  onValidateSuperNode, // Add this
   onExportSVG,
   onExportPNG,
   onExportJPG,
   onExportXML,
+  isSuperNodeSelected, // Add this
 }) => {
   // Simple small button style for existing buttons
   const simpleButtonStyle: React.CSSProperties = {
@@ -256,6 +261,23 @@ const Toolbar: React.FC<ToolbarProps> = ({
       <button onClick={onUndo} style={simpleButtonStyle}>🔄 Undo</button>
       <button onClick={onRedo} style={simpleButtonStyle}>🔃 Redo</button>
       <button onClick={onValidate} style={simpleButtonStyle}>✅ Validate</button>
+      
+      {/* Super Node Validation Button */}
+      <button 
+        onClick={onValidateSuperNode} 
+        style={{
+          ...simpleButtonStyle,
+          backgroundColor: isSuperNodeSelected ? '#28a745' : '#6c757d',
+          color: 'white',
+          opacity: isSuperNodeSelected ? 1 : 0.65,
+          cursor: isSuperNodeSelected ? 'pointer' : 'not-allowed'
+        }}
+        disabled={!isSuperNodeSelected}
+        title={isSuperNodeSelected ? "Validate Super Node Diagram" : "Select a super node to validate its sub-diagram"}
+      >
+        <CheckCircleIcon fontSize="small" style={{ marginRight: '4px' }} />
+        {isSuperNodeSelected ? 'Validate Sub' : 'Validate Sub'}
+      </button>
 
       {/* Separator */}
       <div style={{ width: '1px', height: '20px', backgroundColor: '#ccc', margin: '0 4px' }} />

@@ -14,20 +14,17 @@ interface RightSidebarProps {
   diagramRef: React.RefObject<go.Diagram | null>;
 }
 
-// Predefined color themes (just colors, no names)
+// Simplified color presets
 const colorPresets = [
-  { color: '#ccffccff', stroke: '#218721ff' }, 
-  { color: '#b7eaffff', stroke: '#1E5F8B' },  
-  { color: '#f4ccf4ff', stroke: '#8B4F8B' },   
-  { color: '#f8ce92ff', stroke: '#000000ff' }, 
-  { color: '#fbf2a2ff', stroke: '#B8A600' },   // Transform
-  { color: '#ff81f7ff', stroke: '#4c003bff' }, // Inference
-  { color: '#FFA07A', stroke: '#CD5C5C' },     // Generate
-  { color: '#f067acff', stroke: '#C1307A' },   // Engineer
-  { color: '#F5F5DC', stroke: '#A9A9A9' },     // Comment
-  { color: '#FFE4B5', stroke: '#FF8C00' },     // Warning
-  { color: '#FFB6C1', stroke: '#DC143C' },     // Error
-  { color: '#90EE90', stroke: '#228B22' },     // Success
+  '#ccffcc', '#b7eaff', '#f4ccf4', '#f8ce92', 
+  '#fbf2a2', '#ff81f7', '#FFA07A', '#f067ac',
+  '#F5F5DC', '#FFE4B5', '#FFB6C1', '#90EE90'
+];
+
+const strokePresets = [
+  '#218721', '#1E5F8B', '#8B4F8B', '#000000',
+  '#B8A600', '#4c003b', '#CD5C5C', '#C1307A',
+  '#A9A9A9', '#FF8C00', '#DC143C', '#228B22'
 ];
 
 export default function RightSidebar({ selectedData, diagramRef }: RightSidebarProps) {
@@ -43,7 +40,6 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
       const diagram = diagramRef.current;
       setSelectedCount(diagram.selection.count);
       
-      // Listen for selection changes
       const handleSelectionChanged = () => {
         setSelectedCount(diagram.selection.count);
       };
@@ -56,7 +52,7 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
     }
   }, [diagramRef]);
 
-  // Sync local state when selectedData changes (only for single selection)
+  // Sync local state when selectedData changes
   useEffect(() => {
     if (selectedData && selectedCount === 1) {
       setLocalLabel(selectedData.label || '');
@@ -106,33 +102,6 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
     handleSidebarChange('shape', shape);
   };
 
-  const applyColorPreset = (preset: typeof colorPresets[0]) => {
-    setLocalColor(preset.color);
-    setLocalStroke(preset.stroke);
-    handleSidebarChange('color', preset.color);
-    handleSidebarChange('stroke', preset.stroke);
-  };
-
-  const iconButtonStyle: React.CSSProperties = {
-    padding: '6px',
-    border: '1px solid #ccc',
-    backgroundColor: '#fff',
-    borderRadius: 4,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '36px',
-    minWidth: '36px',
-    color: '#555',
-  };
-
-  const iconButtonHoverStyle = {
-    backgroundColor: '#f0f0f0',
-    borderColor: '#999',
-  };
-
   return (
     <div
       style={{
@@ -149,12 +118,13 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
       
       {/* Show properties only when exactly ONE shape is selected */}
       {selectedData && selectedCount === 1 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {/* Simple Label Editor */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          
+          {/* Label Input */}
           <div>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 6, fontSize: '12px' }}>
+            <div style={{ fontWeight: 'bold', marginBottom: 6, fontSize: '12px' }}>
               Label:
-            </label>
+            </div>
             <input
               type="text"
               value={localLabel}
@@ -162,75 +132,116 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
               placeholder="Enter text..."
               style={{ 
                 width: '100%', 
-                padding: 6, 
+                padding: '8px', 
                 border: '1px solid #ccc',
-                borderRadius: 3,
+                borderRadius: '4px',
                 fontSize: '13px',
                 boxSizing: 'border-box'
               }}
             />
           </div>
 
-          {/* Color Presets - Just Colors */}
+          {/* Fill Color */}
           <div>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 6, fontSize: '12px' }}>
-              Presets:
-            </label>
+            <div style={{ fontWeight: 'bold', marginBottom: 6, fontSize: '12px' }}>
+              Fill Color:
+            </div>
+            {/* Color presets */}
             <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(4, 1fr)', 
-              gap: 4 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              gap: 4,
+              marginBottom: 8
             }}>
-              {colorPresets.map((preset, index) => (
-                <button
+              {colorPresets.map((color, index) => (
+                <div
                   key={index}
-                  onClick={() => applyColorPreset(preset)}
+                  onClick={() => handleColorChange(color)}
                   style={{
-                    width: 32,
-                    height: 32,
-                    border: `2px solid ${preset.stroke}`,
-                    backgroundColor: preset.color,
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    padding: 0,
+                    width: 24,
+                    height: 24,
+                    backgroundColor: color,
+                    border: localColor === color ? '2px solid #000' : '1px solid #ccc',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
                   }}
-                  title="Apply color preset"
                 />
               ))}
             </div>
+            {/* Custom color input */}
+            <input
+              type="color"
+              value={localColor}
+              onChange={(e) => handleColorChange(e.target.value)}
+              style={{ 
+                width: '100%', 
+                height: '32px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            />
           </div>
 
-          {/* Custom Colors */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <label style={{ fontSize: '12px' }}>
-              <strong>Fill:</strong>
-              <input
-                type="color"
-                value={localColor}
-                onChange={(e) => handleColorChange(e.target.value)}
-                style={{ width: '100%', height: 28, marginTop: 4, border: 'none', borderRadius: 3 }}
-              />
-            </label>
-            <label style={{ fontSize: '12px' }}>
-              <strong>Stroke:</strong>
-              <input
-                type="color"
-                value={localStroke}
-                onChange={(e) => handleStrokeChange(e.target.value)}
-                style={{ width: '100%', height: 28, marginTop: 4, border: 'none', borderRadius: 3 }}
-              />
-            </label>
+          {/* Stroke Color */}
+          <div>
+            <div style={{ fontWeight: 'bold', marginBottom: 6, fontSize: '12px' }}>
+              Border Color:
+            </div>
+            {/* Stroke presets */}
+            <div style={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              gap: 4,
+              marginBottom: 8
+            }}>
+              {strokePresets.map((stroke, index) => (
+                <div
+                  key={index}
+                  onClick={() => handleStrokeChange(stroke)}
+                  style={{
+                    width: 24,
+                    height: 24,
+                    backgroundColor: stroke,
+                    border: localStroke === stroke ? '2px solid #fff' : '1px solid #ccc',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    boxShadow: localStroke === stroke ? '0 0 0 1px #000' : 'none'
+                  }}
+                />
+              ))}
+            </div>
+            {/* Custom stroke input */}
+            <input
+              type="color"
+              value={localStroke}
+              onChange={(e) => handleStrokeChange(e.target.value)}
+              style={{ 
+                width: '100%', 
+                height: '32px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            />
           </div>
 
           {/* Shape Selector */}
           <div>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 6, fontSize: '12px' }}>
+            <div style={{ fontWeight: 'bold', marginBottom: 6, fontSize: '12px' }}>
               Shape:
-            </label>
+            </div>
             <select
               value={localShape}
               onChange={(e) => handleShapeChange(e.target.value)}
-              style={{ width: '100%', padding: 6, border: '1px solid #ccc', borderRadius: 3, fontSize: '13px' }}
+              style={{ 
+                width: '100%', 
+                padding: '8px', 
+                border: '1px solid #ccc', 
+                borderRadius: '4px', 
+                fontSize: '13px',
+                backgroundColor: 'white'
+              }}
             >
               <option value="Rectangle">Rectangle</option>
               <option value="RoundedRectangle">Rounded Rectangle</option>
@@ -242,41 +253,39 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
             </select>
           </div>
 
-          {/* Show object type only (no ID) */}
+          {/* Object Info */}
           <div style={{
             backgroundColor: '#fff',
             border: '1px solid #ddd',
             borderRadius: '4px',
             padding: '12px'
           }}>
-            <h4 style={{ 
-              fontSize: '14px', 
-              color: '#555', 
+            <div style={{ 
+              fontSize: '12px', 
+              fontWeight: 'bold',
               marginBottom: '8px',
-              marginTop: 0,
-              fontWeight: '600'
+              color: '#333'
             }}>
               Object Info
-            </h4>
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              <p style={{ margin: '4px 0' }}>
+            </div>
+            <div style={{ fontSize: '11px', color: '#666' }}>
+              <div style={{ marginBottom: '4px' }}>
                 <strong>Type:</strong> {selectedData.shape || 'Unknown'}
-              </p>
+              </div>
               {selectedData.isSuperNode && (
-                <p style={{ 
-                  margin: '4px 0', 
+                <div style={{ 
                   color: '#1976d2',
                   fontWeight: '500'
                 }}>
                   🔗 Super Node
-                </p>
+                </div>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Show message when multiple objects are selected */}
+      {/* Multiple objects selected */}
       {selectedCount > 1 && (
         <div style={{ 
           padding: '16px', 
@@ -284,28 +293,27 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
           color: '#666',
           backgroundColor: '#fff',
           border: '1px solid #ddd',
-          borderRadius: '4px',
-          marginBottom: '16px'
+          borderRadius: '4px'
         }}>
-          <p style={{ margin: 0, fontSize: '14px' }}>
-            <strong>{selectedCount} objects selected</strong>
-          </p>
-          <p style={{ margin: '8px 0 0 0', fontSize: '12px' }}>
-            Use alignment tools in the toolbar to organize multiple objects
-          </p>
+          <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+            {selectedCount} objects selected
+          </div>
+          <div style={{ marginTop: '8px', fontSize: '12px' }}>
+            Use alignment tools in toolbar
+          </div>
         </div>
       )}
 
-      {/* Show message when no objects are selected */}
+      {/* No objects selected */}
       {selectedCount === 0 && (
         <div style={{ 
           padding: '16px', 
           textAlign: 'center', 
           color: '#666'
         }}>
-          <p style={{ margin: 0, fontSize: '14px' }}>
-            Select an object to edit its properties
-          </p>
+          <div style={{ fontSize: '14px' }}>
+            Select an object to edit properties
+          </div>
         </div>
       )}
     </div>

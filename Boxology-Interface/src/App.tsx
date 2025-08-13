@@ -8,6 +8,8 @@ import RightSidebar from './components/RightSidebar';
 import ContextMenu from './ContextMenu';
 import { validateGoJSDiagram, setupDiagramValidation } from './plugin/GoJSBoxologyValidation';
 import { v4 as uuidv4 } from 'uuid';
+import { validateDiagram } from './utils/validation';
+import type { ValidationResult } from './utils/validation';
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
@@ -31,14 +33,16 @@ function App() {
     [nodeId: string]: string; // nodeId → pageId
   };
 
-  const [pages, setPages] = useState<PageData[]>([
-    {
-      id: uuidv4(),
-      name: "Main Page",
-      nodeDataArray: [],
-      linkDataArray: [],
-    },
-  ]);
+  const [pages, setPages] = useState<PageData[]>(
+    [
+      {
+        id: uuidv4(),
+        name: "Main Page",
+        nodeDataArray: [],
+        linkDataArray: [],
+      },
+    ]
+  );
 
   const [currentPageId, setCurrentPageId] = useState(pages[0].id);
   const [superNodeMap, setSuperNodeMap] = useState<SuperNodeMapping>({});
@@ -495,6 +499,186 @@ function App() {
     };
   }, []);
 
+  const [isSuperNodeSelected, setIsSuperNodeSelected] = useState(false);
+
+  // Add selection change handler
+  useEffect(() => {
+    if (!diagramRef.current) return;
+
+    const selectionChanged = () => {
+      if (!diagramRef.current) return;
+      
+      const selection = diagramRef.current.selection;
+      
+      // Debug: log what's selected
+      console.log('Selection changed. Selected items:');
+      selection.each(part => {
+        if (part instanceof go.Node) {
+          console.log('Node data:', part.data);
+        }
+      });
+      
+      // Check for super nodes - using the correct property 'isSuperNode'
+      let superNodeCount = 0;
+      selection.each(part => {
+        if (part instanceof go.Node && part.data.isSuperNode === true) {
+          superNodeCount++;
+          console.log('Found super node:', part.data);
+        }
+      });
+      
+      // Enable button only when exactly one super node is selected
+      setIsSuperNodeSelected(superNodeCount === 1);
+      console.log('Super node selected:', superNodeCount === 1);
+    };
+
+    diagramRef.current.addDiagramListener('ChangedSelection', selectionChanged);
+
+    return () => {
+      if (diagramRef.current) {
+        diagramRef.current.removeDiagramListener('ChangedSelection', selectionChanged);
+      }
+    };
+  }, [diagramRef.current]); // Changed dependency from diagram to diagramRef.current
+
+  const handleValidateSuperNode = () => {
+    if (!diagramRef.current) return;
+    
+    const selection = diagramRef.current.selection;
+    let selectedSuperNode: go.Node | null = null;
+    
+    // Find the selected super node using the correct property
+    selection.each((part: go.Part) => {
+      if (part instanceof go.Node && part.data && part.data.isSuperNode === true) {
+        selectedSuperNode = part as go.Node;
+      }
+    });
+    
+    if (!selectedSuperNode) {
+      alert('Please select a super node');
+      return;
+    }
+    
+    console.log('Selected super node:', (selectedSuperNode as go.Node).data);
+    
+    // Get the sub-diagram page ID from the superNodeMap
+    const nodeId = (selectedSuperNode as go.Node).data.key;
+    const subPageId = superNodeMap[nodeId];
+    
+    if (!subPageId) {
+      alert('No sub-diagram found for this super node');
+      return;
+    }
+    
+    // Find the sub-page
+    const subPage = pages.find(page => page.id === subPageId);
+    
+    if (!subPage) {
+      alert('Sub-diagram page not found');
+      return;
+    }
+    
+    // Create a temporary diagram to validate the sub-page data
+    const tempDiagram = new go.Diagram();
+    
+    try {
+      // Copy the templates from your main diagram
+      if (diagramRef.current) {
+        tempDiagram.nodeTemplate = diagramRef.current.nodeTemplate;
+        tempDiagram.linkTemplate = diagramRef.current.linkTemplate;
+      }
+      
+      // Load the sub-page data
+      tempDiagram.model = new go.GraphLinksModel(
+        subPage.nodeDataArray,
+        subPage.linkDataArray
+      );
+      
+      console.log('Validating sub-diagram:', {
+        name: subPage.name,
+        nodeCount: tempDiagram.nodes.count,
+        linkCount: tempDiagram.links.count
+      });
+      
+      // 🔧 USE THE COMPREHENSIVE VALIDATION UTILITY (not just the plugin)
+      const validationResult: ValidationResult = validateDiagram(tempDiagram);
+      
+      console.log('Validation result:', validationResult);
+      
+      // Create comprehensive validation report
+      let report = `🔍 VALIDATION REPORT FOR: "${subPage.name}"\n`;
+      report += `${'='.repeat(50)}\n\n`;
+      
+      // Status
+      const statusIcon = validationResult.status === 'valid' ? '✅' : 
+                        validationResult.status === 'partial' ? '⚠️' : '❌';
+      report += `${statusIcon} STATUS: ${validationResult.status.toUpperCase()}\n\n`;
+      
+      // Boxology Plugin Results (now included in validationResult.pluginResult)
+      if (validationResult.pluginResult) {
+        report += `🔧 BOXOLOGY PLUGIN VALIDATION:\n`;
+        report += `${'-'.repeat(30)}\n`;
+        report += `${validationResult.pluginResult}\n\n`;
+      }
+      
+      // Recommendations based on status
+      report += `💡 RECOMMENDATIONS:\n`;
+      report += `${'-'.repeat(30)}\n`;
+      
+      if (validationResult.status === 'valid') {
+        report += `✨ Excellent! Your sub-diagram passes all validation checks.\n`;
+        if (validationResult.warnings.length > 0) {
+          report += `📈 Consider addressing warnings for optimal performance.\n`;
+        }
+      } else if (validationResult.status === 'partial') {
+        report += `🔧 Good foundation, but needs improvement:\n`;
+        report += `   • Address Boxology plugin issues first\n`;
+        report += `   • Fix critical and major errors\n`;
+        report += `   • Review connectivity and labeling\n`;
+        report += `   • Consider simplifying complex areas\n`;
+      } else {
+        report += `🚨 Immediate attention required:\n`;
+        report += `   • Fix Boxology validation issues\n`;
+        report += `   • Address critical errors to ensure diagram functionality\n`;
+        report += `   • Review overall structure and connectivity\n`;
+        report += `   • Ensure all nodes are properly labeled\n`;
+      }
+      
+      report += `\n${'='.repeat(50)}\n`;
+      report += `📝 Validation completed at ${new Date().toLocaleTimeString()}`;
+      
+      // Show the comprehensive report
+      alert(report);
+      
+      // Log detailed results for debugging
+      console.log('Detailed validation result:', validationResult);
+      
+    } catch (error) {
+      console.error('Error during sub-diagram validation:', error);
+      alert(`Error validating sub-diagram: ${error}`);
+    } finally {
+      // Clean up temporary diagram
+      tempDiagram.div = null;
+    }
+  };
+
+  // State to store sub-diagrams
+  const [subDiagrams, setSubDiagrams] = useState<Map<string, go.Diagram>>(new Map());
+
+  // Function to register a sub-diagram (call this when creating/loading sub-diagrams)
+  const registerSubDiagram = (id: string, subDiagram: go.Diagram) => {
+    setSubDiagrams((prev: Map<string, go.Diagram>) => {
+      const newMap = new Map(prev);
+      newMap.set(id, subDiagram);
+      return newMap;
+    });
+  };
+
+  // Function to get sub-diagram by ID
+  const getSubDiagram = (id: string): go.Diagram | undefined => {
+    return subDiagrams.get(id);
+  };
+
   return (
     <div className="app" style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>
       {/* Toolbar */}
@@ -506,10 +690,12 @@ function App() {
         onRedo={() => handleDiagramOperation('redo')}
         onAbout={handleAbout}
         onValidate={() => handleDiagramOperation('validate')}
+        onValidateSuperNode={handleValidateSuperNode}
         onExportSVG={() => handleExport('svg')}
         onExportPNG={() => handleExport('png')}
         onExportJPG={() => handleExport('jpg')}
         onExportXML={() => handleExport('xml')}
+        isSuperNodeSelected={isSuperNodeSelected}
       />
 
       {/* Back Button for Subdiagrams */}
