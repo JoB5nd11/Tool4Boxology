@@ -692,6 +692,50 @@ function App() {
     return subDiagrams.get(id);
   };
 
+  // 🎯 COLLAPSE STATE (persisted in localStorage)
+  const [leftCollapsed, setLeftCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem('leftCollapsed') === 'true';
+  });
+  const [rightCollapsed, setRightCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem('rightCollapsed') === 'true';
+  });
+
+  // 💾 PERSIST STATE ON CHANGE
+  useEffect(() => {
+    localStorage.setItem('leftCollapsed', String(leftCollapsed));
+  }, [leftCollapsed]);
+
+  useEffect(() => {
+    localStorage.setItem('rightCollapsed', String(rightCollapsed));
+  }, [rightCollapsed]);
+
+  // ⌨️ KEYBOARD SHORTCUTS: Ctrl+Alt+[ for left, Ctrl+Alt+] for right
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.altKey && e.key === '[') {
+        e.preventDefault();
+        setLeftCollapsed(v => !v);
+      }
+      if (e.ctrlKey && e.altKey && e.key === ']') {
+        e.preventDefault();
+        setRightCollapsed(v => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // 📏 SIDEBAR WIDTHS for clean JSX
+  const LEFT_W = leftCollapsed ? 44 : 300;   // 44px rail when collapsed
+  const RIGHT_W = rightCollapsed ? 44 : 280; // 44px rail when collapsed
+
+  // 🔄 OPTIONAL: Nudge diagram layout when sidebars change
+  useEffect(() => {
+    if (diagramRef.current) {
+      diagramRef.current.requestUpdate(); // gentle layout refresh
+    }
+  }, [leftCollapsed, rightCollapsed]);
+
   return (
     <div className="app" style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>
       {/* Toolbar */}
@@ -834,15 +878,62 @@ function App() {
 
       {/* Main Content */}
       <div className="main" style={{ flex: 1, display: 'flex', minHeight: 0, minWidth: 0, height: '100%', width: '100%' }}>
-        {/* Left Sidebar */}
-        <div style={{ width: 300, minWidth: 180, maxWidth: 400, background: '#f9f9f9', borderRight: '1px solid #ddd', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1, boxShadow: '0 0 5px rgba(0,0,0,0.1)', boxSizing: 'content-box', overflowX: 'hidden' }}>
-          <LeftSidebar
-            containers={containers}
-            customContainerShapes={customContainerShapes}
-            customGroups={customGroups}
-            onAddContainer={handleAddContainer}
-            onCustomGroupAction={handleCustomGroupAction}
-          />
+        {/* 🎯 COLLAPSIBLE LEFT SIDEBAR */}
+        <div
+          className="sidebar sidebar--left"
+          style={{
+            width: LEFT_W,
+            minWidth: leftSidebarCollapsed ? 44 : 180,
+            maxWidth: leftSidebarCollapsed ? 44 : 400,
+            background: '#f9f9f9',
+            borderRight: '1px solid #ddd',
+            height: '100%',
+            overflow: 'hidden',           // important to hide content when collapsing
+            position: 'relative',
+            boxShadow: '0 0 5px rgba(0,0,0,0.1)',
+            transition: 'width 180ms ease' // smooth animation
+          }}
+        >
+          {/* Collapse toggle button */}
+          <button
+            aria-label={leftSidebarCollapsed ? 'Expand left sidebar' : 'Collapse left sidebar'}
+            title={leftSidebarCollapsed ? 'Expand Shapes Panel (Ctrl+Alt+[)' : 'Collapse Shapes Panel (Ctrl+Alt+['}
+            onClick={() => setLeftSidebarCollapsed(v => !v)}
+            className="collapse-btn collapse-btn--right"
+          >
+            {leftSidebarCollapsed ? '›' : '‹'}
+          </button>
+
+          {/* Rail label when collapsed */}
+          {leftSidebarCollapsed ? (
+            <div className="sidebar-rail">
+              <div className="rail-title">Shapes</div>
+              <div className="rail-icons">
+                <div 
+                  className="rail-icon" 
+                  title="Click to expand"
+                  onClick={() => setLeftSidebarCollapsed(false)}
+                >
+                  🔲
+                </div>
+                <div 
+                  className="rail-icon" 
+                  title="Click to expand"
+                  onClick={() => setLeftSidebarCollapsed(false)}
+                >
+                  📁
+                </div>
+              </div>
+            </div>
+          ) : (
+            <LeftSidebar
+              containers={containers}
+              customContainerShapes={customContainerShapes}
+              customGroups={customGroups}
+              onAddContainer={handleAddContainer}
+              onCustomGroupAction={handleCustomGroupAction}
+            />
+          )}
         </div>
 
         {/* Diagram Area */}
@@ -863,12 +954,54 @@ function App() {
           />
         </div>
 
-        {/* Right Sidebar */}
-        <div style={{ width: 280, minWidth: 200, maxWidth: 340, background: '#f9f9f9', borderLeft: '1px solid #ddd', height: '100%', overflowY: 'auto' }}>
-          <RightSidebar
-            selectedData={selectedData}
-            diagramRef={diagramRef}
-          />
+        {/* 🎯 COLLAPSIBLE RIGHT SIDEBAR */}
+        <div
+          className="sidebar sidebar--right"
+          style={{
+            width: RIGHT_W,
+            minWidth: rightCollapsed ? 44 : 200,
+            maxWidth: rightCollapsed ? 44 : 340,
+            background: '#f9f9f9',
+            borderLeft: '1px solid #ddd',
+            height: '100%',
+            overflow: 'hidden',
+            position: 'relative',
+            transition: 'width 180ms ease'
+          }}
+        >
+          {/* Collapse toggle button */}
+          <button
+            aria-label={rightCollapsed ? 'Expand right sidebar' : 'Collapse right sidebar'}
+            title={rightCollapsed ? 'Expand Properties Panel (Ctrl+Alt+])' : 'Collapse Properties Panel (Ctrl+Alt+])'}
+            onClick={() => setRightCollapsed(v => !v)}
+            className="collapse-btn collapse-btn--left"
+          >
+            {rightCollapsed ? '‹' : '›'}
+          </button>
+
+          {rightCollapsed ? (
+            <div className="sidebar-rail">
+              <div className="rail-title">Props</div>
+              <div className="rail-icons">
+                <div 
+                  className="rail-icon" 
+                  title="Click to expand"
+                  onClick={() => setRightCollapsed(false)}
+                >
+                  ⚙️
+                </div>
+                <div 
+                  className="rail-icon" 
+                  title="Click to expand"
+                  onClick={() => setRightCollapsed(false)}
+                >
+                  ℹ️
+                </div>
+              </div>
+            </div>
+          ) : (
+            <RightSidebar selectedData={selectedData} diagramRef={diagramRef} />
+          )}
         </div>
       </div>
     </div>
