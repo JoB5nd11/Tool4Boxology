@@ -136,7 +136,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         }),
         new go.Binding('width', 'width'),
         new go.Binding('height', 'height'),
-        new go.Binding('strokeWidth', 'strokeWidth') // ← Add this binding for stroke width
+        new go.Binding('strokeWidth', 'strokeWidth'), // ← Add this binding for stroke width
+        new go.Binding('parameter1', 'parameter1') // ← ADD THIS LINE
       ),
       $(
         go.TextBlock,
@@ -226,8 +227,9 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           ...(shape.height && { height: shape.height }),
         };
 
-        if (shape.shape === 'RoundedRectangle' && shape.borderRadius) {
-            nodeData.parameter1 = shape.borderRadius ? parseFloat(shape.borderRadius) : '45px';
+        if (shape.shape === 'RoundedRectangle') {
+          const radius = shape.borderRadius ? parseFloat(shape.borderRadius) : 15;
+          nodeData.parameter1 = radius; // Must be a NUMBER, not a string
         }
         
         if (shape.shape === 'Hexagon') {
