@@ -72,8 +72,21 @@ function mergeIdenticalNodes(diagram: go.Diagram, fromNode: go.Node, toNode: go.
   const model = diagram.model as go.GraphLinksModel;
   model.startTransaction("merge nodes");
 
-  // Rewire all links of toNode to fromNode
+  // 🎯 FIRST: Remove the connecting link between the two identical nodes
+  const connectingLinks = [...diagram.links].filter(link => 
+    (link.fromNode === fromNode && link.toNode === toNode) ||
+    (link.fromNode === toNode && link.toNode === fromNode)
+  );
+  
+  connectingLinks.forEach(link => {
+    model.removeLinkData(link.data);
+  });
+
+  // THEN: Rewire all OTHER links of toNode to fromNode
   diagram.links.each(link => {
+    // Skip the links we just removed
+    if (connectingLinks.includes(link)) return;
+    
     if (link.fromNode === toNode) {
       model.set(link.data, "from", fromNode.key);
     }
@@ -82,7 +95,7 @@ function mergeIdenticalNodes(diagram: go.Diagram, fromNode: go.Node, toNode: go.
     }
   });
 
-  // Remove the duplicate node
+  // Finally: Remove the duplicate node
   model.removeNodeData(toNode.data);
 
   model.commitTransaction("merge nodes");
@@ -109,10 +122,15 @@ export function setupDiagramValidation(diagram: go.Diagram) {
       return;
     }
 
-    // Merge nodes if names are identical
-    if (fromName === toName) {
+    // 🎯 FIXED: Only merge nodes if they have SAME NAME AND SAME LABEL
+    const fromLabel = link.fromNode.data.label || "";
+    const toLabel = link.toNode.data.label || "";
+    
+    if (fromName === toName && fromLabel === toLabel) {
+      // Same name AND same label = merge required
       mergeIdenticalNodes(diagram, link.fromNode, link.toNode);
     }
+    // If same name but different labels = allow connection (no merge)
   });
 }
 
