@@ -10,6 +10,7 @@ import { validateGoJSDiagram, setupDiagramValidation } from './plugin/GoJSBoxolo
 import { v4 as uuidv4 } from 'uuid';
 import { validateDiagram } from './utils/validation';
 import type { ValidationResult } from './utils/validation';
+import { elementaryPatterns } from './data/patterns';
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
@@ -115,6 +116,22 @@ function App() {
       );
     }
   }, [currentPageId, currentPage]);
+
+  // Initialize elementary patterns in custom groups
+  useEffect(() => {
+    const patternsGroup = elementaryPatterns.map(pattern => ({
+      id: pattern.id,
+      name: pattern.name,
+      description: pattern.description,
+      type: 'pattern',
+      pattern: pattern
+    }));
+    
+    setCustomGroups(prev => ({
+      ...prev,
+      'Elementary Patterns': patternsGroup
+    }));
+  }, []); // Only run once on mount
 
   // Consolidated container management
   const handleAddContainer = (containerName: string) => {

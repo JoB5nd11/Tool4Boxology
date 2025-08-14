@@ -201,19 +201,71 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     const handleDrop = (e: DragEvent) => {
       e.preventDefault();
       const shapeData = e.dataTransfer?.getData('application/gojs-shape');
+      const patternData = e.dataTransfer?.getData('application/pattern');
       
-      if (shapeData && diagramRef.current) {
+      if (!diagramRef.current) return;
+      
+      const diagram = diagramRef.current;
+      const diagramDiv = diagram.div;
+      if (!diagramDiv) return;
+      
+      const rect = diagramDiv.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const point = diagram.transformViewToDoc(new go.Point(x, y));
+      
+      if (patternData) {
+        // Handle pattern drop
+        const pattern = JSON.parse(patternData);
+        diagram.startTransaction('drop pattern');
+        
+        const nodeKeyMap = new Map<string, string>();
+        
+        // Add all nodes first
+        pattern.nodes.forEach((node: any) => {
+          const newKey = `node_${Date.now()}_${node.id}`;
+          nodeKeyMap.set(node.id, newKey);
+          
+          const nodeData: any = {
+            key: newKey,
+            name: node.name,
+            label: node.label,
+            shape: node.shape,
+            color: node.color,
+            stroke: node.stroke,
+            loc: go.Point.stringify(new go.Point(point.x + node.x, point.y + node.y)),
+          };
+
+          if (node.shape === 'RoundedRectangle') {
+            nodeData.parameter1 = 45;
+          }
+
+          (diagram.model as go.GraphLinksModel).addNodeData(nodeData);
+        });
+        
+        // Add all links
+        pattern.links.forEach((link: any) => {
+          const fromKey = nodeKeyMap.get(link.from);
+          const toKey = nodeKeyMap.get(link.to);
+          
+          if (fromKey && toKey) {
+            const linkData = {
+              key: `link_${Date.now()}_${link.from}_${link.to}`,
+              from: fromKey,
+              to: toKey
+            };
+            
+            (diagram.model as go.GraphLinksModel).addLinkData(linkData);
+          }
+        });
+        
+        diagram.commitTransaction('drop pattern');
+        return;
+      }
+      
+      if (shapeData) {
+        // Handle single shape drop (existing logic)
         const shape = JSON.parse(shapeData);
-        const diagram = diagramRef.current;
-        
-        const diagramDiv = diagram.div;
-        if (!diagramDiv) return;
-        
-        const rect = diagramDiv.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        const point = diagram.transformViewToDoc(new go.Point(x, y));
         
         const nodeData: any = {
           key: `node_${Date.now()}`,
