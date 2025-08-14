@@ -501,6 +501,19 @@ function App() {
 
   const [isSuperNodeSelected, setIsSuperNodeSelected] = useState(false);
 
+  // 🎯 ADD COLLAPSE STATE FOR SIDEBARS
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+
+  // 🎯 ADD TOGGLE FUNCTIONS
+  const toggleLeftSidebar = () => {
+    setLeftSidebarCollapsed(!leftSidebarCollapsed);
+  };
+
+  const toggleRightSidebar = () => {
+    setRightSidebarCollapsed(!rightSidebarCollapsed);
+  };
+
   // Add selection change handler
   useEffect(() => {
     if (!diagramRef.current) return;
@@ -607,13 +620,13 @@ function App() {
       
       // Create comprehensive validation report
       let report = `🔍 VALIDATION REPORT FOR: "${subPage.name}"\n`;
-      report += `${'='.repeat(50)}\n\n`;
+      //report += `${'='.repeat(50)}\n\n`;
       
       // Status
-      const statusIcon = validationResult.status === 'valid' ? '✅' : 
-                        validationResult.status === 'partial' ? '⚠️' : '❌';
-      report += `${statusIcon} STATUS: ${validationResult.status.toUpperCase()}\n\n`;
-      
+      //const statusIcon = validationResult.status === 'valid' ? '✅' : 
+      //                  validationResult.status === 'partial' ? '⚠️' : '❌';
+      //report += `${statusIcon} STATUS: ${validationResult.status.toUpperCase()}\n\n`;
+
       // Boxology Plugin Results (now included in validationResult.pluginResult)
       if (validationResult.pluginResult) {
         report += `🔧 BOXOLOGY PLUGIN VALIDATION:\n`;

@@ -379,12 +379,14 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       ref={diagramDivRef}
       style={{
         flex: 1,
-        overflow: 'auto',
         position: 'relative',
         height: '100%',
         width: '100%',
         backgroundColor: '#fff',
         border: '1px solid #ccc',
+        overflowX: 'scroll',
+        overflowY: 'scroll',
+
       }}
     />
   );
