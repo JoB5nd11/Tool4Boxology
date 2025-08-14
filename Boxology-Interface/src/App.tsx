@@ -254,7 +254,7 @@ function App() {
   };
 
   // Consolidated export function
-  const handleExport = (format: 'svg' | 'png' | 'jpg' | 'xml') => {
+  const handleExport = (format: 'svg' | 'png' | 'jpg' | 'xml' | 'json' | 'drawio') => {
     if (!diagramRef.current) return;
 
     const diagram = diagramRef.current;
@@ -289,8 +289,14 @@ function App() {
         downloadImageFile(jpgImg.src, `diagram_${timestamp}.jpg`);
         break;
 
-      case 'xml':
+      case 'json':
         const json = diagram.model.toJson();
+        const jsonBlob = new Blob([json], { type: 'application/json;charset=utf-8' });
+        downloadFile(jsonBlob, `diagram_${timestamp}.json`);
+        break;
+
+      case 'xml':
+        const jsonData = diagram.model.toJson();
         const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <diagram>
   <metadata>
@@ -298,13 +304,99 @@ function App() {
     <tool>GoJS Diagram Editor</tool>
   </metadata>
   <data>
-    ${json}
+    ${jsonData}
   </data>
 </diagram>`;
         const xmlBlob = new Blob([xmlContent], { type: 'application/xml;charset=utf-8' });
         downloadFile(xmlBlob, `diagram_${timestamp}.xml`);
         break;
+
+      case 'drawio':
+        // Export in Draw.io compatible XML format
+        const diagramData = diagram.model.toJson();
+        const parsedData = JSON.parse(diagramData);
+        
+        // Convert GoJS data to Draw.io format
+        const drawioXml = convertToDrawioXML(parsedData, timestamp);
+        const drawioBlob = new Blob([drawioXml], { type: 'application/xml;charset=utf-8' });
+        downloadFile(drawioBlob, `diagram_${timestamp}.drawio`);
+        break;
     }
+  };
+
+  // Helper function to convert GoJS data to Draw.io XML format
+  const convertToDrawioXML = (data: any, timestamp: string): string => {
+    const nodes = data.nodeDataArray || [];
+    const links = data.linkDataArray || [];
+    
+    let mxCells = '';
+    let cellId = 2; // Start from 2 (0 and 1 are reserved)
+    
+    // Convert nodes
+    nodes.forEach((node: any) => {
+      const x = node.loc ? parseFloat(node.loc.split(' ')[0]) : 0;
+      const y = node.loc ? parseFloat(node.loc.split(' ')[1]) : 0;
+      const width = 120;
+      const height = 80;
+      
+      // Determine shape style based on GoJS shape
+      let style = 'rounded=0;whiteSpace=wrap;html=1;';
+      if (node.shape === 'RoundedRectangle') {
+        style = 'rounded=1;whiteSpace=wrap;html=1;';
+      } else if (node.shape === 'Ellipse') {
+        style = 'ellipse;whiteSpace=wrap;html=1;';
+      } else if (node.shape === 'Diamond') {
+        style = 'rhombus;whiteSpace=wrap;html=1;';
+      } else if (node.shape === 'Triangle') {
+        style = 'triangle;whiteSpace=wrap;html=1;';
+      } else if (node.shape === 'Hexagon') {
+        style = 'hexagon;whiteSpace=wrap;html=1;';
+      }
+      
+      // Add fill color if available
+      if (node.color) {
+        style += `fillColor=${node.color};`;
+      }
+      if (node.stroke) {
+        style += `strokeColor=${node.stroke};`;
+      }
+      
+      mxCells += `
+        <mxCell id="${cellId}" value="${node.text || node.label || ''}" style="${style}" vertex="1" parent="1">
+          <mxGeometry x="${x}" y="${y}" width="${width}" height="${height}" as="geometry"/>
+        </mxCell>`;
+      
+      // Store node ID mapping for links
+      node._drawioId = cellId;
+      cellId++;
+    });
+    
+    // Convert links
+    links.forEach((link: any) => {
+      const fromNode = nodes.find((n: any) => n.key === link.from);
+      const toNode = nodes.find((n: any) => n.key === link.to);
+      
+      if (fromNode && toNode) {
+        mxCells += `
+          <mxCell id="${cellId}" value="${link.text || ''}" style="endArrow=classic;html=1;" edge="1" parent="1" source="${fromNode._drawioId}" target="${toNode._drawioId}">
+            <mxGeometry relative="1" as="geometry"/>
+          </mxCell>`;
+        cellId++;
+      }
+    });
+    
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="${new Date().toISOString()}" agent="GoJS Diagram Editor" version="24.7.17" etag="exported">
+  <diagram name="Diagram" id="diagram">
+    <mxGraphModel dx="1422" dy="754" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        ${mxCells}
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>`;
   };
 
   // Helper functions for downloads
@@ -752,6 +844,8 @@ function App() {
         onExportPNG={() => handleExport('png')}
         onExportJPG={() => handleExport('jpg')}
         onExportXML={() => handleExport('xml')}
+        onExportJSON={() => handleExport('json')}
+        onExportDrawio={() => handleExport('drawio')}
         isSuperNodeSelected={isSuperNodeSelected}
       />
 
@@ -989,13 +1083,6 @@ function App() {
                   onClick={() => setRightCollapsed(false)}
                 >
                   ⚙️
-                </div>
-                <div 
-                  className="rail-icon" 
-                  title="Click to expand"
-                  onClick={() => setRightCollapsed(false)}
-                >
-                  ℹ️
                 </div>
               </div>
             </div>

@@ -25,6 +25,8 @@ type ToolbarProps = {
   onExportPNG: () => void;
   onExportJPG: () => void;
   onExportXML: () => void;
+  onExportJSON: () => void;
+  onExportDrawio: () => void;
   isSuperNodeSelected: boolean; // Add this new prop
 };
 
@@ -41,8 +43,29 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onExportPNG,
   onExportJPG,
   onExportXML,
+  onExportJSON,
+  onExportDrawio,
   isSuperNodeSelected, // Add this
 }) => {
+  const [showExportMenu, setShowExportMenu] = React.useState(false);
+  const exportMenuRef = React.useRef<HTMLDivElement>(null);
+
+  // Close export menu when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+
+    if (showExportMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showExportMenu]);
   // Simple small button style for existing buttons
   const simpleButtonStyle: React.CSSProperties = {
     padding: '4px 8px',
@@ -257,7 +280,159 @@ const Toolbar: React.FC<ToolbarProps> = ({
       {/* Existing toolbar buttons - made smaller and simpler */}
       <button onClick={onOpen} style={simpleButtonStyle}>📁 Open</button>
       <button onClick={onSave} style={simpleButtonStyle}>💾 Save</button>
-      <button onClick={onExportSVG} style={simpleButtonStyle}>📤 Export</button>
+      
+      {/* Export Dropdown Menu */}
+      <div ref={exportMenuRef} style={{ position: 'relative', display: 'inline-block' }}>
+        <button 
+          onClick={() => setShowExportMenu(!showExportMenu)}
+          style={{
+            ...simpleButtonStyle,
+            backgroundColor: showExportMenu ? '#e9ecef' : 'white',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+        >
+          📤 Export {showExportMenu ? '▲' : '▼'}
+        </button>
+        
+        {showExportMenu && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            zIndex: 1000,
+            backgroundColor: 'white',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            minWidth: '160px',
+            padding: '4px 0'
+          }}>
+            <button
+              onClick={() => {
+                onExportJSON();
+                setShowExportMenu(false);
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: 'none',
+                background: 'none',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              📄 JSON
+            </button>
+            
+            <button
+              onClick={() => {
+                onExportDrawio();
+                setShowExportMenu(false);
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: 'none',
+                background: 'none',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              🎨 Draw.io XML
+            </button>
+            
+            <button
+              onClick={() => {
+                onExportSVG();
+                setShowExportMenu(false);
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: 'none',
+                background: 'none',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              🖼️ SVG
+            </button>
+            
+            <button
+              onClick={() => {
+                onExportPNG();
+                setShowExportMenu(false);
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: 'none',
+                background: 'none',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              �️ PNG
+            </button>
+            
+            <div style={{
+              borderTop: '1px solid #eee',
+              margin: '4px 0'
+            }} />
+            
+            <button
+              onClick={() => {
+                onExportXML();
+                setShowExportMenu(false);
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: 'none',
+                background: 'none',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                color: '#666'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              📋 XML (Legacy)
+            </button>
+          </div>
+        )}
+      </div>
+      
       <button onClick={onUndo} style={simpleButtonStyle}>🔄 Undo</button>
       <button onClick={onRedo} style={simpleButtonStyle}>🔃 Redo</button>
       <button onClick={onValidate} style={simpleButtonStyle}>✅ Validate</button>
@@ -400,7 +575,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           onMouseEnter={(e) => Object.assign(e.currentTarget.style, { backgroundColor: '#bbdefb', borderColor: '#1565c0' })}
           onMouseLeave={(e) => Object.assign(e.currentTarget.style, { backgroundColor: '#e3f2fd', borderColor: '#1976d2' })}
         >
-          <ViewStreamIcon fontSize="small" />
+          <ViewColumnIcon fontSize="small" />
         </button>
         
         <button 
@@ -415,7 +590,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           onMouseEnter={(e) => Object.assign(e.currentTarget.style, { backgroundColor: '#bbdefb', borderColor: '#1565c0' })}
           onMouseLeave={(e) => Object.assign(e.currentTarget.style, { backgroundColor: '#e3f2fd', borderColor: '#1976d2' })}
         >
-          <ViewColumnIcon fontSize="small" />
+          <ViewStreamIcon fontSize="small" />
         </button>
       </div>
     </div>
