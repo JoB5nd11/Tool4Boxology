@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { validateDiagram } from './utils/validation';
 import type { ValidationResult } from './utils/validation';
 import { elementaryPatterns } from './data/patterns';
+import SubdiagramPreview from './components/SubdiagramPreview';
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
@@ -50,9 +51,36 @@ function App() {
 
   // Update current page data
   const updateCurrentPage = (nodeDataArray: any[], linkDataArray: any[]) => {
-    setPages(pages.map(p => 
-      p.id === currentPageId ? { ...p, nodeDataArray, linkDataArray } : p
-    ));
+    setPages(pages.map(p => {
+      if (p.id === currentPageId) {
+        const updatedPage = { ...p, nodeDataArray, linkDataArray };
+        
+        // If this is a sub-page, also update the parent super node's subdiagram data
+        if (p.isSubDiagram && p.parentNodeId) {
+          // Find the parent page and update the super node's subdiagram data
+          const parentPage = pages.find(parentP => 
+            parentP.nodeDataArray.some(node => node.key === p.parentNodeId)
+          );
+          
+          if (parentPage && diagramRef.current) {
+            const diagram = diagramRef.current;
+            const model = diagram.model;
+            const superNodeData = model.findNodeDataForKey(p.parentNodeId);
+            
+            if (superNodeData && superNodeData.isSuperNode) {
+              model.setDataProperty(superNodeData, 'subdiagramData', {
+                nodeDataArray: updatedPage.nodeDataArray,
+                linkDataArray: updatedPage.linkDataArray,
+                pageId: p.id
+              });
+            }
+          }
+        }
+        
+        return updatedPage;
+      }
+      return p;
+    }));
   };
 
   // Add new page function
@@ -519,16 +547,20 @@ function App() {
       [nodeId]: newPageId
     }));
 
-    // Update the node to show it's a super node with thicker stroke
+    // Update the node to show it's a super node with subdiagram data
     const diagram = diagramRef.current;
     const model = diagram.model;
     model.startTransaction('mark as super node');
     const nodeData = model.findNodeDataForKey(nodeId);
     if (nodeData) {
       model.setDataProperty(nodeData, 'isSuperNode', true);
-      model.setDataProperty(nodeData, 'strokeWidth', 4); // ← Change stroke width instead
-      // Keep the original label
-      // model.setDataProperty(nodeData, 'label', selectedData.label); // Optional: keep original label
+      model.setDataProperty(nodeData, 'strokeWidth', 4);
+      // Store the subdiagram data reference
+      model.setDataProperty(nodeData, 'subdiagramData', {
+        nodeDataArray: newSubPage.nodeDataArray,
+        linkDataArray: newSubPage.linkDataArray,
+        pageId: newPageId
+      });
     }
     model.commitTransaction('mark as super node');
 
@@ -845,6 +877,10 @@ function App() {
     }
   }, [leftCollapsed, rightCollapsed]);
 
+  // New state for subdiagram preview
+  const [showSubdiagramPreview, setShowSubdiagramPreview] = useState(false);
+  const [previewSubdiagramData, setPreviewSubdiagramData] = useState(null);
+
   return (
     <div className="app" style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>
       {/* Toolbar */}
@@ -1055,6 +1091,8 @@ function App() {
             setContextMenu={setContextMenu}
             containers={containers}
             customGroups={customGroups}
+            setShowSubdiagramPreview={setShowSubdiagramPreview}
+            setPreviewSubdiagramData={setPreviewSubdiagramData}
           />
           <ContextMenu 
             contextMenu={contextMenu} 
@@ -1108,6 +1146,13 @@ function App() {
           )}
         </div>
       </div>
+
+      {/* Subdiagram Preview Component */}
+      <SubdiagramPreview
+        isOpen={showSubdiagramPreview}
+        onClose={() => setShowSubdiagramPreview(false)}
+        subdiagramData={previewSubdiagramData}
+      />
     </div>
   );
 }

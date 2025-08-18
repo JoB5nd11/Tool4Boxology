@@ -13,7 +13,9 @@ interface GoDiagramProps {
   setSelectedData: Dispatch<SetStateAction<any>>;
   setContextMenu: Dispatch<SetStateAction<ContextMenuPosition | null>>;
   containers: string[];
-  customGroups: Record<string, any[]>; // <-- add this prop type
+  customGroups: Record<string, any[]>;
+  setShowSubdiagramPreview: Dispatch<SetStateAction<boolean>>; // Add this prop
+  setPreviewSubdiagramData: Dispatch<SetStateAction<any>>; // Add this prop
 }
 
 const GoDiagram: React.FC<GoDiagramProps> = ({
@@ -21,7 +23,9 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
   setSelectedData,
   setContextMenu,
   containers,
-  customGroups // <-- pass this prop from App
+  customGroups,
+  setShowSubdiagramPreview, // Add this prop
+  setPreviewSubdiagramData // Add this prop
 }) => {
   const diagramDivRef = useRef<HTMLDivElement>(null);
 
@@ -94,18 +98,17 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         selectable: true,
         movable: true,
         cursor: 'move',
-        // Double-click to edit subdiagram for super nodes
+        // Single click to view subdiagram for super nodes
         doubleClick: (e, obj) => {
           const node = obj.part;
-          if (node instanceof go.Node && node.data.isSuperNode) {
-            // Trigger edit linked diagram action
-            setContextMenu({ x: e.documentPoint.x, y: e.documentPoint.y });
-            setTimeout(() => {
-              const event = new CustomEvent('editLinkedDiagram', { detail: node.data });
-              window.dispatchEvent(event);
-            }, 100);
+          if (node instanceof go.Node && node.data.isSuperNode && node.data.subdiagramData) {
+            // Show subdiagram preview
+            setPreviewSubdiagramData(node.data.subdiagramData);
+            setShowSubdiagramPreview(true);
           }
         },
+        // Double-click to edit subdiagram for super nodes
+
         contextClick: (e, obj) => {
           const node = obj.part;
           if (node instanceof go.Node) {
@@ -139,21 +142,18 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         new go.Binding('strokeWidth', 'strokeWidth'), // ← Add this binding for stroke width
         new go.Binding('parameter1', 'parameter1') // ← ADD THIS LINE
       ),
-      $(
-        go.TextBlock,
-        {
-          margin: 8,
-          font: 'bold 12px sans-serif',
-          stroke: '#333',
-          maxLines: 2,
-          overflow: go.TextBlock.OverflowEllipsis
-        },
-        new go.Binding('text', 'label').makeTwoWay()
-      ),
-      // Add super node indicator
-     
-    );
-
+        $(
+          go.TextBlock,
+          {
+            margin: 8,
+            font: 'bold 12px sans-serif',
+            stroke: '#333',
+            maxLines: 2,
+            overflow: go.TextBlock.OverflowEllipsis
+          },
+          new go.Binding('text', 'label').makeTwoWay()
+        )
+      );
     diagram.linkTemplate = $(
       go.Link,
       { routing: go.Link.AvoidsNodes, corner: 5, selectable: true },
@@ -327,7 +327,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         diagramRef.current = null;
       }
     };
-  }, [diagramRef, setSelectedData, setContextMenu, containers]);
+  }, [diagramRef, setSelectedData, setContextMenu, containers, setShowSubdiagramPreview, setPreviewSubdiagramData]);
   
   const handleValidate = () => {
     if (!diagramRef.current) {
