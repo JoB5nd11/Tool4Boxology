@@ -278,6 +278,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     }}>
       
       {/* Existing toolbar buttons - made smaller and simpler */}
+      <button onClick={onAbout} style={simpleButtonStyle}>ℹ️ About</button>
       <button onClick={onOpen} style={simpleButtonStyle}>📁 Open</button>
       <button onClick={onSave} style={simpleButtonStyle}>💾 Save</button>
       
