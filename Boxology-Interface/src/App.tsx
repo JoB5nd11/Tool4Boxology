@@ -298,8 +298,89 @@ function App() {
     }
   };
 
+  // Helper function to convert GoJS data to Graphviz DOT format
+  const convertToDOT = (data: any): string => {
+    const nodes = data.nodeDataArray || [];
+    const links = data.linkDataArray || [];
+
+    // Groups (clusters)
+    const groups = nodes.filter((n: any) => n.isGroup);
+    const membersByGroup: Record<string, any[]> = {};
+    groups.forEach((g: any) => {
+      membersByGroup[g.key] = nodes.filter((n: any) => !n.isGroup && n.group === g.key);
+    });
+
+    const topLevelNodes = nodes.filter((n: any) => !n.isGroup && !n.group);
+
+    // Sanitize to a legal DOT ID and ensure it starts with a letter
+    const dotId = (key: string) =>
+      `n_${String(key).replace(/[^A-Za-z0-9_]/g, '_')}`;
+
+    const esc = (s: string) => (s || '').replace(/"/g, '\\"');
+
+    const mapShape = (shape: string) => {
+      switch (shape) {
+        case 'Rectangle': return 'box';
+        case 'RoundedRectangle': return 'box';
+        case 'Ellipse': return 'ellipse';
+        case 'Diamond': return 'diamond';
+        case 'Triangle': return 'triangle';
+        case 'TriangleDown': return 'invtriangle';
+        case 'Hexagon': return 'hexagon';
+        default: return 'box';
+      }
+    };
+
+    const nodeLine = (n: any, indent = '  ') => {
+      const attrs: string[] = [];
+      attrs.push(`label="${esc(n.label || n.name || n.key)}"`);
+      attrs.push(`shape=${mapShape(n.shape)}`);
+      // style: rounded only for RoundedRectangle, always filled if we have a fill color
+      const styleParts = [];
+      if (n.shape === 'RoundedRectangle') styleParts.push('rounded');
+      styleParts.push('filled');
+      attrs.push(`style="${styleParts.join(',')}"`);
+      if (n.color) attrs.push(`fillcolor="${esc(n.color)}"`);
+      if (n.stroke) attrs.push(`color="${esc(n.stroke)}"`);
+      attrs.push(`fontname="Helvetica"`);
+
+      return `${indent}${dotId(n.key)} [${attrs.join(', ')}];`;
+    };
+
+    const lines: string[] = [];
+    lines.push('digraph Boxology {');
+    lines.push('  graph [rankdir=TB, bgcolor="white"];');
+    lines.push('  node [style="filled", fontname="Helvetica"];');
+    lines.push('  edge [color="#555555"];');
+
+    // Top-level nodes
+    topLevelNodes.forEach((n: any) => lines.push(nodeLine(n)));
+
+    // Clusters
+    groups.forEach((g: any) => {
+      const gid = dotId(g.key);
+      lines.push(`  subgraph cluster_${gid} {`);
+      lines.push(`    label="${esc(g.label || g.name || 'Cluster')}";`);
+      lines.push('    style="filled";');
+      lines.push('    color="#d3d3d3";');
+      (membersByGroup[g.key] || []).forEach((n: any) => {
+        lines.push(nodeLine(n, '    '));
+      });
+      lines.push('  }');
+    });
+
+    // Edges
+    links.forEach((l: any) => {
+      if (!l.from || !l.to) return;
+      lines.push(`  ${dotId(l.from)} -> ${dotId(l.to)};`);
+    });
+
+    lines.push('}');
+    return lines.join('\n');
+  };
+
   // Consolidated export function
-  const handleExport = (format: 'svg' | 'png' | 'jpg' | 'xml' | 'json' | 'drawio') => {
+  const handleExport = (format: 'svg' | 'png' | 'jpg' | 'xml' | 'json' | 'drawio' | 'dot') => {
     if (!diagramRef.current) return;
 
     const diagram = diagramRef.current;
@@ -339,6 +420,15 @@ function App() {
         const jsonBlob = new Blob([json], { type: 'application/json;charset=utf-8' });
         downloadFile(jsonBlob, `diagram_${timestamp}.json`);
         break;
+
+      case 'dot': {
+        // Use the plain model data to generate DOT
+        const data = JSON.parse(diagram.model.toJson());
+        const dot = convertToDOT(data);
+        const dotBlob = new Blob([dot], { type: 'text/vnd.graphviz;charset=utf-8' });
+        downloadFile(dotBlob, `diagram_${timestamp}.dot`);
+        break;
+      }
 
       case 'xml':
         const jsonData = diagram.model.toJson();
@@ -957,6 +1047,7 @@ const copyEmailToClipboard = () => {
         onExportXML={() => handleExport('xml')}
         onExportJSON={() => handleExport('json')}
         onExportDrawio={() => handleExport('drawio')}
+        onExportDOT={() => handleExport('dot')}  // NEW
         isSuperNodeSelected={isSuperNodeSelected}
       />
 

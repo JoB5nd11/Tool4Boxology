@@ -13,21 +13,22 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 // Define ToolbarProps type
 type ToolbarProps = {
-  diagram: go.Diagram | null;
+  diagram?: go.Diagram | null;
   onOpen: () => void;
   onSave: () => void;
   onUndo: () => void;
   onRedo: () => void;
   onAbout: () => void;
   onValidate: () => void;
-  onValidateSuperNode: () => void; // Add this new prop
+  onValidateSuperNode: () => void;
   onExportSVG: () => void;
   onExportPNG: () => void;
   onExportJPG: () => void;
   onExportXML: () => void;
   onExportJSON: () => void;
   onExportDrawio: () => void;
-  isSuperNodeSelected: boolean; // Add this new prop
+  onExportDOT: () => void;           // NEW
+  isSuperNodeSelected: boolean;
 };
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -45,6 +46,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onExportXML,
   onExportJSON,
   onExportDrawio,
+  onExportDOT,        // NEW
   isSuperNodeSelected, // Add this
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
@@ -327,12 +329,35 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 alignItems: 'center',
                 gap: '8px'
               }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
+              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
               📄 JSON
             </button>
-            
+
+            <button
+              onClick={() => {
+                onExportDOT();        // NEW
+                setShowExportMenu(false);
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: 'none',
+                background: 'none',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
+              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              🟦 Graphviz DOT
+            </button>
+
             <button
               onClick={() => {
                 onExportDrawio();
