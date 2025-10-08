@@ -12,6 +12,8 @@ import { validateDiagram } from './utils/validation';
 import type { ValidationResult } from './utils/validation';
 import { elementaryPatterns } from './data/patterns';
 import SubdiagramPreview from './components/SubdiagramPreview';
+import { modelToDOT } from './utils/dot';
+import { findUnclusteredNodes } from './utils/validation';
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
@@ -379,12 +381,39 @@ function App() {
     return lines.join('\n');
   };
 
-  // Consolidated export function
-  const handleExport = (format: 'svg' | 'png' | 'jpg' | 'xml' | 'json' | 'drawio' | 'dot') => {
+  // Gatekeeper: every node must be in a cluster (user group) or be a super node with a subdiagram
+  const ensureExportPreconditions = (): { ok: boolean; error?: string } => {
+    if (!diagramRef.current) return { ok: false, error: 'No diagram found.' };
+    const raw = JSON.parse(diagramRef.current.model.toJson());
+    const bad = findUnclusteredNodes(raw);
+    if (bad.length) {
+      const list = bad.slice(0, 10).map((n: any) => `- ${n.label ?? n.text ?? n.key}`).join('\n');
+      return {
+        ok: false,
+        error:
+`Export blocked: all nodes must belong to a cluster (or be a Super Node with a Subdiagram).
+
+Unclustered nodes (${bad.length}):
+${list}
+Tip: select nodes → right-click → "Cluster Group".`
+      };
+    }
+    return { ok: true };
+  };
+
+  const handleExport = async (
+    format: 'svg' | 'png' | 'jpg' | 'xml' | 'json' | 'drawio' | 'dot'
+  ) => {
     if (!diagramRef.current) return;
 
+    const pre = ensureExportPreconditions();
+    if (!pre.ok) {
+      alert(pre.error);
+      return;
+    }
+
     const diagram = diagramRef.current;
-    const timestamp = new Date().toISOString().slice(0, 10);
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
 
     switch (format) {
       case 'svg':
@@ -415,18 +444,19 @@ function App() {
         downloadImageFile(jpgImg.src, `diagram_${timestamp}.jpg`);
         break;
 
-      case 'json':
+      case 'json': {
+        // JSON already contains groups and nested subDiagram (if present).
         const json = diagram.model.toJson();
-        const jsonBlob = new Blob([json], { type: 'application/json;charset=utf-8' });
-        downloadFile(jsonBlob, `diagram_${timestamp}.json`);
+        const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+        downloadFile(blob, `diagram_${timestamp}.json`);
         break;
+      }
 
       case 'dot': {
-        // Use the plain model data to generate DOT
         const data = JSON.parse(diagram.model.toJson());
-        const dot = convertToDOT(data);
-        const dotBlob = new Blob([dot], { type: 'text/vnd.graphviz;charset=utf-8' });
-        downloadFile(dotBlob, `diagram_${timestamp}.dot`);
+        const dot = modelToDOT(data, { graphLabel: 'Boxology' });
+        const blob = new Blob([dot], { type: 'text/vnd.graphviz;charset=utf-8' });
+        downloadFile(blob, `diagram_${timestamp}.dot`);
         break;
       }
 

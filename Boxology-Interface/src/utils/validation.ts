@@ -157,4 +157,30 @@ export function validateDiagram(diagram: go.Diagram): ValidationResult {
   };
 }
 
-// Remove all the other functions since we're focusing on the plugin
+export type GoLikeModel = {
+  nodeDataArray: any[];
+  linkDataArray: any[];
+};
+
+// A node is considered clustered if:
+// - it belongs to a user group (isGroup true node), OR
+// - it has a subdiagram (subDiagram or subdiagramData)
+export function findUnclusteredNodes(model: GoLikeModel) {
+  const nodes = model.nodeDataArray || [];
+  const groups = new Set(
+    nodes.filter((n: any) => n.isGroup).map((g: any) => String(g.key))
+  );
+
+  function hasSubdiagram(n: any) {
+    const sd = n?.subDiagram ?? n?.subdiagramData;
+    return !!(sd && sd.nodeDataArray);
+  }
+
+  const bad: any[] = [];
+  for (const n of nodes) {
+    if (n.isGroup) continue;
+    const inGroup = n.group && groups.has(String(n.group));
+    if (!inGroup && !hasSubdiagram(n)) bad.push(n);
+  }
+  return bad;
+}
