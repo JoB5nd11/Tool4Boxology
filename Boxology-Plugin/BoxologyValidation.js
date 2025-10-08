@@ -40,6 +40,7 @@ Draw.loadPlugin(function(ui) {
         { name: "train_model (symbol)", edges: [["symbol", "generate:train"], ["generate:train", "model"]] },
         { name: "train_model (data)", edges: [["data", "generate:train"], ["generate:train", "model"]] },
         { name: "transform symbol", edges: [["symbol", "transform"], ["transform", "data"]] },
+		{ name: "transform symbol", edges: [["data", "transform"], ["transform", "symbol"]] },
         { name: "transform symbol/data", edges: [["symbol/data", "transform"], ["transform", "data"]] },
         { name: "transform data", edges: [["data", "transform"], ["transform", "data"]] },
         { name: "generate_model from actor", edges: [["actor", "generate:engineer"], ["generate:engineer", "model"]] },
