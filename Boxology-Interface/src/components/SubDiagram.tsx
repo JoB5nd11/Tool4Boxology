@@ -83,6 +83,40 @@ const SubDiagram: React.FC<SubDiagramProps> = ({
       $(go.Shape, { toArrow: "Triangle", fill: "#555", stroke: null })
     );
 
+    // ADD: same Cluster group template for sub-diagrams
+    diagram.groupTemplateMap.add('ClusterGroup',
+      $(go.Group, 'Spot',
+        {
+          isSubGraphExpanded: true,
+          layerName: 'Background',
+          selectable: true,
+          movable: true,
+          handlesDragDropForMembers: true,
+          computesBoundsAfterDrag: true,
+        },
+        $(go.Panel, 'Auto',
+          $(go.Shape, 'RoundedRectangle', {
+            fill: '#e9ecef',
+            stroke: '#adb5bd',
+            strokeWidth: 1.5,
+            parameter1: 6
+          }),
+          $(go.Placeholder, { padding: 20 })
+        ),
+        $(go.TextBlock,
+          {
+            alignment: go.Spot.TopLeft,
+            alignmentFocus: go.Spot.TopLeft,
+            margin: new go.Margin(6, 0, 0, 8),
+            editable: true,
+            font: 'bold 12px sans-serif',
+            stroke: '#333',
+          },
+          new go.Binding('text', 'label').makeTwoWay()
+        )
+      )
+    );
+
     // Load existing subdiagram data if available
     if (superNode?.subDiagramData) {
       diagram.model = new go.GraphLinksModel(

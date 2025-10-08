@@ -487,18 +487,12 @@ function App() {
   const handleContextMenuAction = (action: string, target?: string) => {
     setContextMenu(null);
   
-
     switch (action) {
       case 'mark_as_super_node':
         handleMarkAsSuperNode();
         break;
       case 'edit_linked_diagram':
         handleEditLinkedDiagram();
-        break;
-      case 'move':
-        if (target) {
-          console.log('Moving node to:', target);
-        }
         break;
       case 'create_group':
         handleCustomGroupAction('create');
@@ -508,6 +502,10 @@ function App() {
           handleCustomGroupAction('save', target);
           return;
         }
+        break;
+      // NEW: cluster selected nodes
+      case 'cluster_group':
+        handleClusterSelectedNodes();
         break;
       default:
         if (target) {
@@ -899,6 +897,47 @@ const copyEmailToClipboard = () => {
   // New state for subdiagram preview
   const [showSubdiagramPreview, setShowSubdiagramPreview] = useState(false);
   const [previewSubdiagramData, setPreviewSubdiagramData] = useState(null);
+
+  // NEW: Cluster currently selected nodes into a gray labeled group
+  const handleClusterSelectedNodes = () => {
+    if (!diagramRef.current) {
+      alert('No diagram available');
+      return;
+    }
+    const diagram = diagramRef.current;
+
+    // Collect selected non-group nodes
+    const selectedNodes: go.Node[] = [];
+    diagram.selection.each(part => {
+      if (part instanceof go.Node && !part.data.isGroup) selectedNodes.push(part);
+    });
+
+    if (selectedNodes.length === 0) {
+      alert('Select one or more nodes to cluster.');
+      return;
+    }
+
+    const defaultLabel = 'Cluster';
+    const label = prompt('Cluster label:', defaultLabel) || defaultLabel;
+
+    diagram.startTransaction('cluster group');
+    const key = `group_${Date.now()}`;
+
+    const groupData: any = {
+      key,
+      isGroup: true,
+      category: 'ClusterGroup',
+      label
+    };
+    (diagram.model as go.GraphLinksModel).addNodeData(groupData);
+
+    // Assign selected nodes to this group
+    selectedNodes.forEach(n => {
+      (diagram.model as go.GraphLinksModel).setDataProperty(n.data, 'group', key);
+    });
+
+    diagram.commitTransaction('cluster group');
+  };
 
   return (
     <div className="app" style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>

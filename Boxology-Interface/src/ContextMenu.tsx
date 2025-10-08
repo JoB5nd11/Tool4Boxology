@@ -142,6 +142,26 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         </>
       )}
 
+      {/* NEW: Cluster selected nodes */}
+      <div
+        style={{
+          padding: '8px 16px',
+          cursor: 'pointer',
+          color: '#495057',
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          transition: 'background-color 0.2s ease',
+          borderTop: '1px solid #eee'
+        }}
+        onClick={() => onAction('cluster_group')}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+      >
+        <span style={{ marginRight: 8 }}>🗂️</span>
+        Cluster Group
+      </div>
+
       {/* Save to Group Option */}
       {hasSaveToGroup && (
         <div

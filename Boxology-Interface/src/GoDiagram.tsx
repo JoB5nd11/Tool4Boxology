@@ -161,6 +161,44 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       $(go.Shape, { toArrow: "Triangle", fill: "#555", stroke: null }) // the arrowhead
     );
 
+    // ADD: Cluster group template (gray background with editable top-left label)
+    diagram.groupTemplateMap.add('ClusterGroup',
+      $(go.Group, 'Spot',
+        {
+          isSubGraphExpanded: true,
+          layerName: 'Background',           // keep background box behind members
+          selectable: true,
+          movable: true,
+          handlesDragDropForMembers: true,
+          computesBoundsAfterDrag: true,
+        },
+        // Background panel with Placeholder that sizes to members
+        $(go.Panel, 'Auto',
+          $(go.Shape, 'RoundedRectangle', {
+            name: 'CLUSTER_SHAPE',
+            fill: '#e9ecef',                  // gray background
+            stroke: '#adb5bd',
+            strokeWidth: 1.5,
+            parameter1: 6
+          }),
+          $(go.Placeholder, { padding: 20 })  // space around members inside the box
+        ),
+        // Editable label at top-left corner
+        $(go.TextBlock,
+          {
+            alignment: go.Spot.TopLeft,
+            alignmentFocus: go.Spot.TopLeft,
+            margin: new go.Margin(6, 0, 0, 8),
+            editable: true,
+            font: 'bold 12px sans-serif',
+            stroke: '#333',
+            background: null
+          },
+          new go.Binding('text', 'label').makeTwoWay()
+        )
+      )
+    );
+
     // Handle node selection
     diagram.addDiagramListener('ChangedSelection', () => {
       const node = diagram.selection.first();
