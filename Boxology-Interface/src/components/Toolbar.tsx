@@ -28,6 +28,7 @@ type ToolbarProps = {
   onExportJSON: () => void;
   onExportDrawio: () => void;
   onExportDOT: () => void;           // NEW
+  onOpenGraphviz: () => void;        // NEW: open DOT in Graphviz editor
   isSuperNodeSelected: boolean;
 };
 
@@ -47,6 +48,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onExportJSON,
   onExportDrawio,
   onExportDOT,        // NEW
+  onOpenGraphviz,     // NEW
   isSuperNodeSelected, // Add this
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
@@ -278,7 +280,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
       flexWrap: 'wrap',
       minHeight: '36px'
     }}>
-      
       {/* Existing toolbar buttons - made smaller and simpler */}
       <button onClick={onAbout} style={simpleButtonStyle}>ℹ️ About</button>
       <button onClick={onOpen} style={simpleButtonStyle}>📁 Open</button>
@@ -458,6 +459,15 @@ const Toolbar: React.FC<ToolbarProps> = ({
           </div>
         )}
       </div>
+      
+      {/* NEW: Open in Graphviz (Visual Editor) */}
+      <button
+        onClick={onOpenGraphviz}
+        style={simpleButtonStyle}
+        title="Open DOT in Graphviz Visual Editor"
+      >
+        🟦 Open Graphviz
+      </button>
       
       <button onClick={onUndo} style={simpleButtonStyle}>🔄 Undo</button>
       <button onClick={onRedo} style={simpleButtonStyle}>🔃 Redo</button>

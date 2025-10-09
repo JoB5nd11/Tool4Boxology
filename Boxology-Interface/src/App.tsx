@@ -16,6 +16,7 @@ import { modelToDOT } from './utils/dot';
 import { findUnclusteredNodes } from './utils/validation';
 import { parseDOTToModel } from './utils/dotImport';
 import { buildPagesFromModel } from './utils/pageBuilder';
+import { openInGraphviz } from './utils/openInGraphviz';
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
@@ -1107,6 +1108,15 @@ const copyEmailToClipboard = () => {
         onExportJSON={() => handleExport('json')}
         onExportDrawio={() => handleExport('drawio')}
         onExportDOT={() => handleExport('dot')}  // NEW
+          onOpenGraphviz={() => {
+          const dot = (() => {
+            if (!diagramRef.current) return '';
+            const data = JSON.parse(diagramRef.current.model.toJson());
+            return modelToDOT(data, { graphLabel: 'Boxology' });
+          })();
+          if (!dot) { alert('No DOT available.'); return; }
+          openInGraphviz(dot, 'dot'); // choose engine: dot/neato/fdp/sfdp/twopi/circo
+        }}
         isSuperNodeSelected={isSuperNodeSelected}
       />
 
