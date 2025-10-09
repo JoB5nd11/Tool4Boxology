@@ -14,6 +14,8 @@ import { elementaryPatterns } from './data/patterns';
 import SubdiagramPreview from './components/SubdiagramPreview';
 import { modelToDOT } from './utils/dot';
 import { findUnclusteredNodes } from './utils/validation';
+import { parseDOTToModel } from './utils/dotImport';
+import { buildPagesFromModel } from './utils/pageBuilder';
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
@@ -261,9 +263,11 @@ function App() {
 
   // Consolidated file operations
   const handleFileOperation = (operation: 'save' | 'open') => {
-    if (!diagramRef.current) return;
-
     if (operation === 'save') {
+      if (!diagramRef.current) {
+        alert('No diagram available');
+        return;
+      }
       const json = diagramRef.current.model.toJson();
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -275,29 +279,54 @@ function App() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       alert('Diagram saved!');
-    } else if (operation === 'open') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.json';
-      
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file && diagramRef.current) {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            try {
-              const json = event.target?.result as string;
-              diagramRef.current!.model = go.Model.fromJson(json);
-              alert('Diagram loaded successfully!');
-            } catch (error) {
-              alert('Error loading diagram: Invalid file format');
-            }
-          };
-          reader.readAsText(file);
-        }
-      };
-      input.click();
+      return;
     }
+
+    // OPEN
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.dot,.gv,.graphviz,.xml';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      const name = file.name.toLowerCase();
+
+      // 1) Parse to our canonical hierarchical model
+      let model: any | null = null;
+      try {
+        if (name.endsWith('.json')) {
+          model = JSON.parse(text);
+        } else if (name.endsWith('.dot') || name.endsWith('.gv') || name.endsWith('.graphviz')) {
+          model = parseDOTToModel(text);
+        } else {
+          alert('Unsupported format. Use JSON or DOT.');
+          return;
+        }
+      } catch (e) {
+        console.error('Import parse error:', e);
+        alert('Failed to parse file.');
+        return;
+      }
+
+      // 2) Build pages and super-node mapping so subdiagrams are editable
+      try {
+        const { pages: newPages, superNodeMap: map } = buildPagesFromModel(model, file.name.replace(/\.[^.]+$/, ''));
+        setPages(newPages);
+        setSuperNodeMap(map);
+        setCurrentPageId(newPages[0].id);
+
+        // Load the first page into the diagram
+        const pg = newPages[0];
+        if (diagramRef.current) {
+          diagramRef.current.model = new go.GraphLinksModel(pg.nodeDataArray, pg.linkDataArray);
+        }
+      } catch (e) {
+        console.error('Page build error:', e);
+        alert('Import succeeded but page reconstruction failed.');
+      }
+    };
+    input.click();
   };
 
   // Helper function to convert GoJS data to Graphviz DOT format

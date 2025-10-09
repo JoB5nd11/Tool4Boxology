@@ -4,7 +4,14 @@
   "description": "A hierarchical diagram tool for creating and validating Boxology patterns with GoJS",
   "private": false,
   "type": "module",
-  "keywords": ["diagram", "boxology", "gojs", "react", "typescript", "validation"],
+  "keywords": [
+    "diagram",
+    "boxology",
+    "gojs",
+    "react",
+    "typescript",
+    "validation"
+  ],
   "author": "SDM-TIB",
   "license": "MIT",
   "repository": {
@@ -31,6 +38,7 @@
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.14.19",
     "@mui/material": "^5.14.20",
+    "@ts-graphviz/parser": "^2.0.6",
     "gojs": "^3.0.24",
     "gojs-react": "^1.1.3",
     "react": "^19.1.0",
