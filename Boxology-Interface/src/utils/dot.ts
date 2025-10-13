@@ -56,9 +56,8 @@ export function modelToDOT(model: BoxologyModel, opts: ExportOpts = {}): string 
 
   const lines: string[] = [];
   lines.push(`digraph ${esc(opts.graphLabel || 'Boxology')} {`);
-  lines.push(`  graph [compound=true, rankdir=TB, bgcolor="white"];`);
-  lines.push(`  node  [style="filled", fontname="Helvetica"];`);
-  lines.push(`  edge  [color="#555555"];`);
+  lines.push(`    rankdir=TB;`);
+  lines.push(``);
 
   emitModel(lines, model, [], groupCategory);
 
@@ -74,6 +73,16 @@ function emitModel(
 ) {
   const nodes = model.nodeDataArray || [];
   const links = model.linkDataArray || [];
+
+  // Helper function to get node identifier (name takes priority over label for DOT node ID)
+  const getNodeId = (n: any): string => {
+    return n.name || n.label || n.text || n.key;
+  };
+
+  // Helper function to get display label (label takes priority over name for display)
+  const getDisplayLabel = (n: any): string => {
+    return n.label || n.text || n.name || n.key;
+  };
 
   // User groups (clusters)
   const groups = nodes.filter((n: any) => n.isGroup && (!n.category || n.category === groupCategory));
@@ -92,19 +101,29 @@ function emitModel(
 
   // Emit user clusters with only regular members (exclude super nodes)
   for (const g of groups) {
-    const gid = idPart(`g_${g.key}`);
-    lines.push(`  subgraph cluster_${gid} {`);
-    lines.push(`    label="${esc(g.label ?? g.text ?? g.key)}";`);
-    lines.push(`    style="filled";`);
-    lines.push(`    color="${esc(g.color || '#d3d3d3')}";`);
+    const gid = idPart(`${g.key}`);
+    lines.push(`    // Subgraph - ${esc(getDisplayLabel(g))}`);
+    lines.push(`    subgraph cluster_${gid} {`);
+    lines.push(`        label="${esc(getDisplayLabel(g))}";`);
+    lines.push(`        style=filled;`);
+    lines.push(`        color=${esc(g.color || 'lightgrey')};`);
+    lines.push(``);
+    
+    // Define nodes with their attributes using name as ID but label for display
     for (const n of (groupMembers[g.key] || [])) {
       if (superSet.has(String(n.key))) continue;
-      const path = [...pathPrefix, String(n.key)];
-      const attrs = nodeAttrs(n);
-      attrs.push(`path="${esc(path.join('/'))}"`);
-      lines.push(`    ${dotId(path)} [${attrs.join(', ')}];`);
+      
+      const nodeId = getNodeId(n);
+      const displayLabel = getDisplayLabel(n);
+      const shape = mapShape(n.shape);
+      const fillcolor = n.fill || n.color || 'white';
+      
+      lines.push(`        "${esc(nodeId)}" [label="${esc(displayLabel)}", shape=${shape}, fillcolor=${esc(fillcolor)}];`);
     }
-    lines.push('  }');
+    
+    lines.push(`        `);
+    lines.push(`    }`);
+    lines.push(``);
   }
 
   // Emit nodes not in any user group and not super nodes
@@ -113,10 +132,13 @@ function emitModel(
     const inUserGroup = !!n.group && groups.some((g: any) => g.key === n.group);
     if (inUserGroup) continue;
     if (superSet.has(String(n.key))) continue;
-    const path = [...pathPrefix, String(n.key)];
-    const attrs = nodeAttrs(n);
-    attrs.push(`path="${esc(path.join('/'))}"`);
-    lines.push(`  ${dotId(path)} [${attrs.join(', ')}];`);
+    
+    const nodeId = getNodeId(n);
+    const displayLabel = getDisplayLabel(n);
+    const shape = mapShape(n.shape);
+    const fillcolor = n.fill || n.color || 'white';
+    
+    lines.push(`    "${esc(nodeId)}" [label="${esc(displayLabel)}", shape=${shape}, fillcolor=${esc(fillcolor)}];`);
   }
 
   // Emit subdiagram clusters (recursive)
@@ -127,53 +149,50 @@ function emitModel(
 
     const path = [...pathPrefix, String(n.key)];
     const cid = `cluster_sd_${dotId(path)}`;
-    const label = n.label ?? n.text ?? n.name ?? n.key;
-    const clusterStyle = (n.clusterStyle || 'filled,rounded').replace(/\s+/g, '');
-    const clusterColor = n.clusterColor || '#e9ecef';
+    const displayLabel = getDisplayLabel(n);
+    const clusterStyle = (n.clusterStyle || 'filled').replace(/\s+/g, '');
+    const clusterColor = n.clusterColor || 'lightgrey';
 
-    lines.push(`  subgraph ${cid} {`);
-    lines.push(`    label="${esc(label)}";`);
-    lines.push(`    style="${clusterStyle}";`);
-    lines.push(`    color="${esc(clusterColor)}";`);
-    lines.push(`    sd="1";`);
-    lines.push(`    path="${esc(path.join('/'))}";`);
+    lines.push(`    // Subgraph - ${esc(displayLabel)}`);
+    lines.push(`    subgraph ${cid} {`);
+    lines.push(`        label="${esc(displayLabel)}";`);
+    lines.push(`        style=${clusterStyle};`);
+    lines.push(`        color=${esc(clusterColor)};`);
+    lines.push(``);
 
     const hdr = headerId(path);
     const hdrAttrs = [
-      `label="${esc(label)}"`,
+      `label="${esc(displayLabel)}"`,
       `shape=box`,
-      `style="bold,filled"`,
-      `fillcolor="white"`,
-      `role="header"`,
-      `nodeRef="${esc(String(n.key))}"`,
-      `path="${esc(path.join('/'))}"`
+      `fillcolor="white"`
     ];
-    lines.push(`    ${hdr} [${hdrAttrs.join(', ')}];`);
+    lines.push(`        ${hdr} [${hdrAttrs.join(', ')}];`);
 
     // Recurse into subdiagram content
     emitModel(lines, sd, path, groupCategory);
 
-    lines.push('  }');
+    lines.push(`    }`);
+    lines.push(``);
   }
 
-  // Emit edges; if endpoint is super, connect to header
-  for (const l of (links || [])) {
-    const fromIsSuper = superSet.has(String(l.from));
-    const toIsSuper = superSet.has(String(l.to));
-
-    const fromPath = [...pathPrefix, String(l.from)];
-    const toPath = [...pathPrefix, String(l.to)];
-
-    const fromId = fromIsSuper ? headerId(fromPath) : dotId(fromPath);
-    const toId = toIsSuper ? headerId(toPath) : dotId(toPath);
-
-    const attrs: string[] = [];
-    if (l.label) attrs.push(`label="${esc(l.label)}"`);
-    if (l.color) attrs.push(`color="${esc(l.color)}"`);
-    lines.push(
-      attrs.length
-        ? `  ${fromId} -> ${toId} [${attrs.join(', ')}];`
-        : `  ${fromId} -> ${toId};`
-    );
+  // Emit edges at the end, using node names (not labels) as identifiers
+  if (links && links.length > 0) {
+    for (const l of links) {
+      const fromNode = nodes.find((n: any) => n.key === l.from);
+      const toNode = nodes.find((n: any) => n.key === l.to);
+      
+      if (fromNode && toNode) {
+        const fromNodeId = getNodeId(fromNode);
+        const toNodeId = getNodeId(toNode);
+        
+        const fromIsSuper = superSet.has(String(l.from));
+        const toIsSuper = superSet.has(String(l.to));
+        
+        const fromId = fromIsSuper ? headerId([...pathPrefix, String(l.from)]) : `"${esc(fromNodeId)}"`;
+        const toId = toIsSuper ? headerId([...pathPrefix, String(l.to)]) : `"${esc(toNodeId)}"`;
+        
+        lines.push(`        ${fromId} -> ${toId};`);
+      }
+    }
   }
 }
