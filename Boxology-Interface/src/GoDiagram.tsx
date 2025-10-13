@@ -85,6 +85,18 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       ),
     });
 
+    // Ensure new clusters (groups) have stable identity and editable visuals
+    diagram.commandHandler.archetypeGroupData = {
+      isGroup: true,
+      category: 'ClusterGroup',
+      name: 'cluster',             // stable identity for validation
+      label: 'Cluster',            // user-editable label
+      color: '#e9ecef',            // fill (editable)
+      stroke: '#adb5bd',           // border color (editable)
+      strokeWidth: 1.5,            // border width (editable)
+      parameter1: 6                // corner radius (editable)
+    };
+
     diagram.toolManager.draggingTool.isGridSnapEnabled = true;
     diagram.toolManager.linkingTool.isEnabled = true;
     diagram.toolManager.relinkingTool.isEnabled = true;
@@ -166,22 +178,30 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       $(go.Group, 'Spot',
         {
           isSubGraphExpanded: true,
-          layerName: 'Background',           // keep background box behind members
+          layerName: 'Background',
           selectable: true,
           movable: true,
           handlesDragDropForMembers: true,
           computesBoundsAfterDrag: true,
+          fromLinkable: false,
+          toLinkable: false
         },
         // Background panel with Placeholder that sizes to members
         $(go.Panel, 'Auto',
           $(go.Shape, 'RoundedRectangle', {
             name: 'CLUSTER_SHAPE',
-            fill: '#e9ecef',                  // gray background
+            fill: '#e9ecef',
             stroke: '#adb5bd',
             strokeWidth: 1.5,
             parameter1: 6
-          }),
-          $(go.Placeholder, { padding: 20 })  // space around members inside the box
+          },
+            // Make visuals fully editable via data bindings
+            new go.Binding('fill', 'color').makeTwoWay(),
+            new go.Binding('stroke', 'stroke').makeTwoWay(),
+            new go.Binding('strokeWidth', 'strokeWidth').makeTwoWay(),
+            new go.Binding('parameter1', 'parameter1').makeTwoWay()
+          ),
+          $(go.Placeholder, { padding: 20 })
         ),
         // Editable label at top-left corner
         $(go.TextBlock,
@@ -194,6 +214,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
             stroke: '#333',
             background: null
           },
+          // Label is editable, but identity remains name='cluster'
           new go.Binding('text', 'label').makeTwoWay()
         )
       )

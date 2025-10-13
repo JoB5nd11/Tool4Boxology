@@ -46,23 +46,25 @@ const allPatterns: { name: string; edges: [string, string][] }[] = [
 ];
 
 // --- Utility functions ---
-
 function getNodeName(node: go.Node): string {
-  // Try multiple possible properties for node name
-  const name = node.data.text || 
-               node.data.name || 
-               node.data.label || 
-               node.data.key || 
-               "Unnamed";
-  return name.toString().trim();
+  // Use only the stable semantic identity
+  const nm = (node.data?.name ?? '').toString().trim();
+  return nm || (node.data?.key?.toString() ?? 'Unnamed');
 }
 
 function isIgnorable(node: go.Node): boolean {
-  const ignoredNames = ["text", "conditions", "description", "note", "pre-conditions", "post-condition"];
-  const ignoredTypes = ["group", "swimlane"];
-  const label = (node.data.label || node.data.name || "").toLowerCase();
-  const shape = (node.data.shape || "").toLowerCase();
-  return ignoredNames.includes(label) || ignoredTypes.includes(shape);
+  // Ignore by stable name (not label). Also ignore groups.
+  const ignored = new Set([
+    'comment', 'cluster', 'text', 'note', 'conditions', 'description',
+    'pre-conditions', 'post-condition'
+  ]);
+
+  // Ignore GoJS Group nodes (clusters)
+  if (node instanceof go.Group) return true;
+  if (node.category === 'ClusterGroup') return true;
+
+  const nm = (node.data?.name ?? '').toString().toLowerCase().trim();
+  return nm.length > 0 && ignored.has(nm);
 }
 
 // --- Merge duplicate nodes (by name) if connected ---
