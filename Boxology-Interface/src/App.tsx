@@ -475,10 +475,20 @@ Tip: select nodes → right-click → "Cluster Group".`
         break;
 
       case 'json': {
-        // JSON already contains groups and nested subDiagram (if present).
-        const json = diagram.model.toJson();
+        const userId = window.localStorage.getItem('userId') || (() => {
+          const id = `user_${Math.random().toString(36).slice(2, 10)}`;
+          window.localStorage.setItem('userId', id);
+          return id;
+        })();
+        const exportUUID = uuidv4().replace(/-/g, '').slice(0, 8); // Short unique ID
+        // Parse, modify class, then stringify
+        const jsonObj = JSON.parse(diagram.model.toJson());
+        if (typeof jsonObj.class === 'string') {
+          jsonObj.class = `${jsonObj.class}_${exportUUID}`;
+        }
+        const json = JSON.stringify(jsonObj, null, 2);
         const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-        downloadFile(blob, `diagram_${timestamp}.json`);
+        downloadFile(blob, `diagram_${userId}_${timestamp}.json`);
         break;
       }
 
