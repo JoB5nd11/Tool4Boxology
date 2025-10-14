@@ -701,13 +701,20 @@ const copyEmailToClipboard = () => {
     const newPageId = uuidv4();
     const newSubPage: PageData = {
       id: newPageId,
-      name: `${selectedData.label} - Subdiagram`,
+      name: `${selectedData.label || selectedData.text || selectedData.name || selectedData.key} - Subdiagram`,
       nodeDataArray: [],
       linkDataArray: [],
       parentNodeId: nodeId,
       isSubDiagram: true
     };
 
+    // Save current page data before switching
+    if (currentPageId) {
+      const currentModel = diagramRef.current.model as go.GraphLinksModel;
+      updateCurrentPage(currentModel.nodeDataArray, currentModel.linkDataArray);
+    }
+
+    // Update state first
     setPages(prev => [...prev, newSubPage]);
     setSuperNodeMap(prev => ({
       ...prev,
@@ -731,7 +738,8 @@ const copyEmailToClipboard = () => {
     }
     model.commitTransaction('mark as super node');
 
-    alert('Node marked as super node with linked subdiagram!');
+    // Automatically navigate to the new sub-diagram page (no alert message)
+    setCurrentPageId(newPageId);
   };
 
   // Function to edit linked diagram
@@ -1314,8 +1322,7 @@ const copyEmailToClipboard = () => {
           />
           <ContextMenu 
             contextMenu={contextMenu} 
-            containers={containers} 
-            customGroups={[...Object.keys(customGroups), 'CREATE_NEW', 'SAVE_TO_GROUP']}
+            //customGroups={[...Object.keys(customGroups), 'CREATE_NEW', 'SAVE_TO_GROUP']}
             onAction={handleContextMenuAction}
             selectedData={selectedData} // ✅ Make sure this is passed
           />
