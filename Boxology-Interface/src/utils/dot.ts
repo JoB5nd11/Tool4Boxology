@@ -118,7 +118,7 @@ function emitModel(
       const shape = mapShape(n.shape);
       const fillcolor = n.fill || n.color || 'white';
       
-      lines.push(`        "${esc(nodeId)}" [label="${esc(displayLabel)}", shape=${shape}, fillcolor=${esc(fillcolor)}];`);
+      lines.push(`        "${esc(displayLabel)}" [label="${esc(nodeId)}", shape=${shape}, fillcolor="${esc(fillcolor)}"];`);
     }
     
     lines.push(`        `);
@@ -137,8 +137,9 @@ function emitModel(
     const displayLabel = getDisplayLabel(n);
     const shape = mapShape(n.shape);
     const fillcolor = n.fill || n.color || 'white';
-    
-    lines.push(`    "${esc(nodeId)}" [label="${esc(displayLabel)}", shape=${shape}, fillcolor=${esc(fillcolor)}];`);
+    const filled = n.fill || n.color ? true : false;
+
+    lines.push(`    "${esc(displayLabel)}" [label="${esc(nodeId)}", shape=${shape}, style=${filled ? 'filled' : 'unfilled'}, fillcolor="${esc(fillcolor)}"];`);
   }
 
   // Emit subdiagram clusters (recursive)
@@ -182,9 +183,9 @@ function emitModel(
       const toNode = nodes.find((n: any) => n.key === l.to);
       
       if (fromNode && toNode) {
-        const fromNodeId = getNodeId(fromNode);
-        const toNodeId = getNodeId(toNode);
-        
+        const fromNodeId = getDisplayLabel(fromNode);
+        const toNodeId = getDisplayLabel(toNode);
+
         const fromIsSuper = superSet.has(String(l.from));
         const toIsSuper = superSet.has(String(l.to));
         
