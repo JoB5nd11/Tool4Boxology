@@ -51,6 +51,38 @@ function getSubdiagramPayload(n: any): BoxologyModel | null {
   return null;
 }
 
+// Helper function to resolve label duplicates by adding stars
+function resolveLabelDuplicates(nodes: any[]): Map<string, string> {
+  const labelMap = new Map<string, string>(); // maps node.key -> unique display label
+  const labelCounts = new Map<string, number>(); // tracks how many times each label appears
+  
+  // Sort nodes by creation order (assuming key or some timestamp indicates order)
+  const sortedNodes = [...nodes].filter(n => !n.isGroup).sort((a, b) => {
+    // Try to sort by key if it contains timestamp/number, otherwise preserve original order
+    const aKey = String(a.key);
+    const bKey = String(b.key);
+    return aKey.localeCompare(bKey, undefined, { numeric: true });
+  });
+
+  for (const node of sortedNodes) {
+    const originalLabel = node.label || node.text || node.name || node.key;
+    let uniqueLabel = originalLabel;
+    
+    // Check if this label already exists
+    const currentCount = labelCounts.get(originalLabel) || 0;
+    
+    if (currentCount > 0) {
+      // Add stars for duplicates
+      uniqueLabel = originalLabel + '*'.repeat(currentCount);
+    }
+    
+    labelCounts.set(originalLabel, currentCount + 1);
+    labelMap.set(String(node.key), uniqueLabel);
+  }
+  
+  return labelMap;
+}
+
 export function modelToDOT(model: BoxologyModel, opts: ExportOpts = {}): string {
   const groupCategory = opts.groupCategory ?? 'ClusterGroup';
 
@@ -74,14 +106,17 @@ function emitModel(
   const nodes = model.nodeDataArray || [];
   const links = model.linkDataArray || [];
 
-  // Helper function to get node identifier (name takes priority over label for DOT node ID)
-  const getNodeId = (n: any): string => {
-    return n.name || n.label || n.text || n.key;
+  // Resolve label duplicates first
+  const uniqueLabelMap = resolveLabelDuplicates(nodes);
+
+  // Helper function to get unique DOT node identifier (resolved label)
+  const getDotNodeId = (n: any): string => {
+    return uniqueLabelMap.get(String(n.key)) || n.label || n.text || n.name || n.key;
   };
 
-  // Helper function to get display label (label takes priority over name for display)
-  const getDisplayLabel = (n: any): string => {
-    return n.label || n.text || n.name || n.key;
+  // Helper function to get semantic type (unchanged name for validation/TTL)
+  const getNodeType = (n: any): string => {
+    return n.name || n.label || n.text || n.key;
   };
 
   // User groups (clusters)
@@ -102,23 +137,24 @@ function emitModel(
   // Emit user clusters with only regular members (exclude super nodes)
   for (const g of groups) {
     const gid = idPart(`${g.key}`);
-    lines.push(`    // Subgraph - ${esc(getDisplayLabel(g))}`);
+    const groupLabel = g.label || g.text || g.name || g.key;
+    lines.push(`    // Subgraph - ${esc(groupLabel)}`);
     lines.push(`    subgraph cluster_${gid} {`);
-    lines.push(`        label="${esc(getDisplayLabel(g))}";`);
+    lines.push(`        label="${esc(groupLabel)}";`);
     lines.push(`        style=filled;`);
     lines.push(`        color=${esc(g.color || 'lightgrey')};`);
     lines.push(``);
     
-    // Define nodes with their attributes using name as ID but label for display
+    // Define nodes with unique label as DOT ID and name as type attribute
     for (const n of (groupMembers[g.key] || [])) {
       if (superSet.has(String(n.key))) continue;
       
-      const nodeId = getNodeId(n);
-      const displayLabel = getDisplayLabel(n);
+      const dotNodeId = getDotNodeId(n);
+      const nodeType = getNodeType(n);
       const shape = mapShape(n.shape);
       const fillcolor = n.fill || n.color || 'white';
       
-      lines.push(`        "${esc(displayLabel)}" [label="${esc(nodeId)}", shape=${shape}, fillcolor="${esc(fillcolor)}"];`);
+      lines.push(`        "${esc(dotNodeId)}" [label="${esc(dotNodeId)}", type="${esc(nodeType)}", shape=${shape}, fillcolor="${esc(fillcolor)}"];`);
     }
     
     lines.push(`        `);
@@ -133,13 +169,12 @@ function emitModel(
     if (inUserGroup) continue;
     if (superSet.has(String(n.key))) continue;
     
-    const nodeId = getNodeId(n);
-    const displayLabel = getDisplayLabel(n);
+    const dotNodeId = getDotNodeId(n);
+    const nodeType = getNodeType(n);
     const shape = mapShape(n.shape);
     const fillcolor = n.fill || n.color || 'white';
-    const filled = n.fill || n.color ? true : false;
 
-    lines.push(`    "${esc(displayLabel)}" [label="${esc(nodeId)}", shape=${shape}, style=${filled ? 'filled' : 'unfilled'}, fillcolor="${esc(fillcolor)}"];`);
+    lines.push(`    "${esc(dotNodeId)}" [label="${esc(dotNodeId)}", type="${esc(nodeType)}", shape=${shape}, style=filled, fillcolor="${esc(fillcolor)}"];`);
   }
 
   // Emit subdiagram clusters (recursive)
@@ -150,20 +185,20 @@ function emitModel(
 
     const path = [...pathPrefix, String(n.key)];
     const cid = `cluster_sd_${dotId(path)}`;
-    const displayLabel = getDisplayLabel(n);
+    const dotNodeId = getDotNodeId(n);
     const clusterStyle = (n.clusterStyle || 'filled').replace(/\s+/g, '');
     const clusterColor = n.clusterColor || 'lightgrey';
 
-    lines.push(`    // Subgraph - ${esc(displayLabel)}`);
+    lines.push(`    // Subgraph - ${esc(dotNodeId)}`);
     lines.push(`    subgraph ${cid} {`);
-    lines.push(`        label="${esc(displayLabel)}";`);
+    lines.push(`        label="${esc(dotNodeId)}";`);
     lines.push(`        style=${clusterStyle};`);
     lines.push(`        color=${esc(clusterColor)};`);
     lines.push(``);
 
     const hdr = headerId(path);
     const hdrAttrs = [
-      `label="${esc(displayLabel)}"`,
+      `label="${esc(dotNodeId)}"`,
       `shape=box`,
       `fillcolor="white"`
     ];
@@ -176,24 +211,27 @@ function emitModel(
     lines.push(``);
   }
 
-  // Emit edges at the end, using node names (not labels) as identifiers
+  // Emit edges at the end, using unique DOT node IDs
   if (links && links.length > 0) {
     for (const l of links) {
       const fromNode = nodes.find((n: any) => n.key === l.from);
       const toNode = nodes.find((n: any) => n.key === l.to);
       
       if (fromNode && toNode) {
-        const fromNodeId = getDisplayLabel(fromNode);
-        const toNodeId = getDisplayLabel(toNode);
+        const fromDotId = getDotNodeId(fromNode);
+        const toDotId = getDotNodeId(toNode);
 
         const fromIsSuper = superSet.has(String(l.from));
         const toIsSuper = superSet.has(String(l.to));
         
-        const fromId = fromIsSuper ? headerId([...pathPrefix, String(l.from)]) : `"${esc(fromNodeId)}"`;
-        const toId = toIsSuper ? headerId([...pathPrefix, String(l.to)]) : `"${esc(toNodeId)}"`;
+        const fromId = fromIsSuper ? headerId([...pathPrefix, String(l.from)]) : `"${esc(fromDotId)}"`;
+        const toId = toIsSuper ? headerId([...pathPrefix, String(l.to)]) : `"${esc(toDotId)}"`;
         
-        lines.push(`        ${fromId} -> ${toId};`);
+        lines.push(`    ${fromId} -> ${toId};`);
       }
     }
   }
 }
+
+// Export the duplicate resolution function for use in the Boxology tool
+export { resolveLabelDuplicates };
