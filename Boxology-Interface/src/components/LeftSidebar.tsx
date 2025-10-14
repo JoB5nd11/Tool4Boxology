@@ -235,7 +235,7 @@ export default function LeftSidebar({
         borderBottom: '1px solid #dee2e6',
         boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
       }}>
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', paddingLeft: '20px' }}>
           <input
             type="text"
             placeholder="Search shapes..."
@@ -243,7 +243,7 @@ export default function LeftSidebar({
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
               width: '100%',
-              padding: '8px 32px 8px 12px',
+              padding: '8px 12px 8px 1px',
               border: '1px solid #ddd',
               borderRadius: '20px',
               fontSize: '13px',
@@ -280,17 +280,24 @@ export default function LeftSidebar({
               ✕
             </button>
           )}
-          <div style={{
+            <div style={{
             position: 'absolute',
-            left: '12px',
+            left: '4px',
             top: '50%',
             transform: 'translateY(-50%)',
+            pointerEvents: 'none',
             color: '#999',
-            fontSize: '14px',
-            pointerEvents: 'none'
-          }}>
+            fontSize: '22px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '16px',
+            height: '16px',
+            userSelect: 'none'
+
+            }}>
             🔍
-          </div>
+            </div>
         </div>
         {searchTerm && (
           <div style={{
@@ -332,7 +339,7 @@ export default function LeftSidebar({
                   alignItems: 'center',
                   gap: '8px'
                 }}>
-                  🔍 Search Results ({filteredShapes.length})
+                  🔍  Search Results ({filteredShapes.length})
                 </div>
                 <div style={{ 
                   padding: '12px', 
