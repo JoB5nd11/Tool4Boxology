@@ -1,9 +1,10 @@
+import { transform } from "@babel/core";
 import * as go from "gojs";
 
 // --- Pattern and connection rules ---
 
 const validNext: Record<string, string[]> = {
-	"actor": ["generate:engineer", "actor"],
+	"actor": ["generate:engineer", "actor", "transform","infer:deduce"],
 	"artifacts": ["artifacts","symbol", "data","infer:deduce", "transform:embed", "generate", "transform", "generate", "generate:train"],
   "symbol": ["infer:deduce", "generate:train", "generate", "transform:embed", "transform", "symbol", "artifacts"],
   "data": ["infer:deduce", "generate:train", "generate", "transform", "data", "transform:embed", "artifacts"],
@@ -21,14 +22,35 @@ const validNext: Record<string, string[]> = {
 };
 
 const allPatterns: { name: string; edges: [string, string][] }[] = [
+  // Train model with artifacts
   { name: "train_model (symbol)", edges: [["symbol", "generate:train"], ["generate:train", "model"]] },
   { name: "train_model (data)", edges: [["data", "generate:train"], ["generate:train", "model"]] },
-  { name: "transform symbol", edges: [["symbol", "transform"], ["transform", "data"]] },
-  { name: "transform artifacts", edges: [["artifacts", "transform"], ["transform", "data"]] },
-  { name: "transform data", edges: [["data", "transform"], ["transform", "data"]] },
+  { name: "train_model (artifacts)", edges: [["artifacts", "generate:train"], ["generate:train", "model"]] },
+  { name: "generate_model from model and data ", edges: [["model", "generate:train"], ["data", "generate:train"], ["generate:train", "model"]] },
+  { name: "generate_model from model and symbol ", edges: [["model", "generate:train"], ["symbol", "generate:train"], ["generate:train", "model"]] },
+  { name: "generate_model from model and artifacts ", edges: [["model", "generate:train"], ["artifacts", "generate:train"], ["generate:train", "model"]] },
+  
+  // Transform data with symbol/artifacts/data
+  { name: "transform to data (symbol)", edges: [["symbol", "transform"], ["transform", "data"]] },
+  { name: "transform to data (artifacts)", edges: [["artifacts", "transform"], ["transform", "data"]] },
+  { name: "transform to data (data)", edges: [["data", "transform"], ["transform", "data"]] },
+  { name: "transform to symbol (data)", edges: [["data", "transform"], ["transform", "symbol"]] },
+  { name: "transform to symbol (symbol)", edges: [["symbol", "transform"], ["transform", "symbol"]] },
+  { name: "transform to symbol (artifacts)", edges: [["artifacts", "transform"], ["transform", "symbol"]] },
+  { name: "transform_model (model)", edges: [["model", "transform"], ["transform", "model"]] },
+  { name: "actor transform symbol to symbol", edges: [["symbol", "transform"], ["actor", "transform"], ["transform", "symbol"]] },
+  { name: "actor transform symbol to data", edges: [["symbol", "transform"], ["actor", "transform"], ["transform", "data"]] },
+  { name: "actor transform data to data", edges: [["data", "transform"], ["actor", "transform"], ["transform", "data"]] },
+  { name: "actor transform artifacts to data", edges: [["artifacts", "transform"], ["actor", "transform"], ["transform", "data"]] },
+  
+  //engineer model from actor and artifacts
   { name: "generate_model from actor", edges: [["actor", "generate:engineer"], ["generate:engineer", "model"]] },
   { name: "generate_model from actor", edges: [["actor", "generate:engineer"], ["generate:engineer", "model:semantic"]] },
   { name: "generate_model from actor", edges: [["actor", "generate:engineer"], ["generate:engineer", "model:statistics"]] },
+  { name: "actor generate model", edges: [["actor", "generate"], ["symbol", "generate"], ["generate", "model"]] },
+  { name: "generate_symbol from actor", edges: [["actor", "generate:engineer"], ["generate:engineer", "symbol"]] },
+  { name: "generate_data from actor", edges: [["actor", "generate:engineer"], ["generate:engineer", "data"]] },
+
   { name: "infer_symbol (symbol → model → symbol)", edges: [["model", "infer:deduce"], ["symbol", "infer:deduce"], ["infer:deduce", "symbol"]] },
   { name: "infer_symbol (artifacts → model → symbol)", edges: [["model", "infer:deduce"], ["artifacts", "infer:deduce"], ["infer:deduce", "symbol"]] },
   { name: "infer_symbol (data → model → symbol)", edges: [["model", "infer:deduce"], ["data", "infer:deduce"], ["infer:deduce", "symbol"]] },
@@ -36,12 +58,10 @@ const allPatterns: { name: string; edges: [string, string][] }[] = [
   { name: "infer_model (artifacts → model → model)", edges: [["model", "infer:deduce"], ["artifacts", "infer:deduce"], ["infer:deduce", "model"]] },
   { name: "infer_model (data → model → model)", edges: [["model", "infer:deduce"], ["data", "infer:deduce"], ["infer:deduce", "model"]] },
   { name: "embed transform", edges: [["symbol", "transform:embed"], ["data", "transform:embed"], ["transform:embed", "model:semantic"]] },
-  { name: "generate_model from model and data ", edges: [["model", "generate"], ["data", "generate"], ["generate", "model"]] },
-  { name: "train_model (symbol)", edges: [["symbol", "generate"], ["generate", "model"]] },
-  { name: "generate model (data → symbol → model)", edges: [["data", "generate"], ["symbol", "generate"], ["generate", "model"]] },
-  { name: "generate_symbol from actor", edges: [["actor", "generate:engineer"], ["generate:engineer", "symbol"]] },
+ 
+
   { name: "data-symbol transform", edges: [["symbol", "transform"], ["data", "transform"], ["transform", "data"]] },
-  { name: "actor generate model", edges: [["actor", "generate"], ["symbol", "generate"], ["generate", "model"]] },
+
   { name: "infer symbol from more model", edges: [["model", "infer:deduce"], ["data", "infer:deduce"], ["infer:deduce", "symbol"]] }
 ];
 
