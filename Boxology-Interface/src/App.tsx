@@ -431,48 +431,127 @@ Tip: select nodes → right-click → "Cluster Group".`
     return { ok: true };
   };
 
+  // Add validation function to check if all nodes belong to exactly one cluster
+const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
+  if (!diagramRef.current) return { valid: false, errors: ['No diagram available'] };
+  
+  const diagram = diagramRef.current;
+  const model = diagram.model as go.GraphLinksModel;
+  const nodes = model.nodeDataArray;
+  
+  const errors: string[] = [];
+  
+  // Get all group nodes (clusters)
+  const groups = nodes.filter((n: any) => n.isGroup);
+  
+  // Check each non-group node
+  for (const node of nodes) {
+    if (node.isGroup) continue; // Skip cluster nodes themselves
+    
+    // Check if node has a group assignment
+    if (!node.group) {
+      const nodeLabel = node.label || node.text || node.name || node.key;
+      errors.push(`Node "${nodeLabel}" does not belong to any cluster.`);
+      continue;
+    }
+    
+    // Verify the group exists
+    const groupExists = groups.some((g: any) => g.key === node.group);
+    if (!groupExists) {
+      const nodeLabel = node.label || node.text || node.name || node.key;
+      errors.push(`Node "${nodeLabel}" belongs to a non-existent cluster.`);
+    }
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+};
+
   const handleExport = async (
     format: 'svg' | 'png' | 'jpg' | 'xml' | 'json' | 'drawio' | 'dot'
   ) => {
-    if (!diagramRef.current) return;
+    // Validate clustering before export
+    const validation = validateNodeClustering();
+    if (!validation.valid) {
+      alert(
+        'Cannot export: All nodes must belong to exactly one cluster.\n\n' +
+        'Issues found:\n' +
+        validation.errors.join('\n')
+      );
+      return;
+    }
 
-    const pre = ensureExportPreconditions();
-    if (!pre.ok) {
-      alert(pre.error);
+    if (!diagramRef.current) {
+      alert('No diagram to export');
       return;
     }
 
     const diagram = diagramRef.current;
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 
     switch (format) {
-      case 'svg':
-        const svg = diagram.makeSvg({ scale: 1, background: 'white', document: document });
+      case 'svg': {
+        const svg = diagram.makeSvg({ scale: 1, background: 'white' });
         if (!svg) {
-          alert('Failed to export SVG: Diagram rendering failed.');
+          alert('Failed to generate SVG');
           return;
         }
-        const svgBlob = new Blob([svg.outerHTML], { type: 'image/svg+xml;charset=utf-8' });
-        downloadFile(svgBlob, `diagram_${timestamp}.svg`);
+        const svgStr = new XMLSerializer().serializeToString(svg);
+        const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+        downloadFile(blob, `diagram_${timestamp}.svg`);
         break;
+      }
 
       case 'png':
-        const pngImg = diagram.makeImage({ scale: 2, background: 'white', type: 'image/png', details: 0.05 });
-        if (!pngImg) {
-          alert('Failed to export PNG: Diagram rendering failed.');
+      case 'jpg': {
+        const imgData = diagram.makeImageData({
+          scale: 2,
+          background: 'white',
+          type: format === 'png' ? 'image/png' : 'image/jpeg',
+        });
+        if (!imgData) {
+          alert('Failed to generate image');
           return;
         }
-        downloadImageFile(pngImg.src, `diagram_${timestamp}.png`);
+        if (typeof imgData === 'string') {
+          const blob = await (await fetch(imgData)).blob();
+          downloadFile(blob, `diagram_${timestamp}.${format}`);
+        } else if (imgData instanceof HTMLImageElement) {
+          // If makeImageData returns an HTMLImageElement, convert it to a blob
+          const canvas = document.createElement('canvas');
+          canvas.width = imgData.naturalWidth;
+          canvas.height = imgData.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(imgData, 0, 0);
+            canvas.toBlob((blob) => {
+              if (blob) {
+                downloadFile(blob, `diagram_${timestamp}.${format}`);
+              } else {
+                alert('Failed to generate image blob');
+              }
+            }, format === 'png' ? 'image/png' : 'image/jpeg');
+          } else {
+            alert('Failed to create canvas context');
+          }
+        } else {
+          alert('Unsupported image data type');
+        }
         break;
+      }
 
-      case 'jpg':
-        const jpgImg = diagram.makeImage({ scale: 2, background: 'white', type: 'image/jpeg', details: 0.05 });
-        if (!jpgImg) {
-          alert('Failed to export JPG: Diagram rendering failed.');
-          return;
-        }
-        downloadImageFile(jpgImg.src, `diagram_${timestamp}.jpg`);
+      case 'xml': {
+        const data = {
+          nodeDataArray: diagram.model.nodeDataArray,
+          linkDataArray: (diagram.model as go.GraphLinksModel).linkDataArray || [],
+        };
+        const xml = modelToXML(data);
+        const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
+        downloadFile(blob, `diagram_${timestamp}.xml`);
         break;
+      }
 
       case 'json': {
         const userId = window.localStorage.getItem('userId') || (() => {
@@ -480,52 +559,38 @@ Tip: select nodes → right-click → "Cluster Group".`
           window.localStorage.setItem('userId', id);
           return id;
         })();
-        const exportUUID = uuidv4().replace(/-/g, '').slice(0, 8); // Short unique ID
-        // Parse, modify class, then stringify
+        const exportUUID = uuidv4().replace(/-/g, '').slice(0, 8);
         const jsonObj = JSON.parse(diagram.model.toJson());
         if (typeof jsonObj.class === 'string') {
           jsonObj.class = `${jsonObj.class}_${exportUUID}`;
         }
         const json = JSON.stringify(jsonObj, null, 2);
         const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-        downloadFile(blob, `diagram_${userId}_${timestamp}.json`);
+        downloadFile(blob, `diagram_${userId}_${timestamp}_${exportUUID}.json`);
+        break;
+      }
+
+      case 'drawio': {
+        const data = {
+          nodeDataArray: diagram.model.nodeDataArray,
+          linkDataArray: (diagram.model as go.GraphLinksModel).linkDataArray || [],
+        };
+        const drawioXml = convertToDrawioXML(data, timestamp);
+        const blob = new Blob([drawioXml], { type: 'application/xml;charset=utf-8' });
+        downloadFile(blob, `diagram_${timestamp}.drawio`);
         break;
       }
 
       case 'dot': {
-        const data = JSON.parse(diagram.model.toJson());
+        const data = {
+          nodeDataArray: diagram.model.nodeDataArray,
+          linkDataArray: (diagram.model as go.GraphLinksModel).linkDataArray || [],
+        };
         const dot = modelToDOT(data, { graphLabel: 'Boxology' });
         const blob = new Blob([dot], { type: 'text/vnd.graphviz;charset=utf-8' });
         downloadFile(blob, `diagram_${timestamp}.dot`);
         break;
       }
-
-      case 'xml':
-        const jsonData = diagram.model.toJson();
-        const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
-<diagram>
-  <metadata>
-    <created>${new Date().toISOString()}</created>
-    <tool>GoJS Diagram Editor</tool>
-  </metadata>
-  <data>
-    ${jsonData}
-  </data>
-</diagram>`;
-        const xmlBlob = new Blob([xmlContent], { type: 'application/xml;charset=utf-8' });
-        downloadFile(xmlBlob, `diagram_${timestamp}.xml`);
-        break;
-
-      case 'drawio':
-        // Export in Draw.io compatible XML format
-        const diagramData = diagram.model.toJson();
-        const parsedData = JSON.parse(diagramData);
-        
-        // Convert GoJS data to Draw.io format
-        const drawioXml = convertToDrawioXML(parsedData, timestamp);
-        const drawioBlob = new Blob([drawioXml], { type: 'application/xml;charset=utf-8' });
-        downloadFile(drawioBlob, `diagram_${timestamp}.drawio`);
-        break;
     }
   };
 
@@ -1657,3 +1722,22 @@ const copyEmailToClipboard = () => {
 }
 
 export default App;
+function modelToXML(data: { nodeDataArray: go.ObjectData[]; linkDataArray: go.ObjectData[]; }): string {
+  // Simple XML serialization for demonstration; customize as needed
+  const nodeXml = data.nodeDataArray.map(node =>
+    `<node${Object.entries(node).map(([k, v]) => ` ${k}="${String(v).replace(/"/g, '&quot;')}"`).join('')}/>`
+  ).join('\n    ');
+  const linkXml = data.linkDataArray.map(link =>
+    `<link${Object.entries(link).map(([k, v]) => ` ${k}="${String(v).replace(/"/g, '&quot;')}"`).join('')}/>`
+  ).join('\n    ');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<diagram>
+  <nodes>
+    ${nodeXml}
+  </nodes>
+  <links>
+    ${linkXml}
+  </links>
+</diagram>`;
+}
+
