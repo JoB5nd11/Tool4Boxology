@@ -2,7 +2,7 @@ export const shapes: ShapeDefinition[] = [
   // Data & Information
   { name: 'symbol', label: 'Symbol', shape: 'Rectangle', color: '#ccffccff', stroke: '#218721ff', group: 'Data & Information' },
   { name: 'data', label: 'Data', shape: 'Rectangle', color: '#b7eaffff', stroke: '#1E5F8B', group: 'Data & Information' },
-  { name: 'data/symbol', label: 'Data/Symbol', shape: 'Rectangle', color: '#99e5e1ff', stroke: '#0D5F5C', group: 'Data & Information' },
+  { name: 'artifact', label: 'Artifact', shape: 'Rectangle', color: '#99e5e1ff', stroke: '#0D5F5C', group: 'Data & Information' },
   
   // Actors & Entities
   { name: 'actor', label: 'Actor', shape: 'Triangle', color: '#f8ce92ff', stroke: '#000000ff', group: 'Actors & Entities' },
