@@ -109,6 +109,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         locationSpot: go.Spot.Center,
         selectable: true,
         movable: true,
+        resizable: true,  // Enable resizing
+        resizeObjectName: 'SHAPE',  // Which object to resize
         cursor: 'move',
         // Single click to view subdiagram for super nodes
         doubleClick: (e, obj) => {
@@ -133,15 +135,16 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       $(
         go.Shape,
         {
-          strokeWidth: 1, // Default stroke width
+          name: 'SHAPE',  // Important: name it so resizeObjectName works
+          strokeWidth: 1,
           stroke: '#999',
           portId: '',
           fromLinkable: true,
           toLinkable: true,
           width: 100,
           height: 60,
-          minSize: new go.Size(60, 40),
-          maxSize: new go.Size(200, 120),
+          minSize: new go.Size(30, 30),
+          maxSize: new go.Size(300, 300),
         },
         new go.Binding('fill', 'color'),
         new go.Binding('stroke', 'stroke'),
@@ -149,10 +152,10 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           const figure = mapShapeToGoJSFigure(shapeType);
           return figure;
         }),
-        new go.Binding('width', 'width'),
-        new go.Binding('height', 'height'),
-        new go.Binding('strokeWidth', 'strokeWidth'), // ← Add this binding for stroke width
-        new go.Binding('parameter1', 'parameter1') // ← ADD THIS LINE
+        new go.Binding('width', 'width').makeTwoWay(),
+        new go.Binding('height', 'height').makeTwoWay(),
+        new go.Binding('strokeWidth', 'strokeWidth'),
+        new go.Binding('parameter1', 'parameter1')
       ),
         $(
           go.TextBlock,

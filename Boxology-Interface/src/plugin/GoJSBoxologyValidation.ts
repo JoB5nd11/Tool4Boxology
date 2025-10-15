@@ -1,4 +1,4 @@
-import { transform } from "@babel/core";
+
 import * as go from "gojs";
 
 // --- Pattern and connection rules ---
