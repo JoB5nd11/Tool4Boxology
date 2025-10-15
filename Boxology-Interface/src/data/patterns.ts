@@ -451,59 +451,6 @@ export const elementaryPatterns: Pattern[] = [
     ]
   },
 
-  {
-    id: 'embed_transform',
-    name: 'Embed Transform',
-    description: 'Transform symbol and data through embedding',
-    nodes: [
-      {
-        id: 'n1',
-        name: 'symbol',
-        label: 'Symbol',
-        shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
-        x: 0,
-        y: 0
-      },
-      {
-        id: 'n2',
-        name: 'data',
-        label: 'Data',
-        shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
-        x: 0,
-        y: 80
-      },
-      {
-        id: 'n3',
-        name: 'transform:embed',
-        label: 'Transform:embed',
-        shape: 'RoundedRectangle',
-        color: '#fbf2a2ff',
-        stroke: '#B8A600',
-        x: 150,
-        y: 40
-      },
-      {
-        id: 'n4',
-        name: 'model:semantic',
-        label: 'Model:semantic',
-        shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
-        x: 350,
-        y: 40
-      }
-    ],
-    links: [
-      { from: 'n1', to: 'n3' },
-      { from: 'n2', to: 'n3' },
-      { from: 'n3', to: 'n4' }
-    ]
-  },
-
 ];
 
 // Export patterns for use in components
