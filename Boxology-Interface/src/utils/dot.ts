@@ -153,8 +153,9 @@ function emitModel(
       const nodeType = getNodeType(n);
       const shape = mapShape(n.shape);
       const fillcolor = n.fill || n.color || 'white';
+      const style = n.style || 'filled';
       
-      lines.push(`        "${esc(dotNodeId)}" [label="${esc(dotNodeId)}", type="${esc(nodeType)}", shape=${shape}, fillcolor="${esc(fillcolor)}"];`);
+      lines.push(`        "${esc(dotNodeId)}" [label="${esc(dotNodeId)}", type="${esc(nodeType)}", shape=${shape},style=filled ,fillcolor="${esc(fillcolor)}"];`);
     }
     
     lines.push(`        `);
@@ -172,6 +173,7 @@ function emitModel(
     const dotNodeId = getDotNodeId(n);
     const nodeType = getNodeType(n);
     const shape = mapShape(n.shape);
+    const style = n.style || 'filled';
     const fillcolor = n.fill || n.color || 'white';
 
     lines.push(`    "${esc(dotNodeId)}" [label="${esc(dotNodeId)}", type="${esc(nodeType)}", shape=${shape}, style=filled, fillcolor="${esc(fillcolor)}"];`);
