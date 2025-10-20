@@ -10,8 +10,6 @@ type ExportOpts = {
 
 const esc = (s: any) => (s ?? '').toString().replace(/"/g, '\\"');
 const idPart = (s: any) => String(s).replace(/[^A-Za-z0-9_]/g, '_');
-const dotId = (path: string[]) => `n_${path.map(idPart).join('__')}`;
-const headerId = (path: string[]) => `${dotId(path)}__hdr`;
 
 const mapShape = (shape?: string) => {
   switch (shape) {
@@ -41,14 +39,6 @@ function nodeAttrs(n: any) {
   if (n.stroke) attrs.push(`color="${esc(n.stroke)}"`);
   attrs.push(`fontname="Helvetica"`);
   return attrs;
-}
-
-// Accept both "subDiagram" and "subdiagramData"
-function getSubdiagramPayload(n: any): BoxologyModel | null {
-  const sd = n?.subDiagram ?? n?.subdiagramData;
-  if (!sd) return null;
-  if (sd.nodeDataArray && sd.linkDataArray) return sd as BoxologyModel;
-  return null;
 }
 
 // Helper function to resolve label duplicates by adding stars
@@ -127,14 +117,7 @@ function emitModel(
     if (!n.isGroup && n.group && groupMembers[n.group]) groupMembers[n.group].push(n);
   }
 
-  // Super nodes
-  const superSet = new Set(
-    nodes
-      .filter((n: any) => !n.isGroup && getSubdiagramPayload(n))
-      .map((n: any) => String(n.key))
-  );
-
-  // Emit user clusters with only regular members (exclude super nodes)
+  // Emit user clusters with regular members
   for (const g of groups) {
     const gid = idPart(`${g.key}`);
     const groupLabel = g.label || g.text || g.name || g.key;
@@ -147,8 +130,6 @@ function emitModel(
     
     // Define nodes with unique label as DOT ID and name as type attribute
     for (const n of (groupMembers[g.key] || [])) {
-      if (superSet.has(String(n.key))) continue;
-      
       const dotNodeId = getDotNodeId(n);
       const nodeType = getNodeType(n);
       const shape = mapShape(n.shape);
@@ -163,12 +144,11 @@ function emitModel(
     lines.push(``);
   }
 
-  // Emit nodes not in any user group and not super nodes
+  // Emit nodes not in any user group
   for (const n of nodes) {
     if (n.isGroup) continue;
     const inUserGroup = !!n.group && groups.some((g: any) => g.key === n.group);
     if (inUserGroup) continue;
-    if (superSet.has(String(n.key))) continue;
     
     const dotNodeId = getDotNodeId(n);
     const nodeType = getNodeType(n);
@@ -177,40 +157,6 @@ function emitModel(
     const fillcolor = n.fill || n.color || 'white';
 
     lines.push(`    "${esc(dotNodeId)}" [label="${esc(dotNodeId)}", type="${esc(nodeType)}", shape=${shape}, style=filled, fillcolor="${esc(fillcolor)}"];`);
-  }
-
-  // Emit subdiagram clusters (recursive)
-  for (const n of nodes) {
-    if (n.isGroup) continue;
-    const sd = getSubdiagramPayload(n);
-    if (!sd) continue;
-
-    const path = [...pathPrefix, String(n.key)];
-    const cid = `cluster_sd_${dotId(path)}`;
-    const dotNodeId = getDotNodeId(n);
-    const clusterStyle = (n.clusterStyle || 'filled').replace(/\s+/g, '');
-    const clusterColor = n.clusterColor || 'lightgrey';
-
-    lines.push(`    // Subgraph - ${esc(dotNodeId)}`);
-    lines.push(`    subgraph ${cid} {`);
-    lines.push(`        label="${esc(dotNodeId)}";`);
-    lines.push(`        style=${clusterStyle};`);
-    lines.push(`        color=${esc(clusterColor)};`);
-    lines.push(``);
-
-    const hdr = headerId(path);
-    const hdrAttrs = [
-      `label="${esc(dotNodeId)}"`,
-      `shape=box`,
-      `fillcolor="white"`
-    ];
-    lines.push(`        ${hdr} [${hdrAttrs.join(', ')}];`);
-
-    // Recurse into subdiagram content
-    emitModel(lines, sd, path, groupCategory);
-
-    lines.push(`    }`);
-    lines.push(``);
   }
 
   // Emit edges at the end, using unique DOT node IDs
@@ -222,14 +168,8 @@ function emitModel(
       if (fromNode && toNode) {
         const fromDotId = getDotNodeId(fromNode);
         const toDotId = getDotNodeId(toNode);
-
-        const fromIsSuper = superSet.has(String(l.from));
-        const toIsSuper = superSet.has(String(l.to));
         
-        const fromId = fromIsSuper ? headerId([...pathPrefix, String(l.from)]) : `"${esc(fromDotId)}"`;
-        const toId = toIsSuper ? headerId([...pathPrefix, String(l.to)]) : `"${esc(toDotId)}"`;
-        
-        lines.push(`    ${fromId} -> ${toId};`);
+        lines.push(`    "${esc(fromDotId)}" -> "${esc(toDotId)}";`);
       }
     }
   }

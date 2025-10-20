@@ -14,8 +14,6 @@ interface GoDiagramProps {
   setContextMenu: Dispatch<SetStateAction<ContextMenuPosition | null>>;
   containers: string[];
   customGroups: Record<string, any[]>;
-  setShowSubdiagramPreview: Dispatch<SetStateAction<boolean>>; // Add this prop
-  setPreviewSubdiagramData: Dispatch<SetStateAction<any>>; // Add this prop
 }
 
 const GoDiagram: React.FC<GoDiagramProps> = ({
@@ -23,9 +21,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
   setSelectedData,
   setContextMenu,
   containers,
-  customGroups,
-  setShowSubdiagramPreview, // Add this prop
-  setPreviewSubdiagramData // Add this prop
+  customGroups
 }) => {
   const diagramDivRef = useRef<HTMLDivElement>(null);
 
@@ -101,7 +97,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     diagram.toolManager.linkingTool.isEnabled = true;
     diagram.toolManager.relinkingTool.isEnabled = true;
 
-    // Add visual indicator for super nodes in your node template
     diagram.nodeTemplate = $(
       go.Node,
       'Auto',
@@ -109,20 +104,9 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         locationSpot: go.Spot.Center,
         selectable: true,
         movable: true,
-        resizable: true,  // Enable resizing
-        resizeObjectName: 'SHAPE',  // Which object to resize
+        resizable: true,
+        resizeObjectName: 'SHAPE',
         cursor: 'move',
-        // Single click to view subdiagram for super nodes
-        doubleClick: (e, obj) => {
-          const node = obj.part;
-          if (node instanceof go.Node && node.data.isSuperNode && node.data.subdiagramData) {
-            // Show subdiagram preview
-            setPreviewSubdiagramData(node.data.subdiagramData);
-            setShowSubdiagramPreview(true);
-          }
-        },
-        // Double-click to edit subdiagram for super nodes
-
         contextClick: (e, obj) => {
           const node = obj.part;
           if (node instanceof go.Node) {
@@ -389,7 +373,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         diagramRef.current = null;
       }
     };
-  }, [diagramRef, setSelectedData, setContextMenu, containers, setShowSubdiagramPreview, setPreviewSubdiagramData]);
+  }, [diagramRef, setSelectedData, setContextMenu, containers]);
   
   const handleValidate = () => {
     if (!diagramRef.current) {

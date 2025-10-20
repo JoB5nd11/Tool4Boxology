@@ -10,25 +10,15 @@ export type PageData = {
   name: string;
   nodeDataArray: any[];
   linkDataArray: any[];
-  parentNodeId?: string;
-  isSubDiagram?: boolean;
 };
 
 export type PagesBuildResult = {
   pages: PageData[];
-  superNodeMap: { [nodeKey: string]: string };
 };
 
-// Normalize: accept either subDiagram or subdiagramData; keep as subdiagramData
+// Normalize: clean up the model
 function normalizeModel(model: any): BoxologyModel {
   const clone = JSON.parse(JSON.stringify(model || { nodeDataArray: [], linkDataArray: [] }));
-  (clone.nodeDataArray || []).forEach((n: any) => {
-    if (n.subDiagram && !n.subdiagramData) n.subdiagramData = n.subDiagram;
-    delete n.subDiagram;
-    if (n.subdiagramData) {
-      n.subdiagramData = normalizeModel(n.subdiagramData);
-    }
-  });
   return clone;
 }
 
@@ -39,34 +29,16 @@ export function buildPagesFromModel(
 ): PagesBuildResult {
   const normalized = normalizeModel(model);
   const pages: PageData[] = [];
-  const superNodeMap: { [nodeKey: string]: string } = {};
 
-  function walk(m: BoxologyModel, pageName: string, parentNodeKey?: string): string {
-    const pageId = uuidv4();
-    // Keep original node data (already normalized)
-    const page: PageData = {
-      id: pageId,
-      name: pageName,
-      nodeDataArray: m.nodeDataArray || [],
-      linkDataArray: m.linkDataArray || [],
-      isSubDiagram: !!parentNodeKey,
-      parentNodeId: parentNodeKey,
-    };
-    pages.push(page);
+  const pageId = uuidv4();
+  // Keep original node data (already normalized)
+  const page: PageData = {
+    id: pageId,
+    name: mainName,
+    nodeDataArray: normalized.nodeDataArray || [],
+    linkDataArray: normalized.linkDataArray || [],
+  };
+  pages.push(page);
 
-    // For each super node create a child page recursively and record mapping
-    (m.nodeDataArray || []).forEach((n: any) => {
-      const child = n.subdiagramData;
-      if (child && child.nodeDataArray) {
-        const childName = `${n.label || n.text || n.key || 'Subdiagram'}`;
-        const childPageId = walk(child, childName, String(n.key));
-        superNodeMap[String(n.key)] = childPageId;
-      }
-    });
-
-    return pageId;
-  }
-
-  walk(normalized, mainName, undefined);
-  return { pages, superNodeMap };
+  return { pages };
 }

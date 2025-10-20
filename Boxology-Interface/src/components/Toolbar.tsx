@@ -20,16 +20,14 @@ type ToolbarProps = {
   onRedo: () => void;
   onAbout: () => void;
   onValidate: () => void;
-  onValidateSuperNode: () => void;
   onExportSVG: () => void;
   onExportPNG: () => void;
   onExportJPG: () => void;
   onExportXML: () => void;
   onExportJSON: () => void;
   onExportDrawio: () => void;
-  onExportDOT: () => void;           // NEW
-  onOpenGraphviz: () => void;        // NEW: open DOT in Graphviz editor
-  isSuperNodeSelected: boolean;
+  onExportDOT: () => void;
+  onOpenGraphviz: () => void;
 };
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -40,16 +38,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onRedo,
   onAbout,
   onValidate,
-  onValidateSuperNode, // Add this
   onExportSVG,
   onExportPNG,
   onExportJPG,
   onExportXML,
   onExportJSON,
   onExportDrawio,
-  onExportDOT,        // NEW
-  onOpenGraphviz,     // NEW
-  isSuperNodeSelected, // Add this
+  onExportDOT,
+  onOpenGraphviz,
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
   const exportMenuRef = React.useRef<HTMLDivElement>(null);
@@ -473,23 +469,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
       <button onClick={onRedo} style={simpleButtonStyle}>🔃 Redo</button>
       <button onClick={onValidate} style={simpleButtonStyle}>✅ Validate</button>
       
-      {/* Super Node Validation Button */}
-      <button 
-        onClick={onValidateSuperNode} 
-        style={{
-          ...simpleButtonStyle,
-          backgroundColor: isSuperNodeSelected ? '#28a745' : '#6c757d',
-          color: 'white',
-          opacity: isSuperNodeSelected ? 1 : 0.65,
-          cursor: isSuperNodeSelected ? 'pointer' : 'not-allowed'
-        }}
-        disabled={!isSuperNodeSelected}
-        title={isSuperNodeSelected ? "Validate Super Node Diagram" : "Select a super node to validate its sub-diagram"}
-      >
-        <CheckCircleIcon fontSize="small" style={{ marginRight: '4px' }} />
-        {isSuperNodeSelected ? 'Validate Sub' : 'Validate Sub'}
-      </button>
-
       {/* Separator */}
       <div style={{ width: '1px', height: '20px', backgroundColor: '#ccc', margin: '0 4px' }} />
 
@@ -634,3 +613,4 @@ const Toolbar: React.FC<ToolbarProps> = ({
 };
 
 export default Toolbar;
+

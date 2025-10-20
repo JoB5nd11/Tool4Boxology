@@ -78,7 +78,7 @@ function parseGraph(ast: any): BoxologyModel {
   const nodeDataArray: any[] = [];
   const linkDataArray: any[] = [];
 
-  // id → node key mapping (header ids resolve to super node keys)
+  // id → node key mapping
   const idToKey = new Map<string, string>();
 
   const stmts = getStatements(ast);
@@ -87,43 +87,7 @@ function parseGraph(ast: any): BoxologyModel {
   for (const st of stmts) {
     const kind = toLower(st?.type || st?.constructor?.name || st?.kind);
     if (kind.includes('subgraph')) {
-      const sid = getId(st?.id) || '';
-      const sattrs = attrsToMap(st?.attributes);
-      const isSD = sid.startsWith('cluster_sd_') || sattrs['sd'] === '1';
-
-      if (isSD) {
-        // Find header node for key/label
-        let headerKey = '';
-        let headerLabel = sattrs['label'] || 'Super Node';
-        const innerStmts = getStatements(st);
-        for (const i of innerStmts) {
-          const ik = toLower(i?.type || i?.constructor?.name || i?.kind);
-          if (ik.includes('node')) {
-            const nid = getId(i?.id);
-            const na = attrsToMap(i?.attributes);
-            if (na['role'] === 'header') {
-              headerKey = na['nodeRef'] || keyFromNodeId(nid);
-              headerLabel = na['label'] || headerLabel;
-              idToKey.set(nid, headerKey);
-              break;
-            }
-          }
-        }
-        // Parse inner content (recursively) as subdiagram model
-        const content = parseGraph(st);
-        const superNode = {
-          key: headerKey || lastPathPart(sattrs['path']) || keyFromNodeId(sid),
-          label: headerLabel,
-          category: 'SuperNode',
-          shape: 'RoundedRectangle',
-          isSuperNode: true,
-          subdiagramData: content
-        };
-        nodeDataArray.push(superNode);
-        continue;
-      }
-
-      // User cluster: merge its members at this level
+      // User cluster or any subgraph: merge its members at this level
       const inner = parseGraph(st);
       nodeDataArray.push(...inner.nodeDataArray);
       linkDataArray.push(...inner.linkDataArray);
@@ -133,11 +97,6 @@ function parseGraph(ast: any): BoxologyModel {
     if (kind.includes('node')) {
       const nid = getId(st?.id);
       const a = attrsToMap(st?.attributes);
-      if (a['role'] === 'header') {
-        // map header id to its node key for edge resolution
-        idToKey.set(nid, a['nodeRef'] || keyFromNodeId(nid));
-        continue; // header is not a visible node in this level
-      }
       const key = lastPathPart(a['path']) || keyFromNodeId(nid);
       const node: any = {
         key,

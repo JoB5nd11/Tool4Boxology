@@ -11,12 +11,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { validateDiagram } from './utils/validation';
 import type { ValidationResult } from './utils/validation';
 import { elementaryPatterns } from './data/patterns';
-import SubdiagramPreview from './components/SubdiagramPreview';
 import { modelToDOT } from './utils/dot';
 import { findUnclusteredNodes } from './utils/validation';
 import { parseDOTToModel } from './utils/dotImport';
 import { buildPagesFromModel } from './utils/pageBuilder';
 import { openInGraphviz } from './utils/openInGraphviz';
+import { generateRMLCompatibleJSON, generateMultiPageRMLExport } from './utils/exportHelpers';
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
@@ -32,12 +32,6 @@ function App() {
     name: string;
     nodeDataArray: any[];
     linkDataArray: any[];
-    parentNodeId?: string; // For backtracking to parent page
-    isSubDiagram?: boolean;
-  };
-
-  type SuperNodeMapping = {
-    [nodeId: string]: string; // nodeId → pageId
   };
 
   const [pages, setPages] = useState<PageData[]>(
@@ -52,37 +46,12 @@ function App() {
   );
 
   const [currentPageId, setCurrentPageId] = useState(pages[0].id);
-  const [superNodeMap, setSuperNodeMap] = useState<SuperNodeMapping>({});
 
   // Update current page data
   const updateCurrentPage = (nodeDataArray: any[], linkDataArray: any[]) => {
     setPages(pages.map(p => {
       if (p.id === currentPageId) {
-        const updatedPage = { ...p, nodeDataArray, linkDataArray };
-        
-        // If this is a sub-page, also update the parent super node's subdiagram data
-        if (p.isSubDiagram && p.parentNodeId) {
-          // Find the parent page and update the super node's subdiagram data
-          const parentPage = pages.find(parentP => 
-            parentP.nodeDataArray.some(node => node.key === p.parentNodeId)
-          );
-          
-          if (parentPage && diagramRef.current) {
-            const diagram = diagramRef.current;
-            const model = diagram.model;
-            const superNodeData = model.findNodeDataForKey(p.parentNodeId);
-            
-            if (superNodeData && superNodeData.isSuperNode) {
-              model.setDataProperty(superNodeData, 'subdiagramData', {
-                nodeDataArray: updatedPage.nodeDataArray,
-                linkDataArray: updatedPage.linkDataArray,
-                pageId: p.id
-              });
-            }
-          }
-        }
-        
-        return updatedPage;
+        return { ...p, nodeDataArray, linkDataArray };
       }
       return p;
     }));
@@ -131,13 +100,8 @@ function App() {
     }
   };
 
-  // Removed duplicate declaration of currentPage
-
-  // Removed duplicate declaration of currentPage
-
   // Get current page
   const currentPage = pages.find((p) => p.id === currentPageId);
-  const isSubDiagram = currentPage?.isSubDiagram || false;
 
   // Load diagram data when page changes
   useEffect(() => {
@@ -310,11 +274,10 @@ function App() {
         return;
       }
 
-      // 2) Build pages and super-node mapping so subdiagrams are editable
+      // Build pages
       try {
-        const { pages: newPages, superNodeMap: map } = buildPagesFromModel(model, file.name.replace(/\.[^.]+$/, ''));
+        const { pages: newPages } = buildPagesFromModel(model, file.name.replace(/\.[^.]+$/, ''));
         setPages(newPages);
-        setSuperNodeMap(map);
         setCurrentPageId(newPages[0].id);
 
         // Load the first page into the diagram
@@ -411,7 +374,7 @@ function App() {
     return lines.join('\n');
   };
 
-  // Gatekeeper: every node must be in a cluster (user group) or be a super node with a subdiagram
+  // Gatekeeper: every node must be in a cluster (user group)
   const ensureExportPreconditions = (): { ok: boolean; error?: string } => {
     if (!diagramRef.current) return { ok: false, error: 'No diagram found.' };
     const raw = JSON.parse(diagramRef.current.model.toJson());
@@ -421,7 +384,7 @@ function App() {
       return {
         ok: false,
         error:
-`Export blocked: all nodes must belong to a cluster (or be a Super Node with a Subdiagram).
+`Export blocked: all nodes must belong to a cluster.
 
 Unclustered nodes (${bad.length}):
 ${list}
@@ -554,19 +517,39 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
       }
 
       case 'json': {
+        // Enhanced JSON export for RML compatibility
+        if (!diagramRef.current) {
+          alert('No diagram available');
+          return;
+        }
+
         const userId = window.localStorage.getItem('userId') || (() => {
           const id = `user_${Math.random().toString(36).slice(2, 10)}`;
           window.localStorage.setItem('userId', id);
           return id;
         })();
         const exportUUID = uuidv4().replace(/-/g, '').slice(0, 8);
-        const jsonObj = JSON.parse(diagram.model.toJson());
-        if (typeof jsonObj.class === 'string') {
-          jsonObj.class = `${jsonObj.class}_${exportUUID}`;
-        }
-        const json = JSON.stringify(jsonObj, null, 2);
+
+        // Generate RML-compatible JSON
+        const rmlData = generateMultiPageRMLExport(pages);
+        
+        // Add metadata
+        const exportData = {
+          metadata: {
+            exportId: exportUUID,
+            userId: userId,
+            exportDate: new Date().toISOString(),
+            version: '1.0',
+            format: 'RML-compatible'
+          },
+          ...rmlData
+        };
+
+        const json = JSON.stringify(exportData, null, 2);
         const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-        downloadFile(blob, `diagram_${userId}_${timestamp}_${exportUUID}.json`);
+        downloadFile(blob, `boxology_${userId}_${timestamp}_${exportUUID}.json`);
+        
+        alert('RML-compatible JSON exported successfully!');
         break;
       }
 
@@ -713,12 +696,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     setContextMenu(null);
   
     switch (action) {
-      case 'mark_as_super_node':
-        handleMarkAsSuperNode();
-        break;
-      case 'edit_linked_diagram':
-        handleEditLinkedDiagram();
-        break;
       case 'create_group':
         handleCustomGroupAction('create');
         break;
@@ -728,7 +705,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           return;
         }
         break;
-      // NEW: cluster selected nodes
       case 'cluster_group':
         handleClusterSelectedNodes();
         break;
@@ -738,15 +714,16 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         }
     }
   };
-  // Add this state for the About modal
-const [showAbout, setShowAbout] = useState(false);
 
-// Replace the handleAbout function
-const handleAbout = () => {
-  setShowAbout(true);
-};
-// Add this function to copy email
-const copyEmailToClipboard = () => {
+  // About modal state
+  const [showAbout, setShowAbout] = useState(false);
+
+  const handleAbout = () => {
+    setShowAbout(true);
+  };
+
+  // Copy email function
+  const copyEmailToClipboard = () => {
   const email = 'mahsa.forghani.tehrani@stud.uni-hannover.de';
   navigator.clipboard.writeText(email).then(() => {
     alert('Email copied to clipboard!');
@@ -761,107 +738,6 @@ const copyEmailToClipboard = () => {
     alert('Email copied to clipboard!');
   });
 };
-
-  // Function to mark a node as super node
-  const handleMarkAsSuperNode = () => {
-    if (!selectedData || !diagramRef.current) return;
-
-    const nodeId = selectedData.key;
-    if (superNodeMap[nodeId]) {
-      alert('This node is already a super node!');
-      return;
-    }
-
-    // Create new sub-page
-    const newPageId = uuidv4();
-    const newSubPage: PageData = {
-      id: newPageId,
-      name: `${selectedData.label || selectedData.text || selectedData.name || selectedData.key} - Subdiagram`,
-      nodeDataArray: [],
-      linkDataArray: [],
-      parentNodeId: nodeId,
-      isSubDiagram: true
-    };
-
-    // Save current page data before switching
-    if (currentPageId) {
-      const currentModel = diagramRef.current.model as go.GraphLinksModel;
-      updateCurrentPage(currentModel.nodeDataArray, currentModel.linkDataArray);
-    }
-
-    // Update state first
-    setPages(prev => [...prev, newSubPage]);
-    setSuperNodeMap(prev => ({
-      ...prev,
-      [nodeId]: newPageId
-    }));
-
-    // Update the node to show it's a super node with subdiagram data
-    const diagram = diagramRef.current;
-    const model = diagram.model;
-    model.startTransaction('mark as super node');
-    const nodeData = model.findNodeDataForKey(nodeId);
-    if (nodeData) {
-      model.setDataProperty(nodeData, 'isSuperNode', true);
-      model.setDataProperty(nodeData, 'strokeWidth', 4);
-      // Store the subdiagram data reference
-      model.setDataProperty(nodeData, 'subdiagramData', {
-        nodeDataArray: newSubPage.nodeDataArray,
-        linkDataArray: newSubPage.linkDataArray,
-        pageId: newPageId
-      });
-    }
-    model.commitTransaction('mark as super node');
-
-    // Automatically navigate to the new sub-diagram page (no alert message)
-    setCurrentPageId(newPageId);
-  };
-
-  // Function to edit linked diagram
-  const handleEditLinkedDiagram = () => {
-    if (!selectedData) return;
-
-    const nodeId = selectedData.key;
-    const subPageId = superNodeMap[nodeId];
-    
-    if (subPageId) {
-      // Save current page data before switching
-      if (diagramRef.current && currentPageId) {
-        const model = diagramRef.current.model as go.GraphLinksModel;
-        updateCurrentPage(model.nodeDataArray, model.linkDataArray);
-      }
-      
-      setCurrentPageId(subPageId);
-    }
-  };
-
-  // Function to go back to parent page
-  const handleBackToParent = () => {
-    const currentPage = pages.find(p => p.id === currentPageId);
-    if (!currentPage?.parentNodeId) return;
-
-    // Save current subdiagram data
-    if (diagramRef.current) {
-      const model = diagramRef.current.model as go.GraphLinksModel;
-      updateCurrentPage(model.nodeDataArray, model.linkDataArray);
-    }
-
-    // Find parent page
-    const parentPageId = Object.keys(superNodeMap).find(nodeId => 
-      superNodeMap[nodeId] === currentPageId
-    );
-    
-    if (parentPageId) {
-      // Find which page contains this parent node
-      const parentPage = pages.find(page => 
-        page.nodeDataArray.some(node => node.key === parentPageId)
-      );
-      
-      if (parentPage) {
-        setCurrentPageId(parentPage.id);
-      }
-    }
-  };
 
   // Prevent Ctrl+A from selecting all page elements
   useEffect(() => {
@@ -890,200 +766,7 @@ const copyEmailToClipboard = () => {
     };
   }, []);
 
-  const [isSuperNodeSelected, setIsSuperNodeSelected] = useState(false);
-
-  // 🎯 ADD COLLAPSE STATE FOR SIDEBARS
-  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
-  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
-
-  // 🎯 ADD TOGGLE FUNCTIONS
-  const toggleLeftSidebar = () => {
-    setLeftSidebarCollapsed(!leftSidebarCollapsed);
-  };
-
-  const toggleRightSidebar = () => {
-    setRightSidebarCollapsed(!rightSidebarCollapsed);
-  };
-
-  // Add selection change handler
-  useEffect(() => {
-    if (!diagramRef.current) return;
-
-    const selectionChanged = () => {
-      if (!diagramRef.current) return;
-      
-      const selection = diagramRef.current.selection;
-      
-      // Debug: log what's selected
-      console.log('Selection changed. Selected items:');
-      selection.each(part => {
-        if (part instanceof go.Node) {
-          console.log('Node data:', part.data);
-        }
-      });
-      
-      // Check for super nodes - using the correct property 'isSuperNode'
-      let superNodeCount = 0;
-      selection.each(part => {
-        if (part instanceof go.Node && part.data.isSuperNode === true) {
-          superNodeCount++;
-          console.log('Found super node:', part.data);
-        }
-      });
-      
-      // Enable button only when exactly one super node is selected
-      setIsSuperNodeSelected(superNodeCount === 1);
-      console.log('Super node selected:', superNodeCount === 1);
-    };
-
-    diagramRef.current.addDiagramListener('ChangedSelection', selectionChanged);
-
-    return () => {
-      if (diagramRef.current) {
-        diagramRef.current.removeDiagramListener('ChangedSelection', selectionChanged);
-      }
-    };
-  }, [diagramRef.current]); // Changed dependency from diagram to diagramRef.current
-
-  const handleValidateSuperNode = () => {
-    if (!diagramRef.current) return;
-    
-    const selection = diagramRef.current.selection;
-    let selectedSuperNode: go.Node | null = null;
-    
-    // Find the selected super node using the correct property
-    selection.each((part: go.Part) => {
-      if (part instanceof go.Node && part.data && part.data.isSuperNode === true) {
-        selectedSuperNode = part as go.Node;
-      }
-    });
-    
-    if (!selectedSuperNode) {
-      alert('Please select a super node');
-      return;
-    }
-    
-    console.log('Selected super node:', (selectedSuperNode as go.Node).data);
-    
-    // Get the sub-diagram page ID from the superNodeMap
-    const nodeId = (selectedSuperNode as go.Node).data.key;
-    const subPageId = superNodeMap[nodeId];
-    
-    if (!subPageId) {
-      alert('No sub-diagram found for this super node');
-      return;
-    }
-    
-    // Find the sub-page
-    const subPage = pages.find(page => page.id === subPageId);
-    
-    if (!subPage) {
-      alert('Sub-diagram page not found');
-      return;
-    }
-    
-    // Create a temporary diagram to validate the sub-page data
-    const tempDiagram = new go.Diagram();
-    
-    try {
-      // Copy the templates from your main diagram
-      if (diagramRef.current) {
-        tempDiagram.nodeTemplate = diagramRef.current.nodeTemplate;
-        tempDiagram.linkTemplate = diagramRef.current.linkTemplate;
-      }
-      
-      // Load the sub-page data
-      tempDiagram.model = new go.GraphLinksModel(
-        subPage.nodeDataArray,
-        subPage.linkDataArray
-      );
-      
-      console.log('Validating sub-diagram:', {
-        name: subPage.name,
-        nodeCount: tempDiagram.nodes.count,
-        linkCount: tempDiagram.links.count
-      });
-      
-      // 🔧 USE THE COMPREHENSIVE VALIDATION UTILITY (not just the plugin)
-      const validationResult: ValidationResult = validateDiagram(tempDiagram);
-      
-      console.log('Validation result:', validationResult);
-      
-      // Create comprehensive validation report
-      let report = `🔍 VALIDATION REPORT FOR: "${subPage.name}"\n`;
-      //report += `${'='.repeat(50)}\n\n`;
-      
-      // Status
-      //const statusIcon = validationResult.status === 'valid' ? '✅' : 
-      //                  validationResult.status === 'partial' ? '⚠️' : '❌';
-      //report += `${statusIcon} STATUS: ${validationResult.status.toUpperCase()}\n\n`;
-
-      // Boxology Plugin Results (now included in validationResult.pluginResult)
-      if (validationResult.pluginResult) {
-        report += `🔧 BOXOLOGY PLUGIN VALIDATION:\n`;
-        report += `${'-'.repeat(30)}\n`;
-        report += `${validationResult.pluginResult}\n\n`;
-      }
-      
-      // Recommendations based on status
-      report += `💡 RECOMMENDATIONS:\n`;
-      report += `${'-'.repeat(30)}\n`;
-      
-      if (validationResult.status === 'valid') {
-        report += `✨ Excellent! Your sub-diagram passes all validation checks.\n`;
-        if (validationResult.warnings.length > 0) {
-          report += `📈 Consider addressing warnings for optimal performance.\n`;
-        }
-      } else if (validationResult.status === 'partial') {
-        report += `🔧 Good foundation, but needs improvement:\n`;
-        report += `   • Address Boxology plugin issues first\n`;
-        report += `   • Fix critical and major errors\n`;
-        report += `   • Review connectivity and labeling\n`;
-        report += `   • Consider simplifying complex areas\n`;
-      } else {
-        report += `🚨 Immediate attention required:\n`;
-        report += `   • Fix Boxology validation issues\n`;
-        report += `   • Address critical errors to ensure diagram functionality\n`;
-        report += `   • Review overall structure and connectivity\n`;
-        report += `   • Ensure all nodes are properly labeled\n`;
-      }
-      
-      report += `\n${'='.repeat(50)}\n`;
-      report += `📝 Validation completed at ${new Date().toLocaleTimeString()}`;
-      
-      // Show the comprehensive report
-      alert(report);
-      
-      // Log detailed results for debugging
-      console.log('Detailed validation result:', validationResult);
-      
-    } catch (error) {
-      console.error('Error during sub-diagram validation:', error);
-      alert(`Error validating sub-diagram: ${error}`);
-    } finally {
-      // Clean up temporary diagram
-      tempDiagram.div = null;
-    }
-  };
-
-  // State to store sub-diagrams
-  const [subDiagrams, setSubDiagrams] = useState<Map<string, go.Diagram>>(new Map());
-
-  // Function to register a sub-diagram (call this when creating/loading sub-diagrams)
-  const registerSubDiagram = (id: string, subDiagram: go.Diagram) => {
-    setSubDiagrams((prev: Map<string, go.Diagram>) => {
-      const newMap = new Map(prev);
-      newMap.set(id, subDiagram);
-      return newMap;
-    });
-  };
-
-  // Function to get sub-diagram by ID
-  const getSubDiagram = (id: string): go.Diagram | undefined => {
-    return subDiagrams.get(id);
-  };
-
-  // 🎯 COLLAPSE STATE (persisted in localStorage)
+  // Collapse state for sidebars
   const [leftCollapsed, setLeftCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('leftCollapsed') === 'true';
   });
@@ -1127,11 +810,7 @@ const copyEmailToClipboard = () => {
     }
   }, [leftCollapsed, rightCollapsed]);
 
-  // New state for subdiagram preview
-  const [showSubdiagramPreview, setShowSubdiagramPreview] = useState(false);
-  const [previewSubdiagramData, setPreviewSubdiagramData] = useState(null);
-
-  // NEW: Cluster currently selected nodes into a gray labeled group
+  // Cluster currently selected nodes into a gray labeled group
   const handleClusterSelectedNodes = () => {
     if (!diagramRef.current) {
       alert('No diagram available');
@@ -1183,58 +862,23 @@ const copyEmailToClipboard = () => {
         onRedo={() => handleDiagramOperation('redo')}
         onAbout={handleAbout}
         onValidate={() => handleDiagramOperation('validate')}
-        onValidateSuperNode={handleValidateSuperNode}
         onExportSVG={() => handleExport('svg')}
         onExportPNG={() => handleExport('png')}
         onExportJPG={() => handleExport('jpg')}
         onExportXML={() => handleExport('xml')}
         onExportJSON={() => handleExport('json')}
         onExportDrawio={() => handleExport('drawio')}
-        onExportDOT={() => handleExport('dot')}  // NEW
-          onOpenGraphviz={() => {
+        onExportDOT={() => handleExport('dot')}
+        onOpenGraphviz={() => {
           const dot = (() => {
             if (!diagramRef.current) return '';
             const data = JSON.parse(diagramRef.current.model.toJson());
             return modelToDOT(data, { graphLabel: 'Boxology' });
           })();
           if (!dot) { alert('No DOT available.'); return; }
-          openInGraphviz(dot, 'dot'); // choose engine: dot/neato/fdp/sfdp/twopi/circo
+          openInGraphviz(dot, 'dot');
         }}
-        isSuperNodeSelected={isSuperNodeSelected}
       />
-
-      {/* Back Button for Subdiagrams */}
-      {isSubDiagram && (
-        <div style={{
-          padding: '8px 16px',
-          backgroundColor: '#e3f2fd',
-          borderBottom: '1px solid #bbdefb',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <button
-            onClick={handleBackToParent}
-            style={{
-              padding: '6px 12px',
-              backgroundColor: '#1976d2',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
-            ⬅️ Back to Parent
-          </button>
-          <span style={{ fontSize: '14px', color: '#1976d2', fontWeight: '500' }}>
-            Editing: {currentPage?.name}
-          </span>
-        </div>
-      )}
 
       {/* Tab Bar */}
       <div style={{
@@ -1245,7 +889,7 @@ const copyEmailToClipboard = () => {
         backgroundColor: '#f8f9fa',
         alignItems: 'center'
       }}>
-        {pages.filter(page => !page.isSubDiagram).map((page) => (
+        {pages.map((page) => (
           <button
             key={page.id}
             onClick={() => handlePageSwitch(page.id)}
@@ -1274,7 +918,7 @@ const copyEmailToClipboard = () => {
             }}>
               {page.name}
             </span>
-            {pages.filter(p => !p.isSubDiagram).length > 1 && (
+            {pages.length > 1 && (
               <span
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1331,8 +975,8 @@ const copyEmailToClipboard = () => {
           className="sidebar sidebar--left"
           style={{
             width: LEFT_W,
-            minWidth: leftSidebarCollapsed ? 44 : 180,
-            maxWidth: leftSidebarCollapsed ? 44 : 400,
+            minWidth: leftCollapsed ? 44 : 180,
+            maxWidth: leftCollapsed ? 44 : 400,
             background: '#f9f9f9',
             borderRight: '1px solid #ddd',
             height: '100%',
@@ -1344,30 +988,30 @@ const copyEmailToClipboard = () => {
         >
           {/* Collapse toggle button */}
           <button
-            aria-label={leftSidebarCollapsed ? 'Expand left sidebar' : 'Collapse left sidebar'}
-            title={leftSidebarCollapsed ? 'Expand Shapes Panel (Ctrl+Alt+[)' : 'Collapse Shapes Panel (Ctrl+Alt+['}
-            onClick={() => setLeftSidebarCollapsed(v => !v)}
+            aria-label={leftCollapsed ? 'Expand left sidebar' : 'Collapse left sidebar'}
+            title={leftCollapsed ? 'Expand Shapes Panel (Ctrl+Alt+[)' : 'Collapse Shapes Panel (Ctrl+Alt+['}
+            onClick={() => setLeftCollapsed(v => !v)}
             className="collapse-btn collapse-btn--right"
           >
-            {leftSidebarCollapsed ? '›' : '‹'}
+            {leftCollapsed ? '›' : '‹'}
           </button>
 
           {/* Rail label when collapsed */}
-          {leftSidebarCollapsed ? (
+          {leftCollapsed ? (
             <div className="sidebar-rail">
               <div className="rail-title">Shapes</div>
               <div className="rail-icons">
                 <div 
                   className="rail-icon" 
                   title="Click to expand"
-                  onClick={() => setLeftSidebarCollapsed(false)}
+                  onClick={() => setLeftCollapsed(false)}
                 >
                   🔲
                 </div>
                 <div 
                   className="rail-icon" 
                   title="Click to expand"
-                  onClick={() => setLeftSidebarCollapsed(false)}
+                  onClick={() => setLeftCollapsed(false)}
                 >
                   📁
                 </div>
@@ -1392,14 +1036,11 @@ const copyEmailToClipboard = () => {
             setContextMenu={setContextMenu}
             containers={containers}
             customGroups={customGroups}
-            setShowSubdiagramPreview={setShowSubdiagramPreview}
-            setPreviewSubdiagramData={setPreviewSubdiagramData}
           />
           <ContextMenu 
-            contextMenu={contextMenu} 
-            //customGroups={[...Object.keys(customGroups), 'CREATE_NEW', 'SAVE_TO_GROUP']}
+            contextMenu={contextMenu}
             onAction={handleContextMenuAction}
-            selectedData={selectedData} // ✅ Make sure this is passed
+            selectedData={selectedData}
           />
         </div>
 
@@ -1447,14 +1088,7 @@ const copyEmailToClipboard = () => {
         </div>
       </div>
 
-      {/* Subdiagram Preview Component */}
-      <SubdiagramPreview
-        isOpen={showSubdiagramPreview}
-        onClose={() => setShowSubdiagramPreview(false)}
-        subdiagramData={previewSubdiagramData}
-      />
-
-      {/* Add the About modal HERE */}
+      {/* About modal */}
       {showAbout && (
         <div
           style={{

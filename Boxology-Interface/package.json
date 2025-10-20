@@ -34,11 +34,11 @@
     "docker:run": "docker run -p 3000:80 boxology-interface"
   },
   "dependencies": {
-    "@emotion/react": "^11.11.1",
-    "@emotion/styled": "^11.11.0",
-    "@mui/icons-material": "^5.14.19",
-    "@mui/material": "^5.14.20",
-    "@ts-graphviz/parser": "^2.0.6",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.4",
+    "@mui/material": "^7.3.4",
+    "@ts-graphviz/parser": "^0.6.1",
     "gojs": "^3.0.24",
     "gojs-react": "^1.1.3",
     "react": "^19.1.0",
@@ -58,7 +58,7 @@
     "gh-pages": "^6.1.1",
     "globals": "^16.2.0",
     "prettier": "^3.2.5",
-    "typescript": "~5.8.3",
+    "typescript": "^5.9.3",
     "typescript-eslint": "^8.34.1",
     "vite": "^7.0.0"
   },

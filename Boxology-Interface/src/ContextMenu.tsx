@@ -8,9 +8,7 @@ export interface ContextMenuPosition {
 export interface ContextMenuProps {
   contextMenu: ContextMenuPosition | null;
   onAction: (action: string, target?: string) => void;
-  selectedData?: {
-    isSuperNode?: boolean;
-  };
+  selectedData?: any;
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ 
@@ -83,93 +81,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         <span style={{ marginRight: 8 }}>🗂️</span>
         Cluster Group
       </div>
-
-      {/* Enhanced Super Node Section */}
-      {selectedData && (
-        <>
-          <div style={{
-            padding: '8px 12px',
-            fontWeight: 'bold',
-            fontSize: '12px',
-            color: '#666',
-            borderBottom: '1px solid #eee',
-            backgroundColor: '#f8f9fa'
-          }}>
-            Super Node Actions:
-          </div>
-          
-          {!selectedData.isSuperNode ? (
-            <div
-              style={{
-                padding: '8px 16px',
-                cursor: 'pointer',
-                color: '#1976d2',
-                fontWeight: 500,
-                display: 'flex',
-                alignItems: 'center',
-                transition: 'background-color 0.2s ease'
-              }}
-              onClick={() => onAction('mark_as_super_node')}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#e3f2fd';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <span style={{ marginRight: 8 }}>🔗</span>
-              Mark as Super Node
-            </div>
-          ) : (
-            <>
-              <div
-                style={{
-                  padding: '8px 16px',
-                  cursor: 'pointer',
-                  color: '#1976d2',
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  transition: 'background-color 0.2s ease'
-                }}
-                onClick={() => onAction('edit_linked_diagram')}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#e3f2fd';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                <span style={{ marginRight: 8 }}>✏️</span>
-                Edit Linked Diagram
-              </div>
-              
-              <div
-                style={{
-                  padding: '8px 16px',
-                  cursor: 'pointer',
-                  color: '#dc3545',
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  transition: 'background-color 0.2s ease'
-                }}
-                onClick={() => onAction('remove_super_node')}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ffebee';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                <span style={{ marginRight: 8 }}>🔗❌</span>
-                Remove Super Node
-              </div>
-            </>
-          )}
-          <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #eee' }} />
-        </>
-      )}
 
       {/* Cancel Option */}
       <div
