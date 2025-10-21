@@ -1,202 +1,308 @@
-import * as go from 'gojs';
-import { v4 as uuidv4 } from 'uuid';
+// exportHelpers.ts
+import * as go from "gojs";
 
-/**
- * Enhanced JSON export that generates RML-compatible structure
- * with proper role definitions for components in design patterns
- */
-export const generateRMLCompatibleJSON = (diagram: go.Diagram): any => {
-  const model = diagram.model as go.GraphLinksModel;
-  const nodes = model.nodeDataArray;
-  const links = model.linkDataArray;
+/** 1) Canonical process names (semantic, not UI) - UPDATED to match BoxologyValidation.js */
+const PROCESS_SET = new Set<string>([
+  "generate",
+  "generate:train",
+  "generate:engineer",
+  "infer:deduce",
+  "model:semantic",
+  "model:statistics",
+  "infer",
+  "deduce",
+  "transform",
+  "transform:embed",
+]);
 
-  // Define allowed types for each role
-  const inputTypes = ['Symbol', 'Data', 'Model', 'Actor'];
-  const outputTypes = ['Symbol', 'Data', 'Model'];
-  const processTypes = [
-    'Generate', 'Generate:Train', 'Generate:Engineer',
-    'Transform', 'Infer:Deduce', 'Infer'
-  ];
+/** 2) Normalize to compare safely */
+const norm = (s?: string) => (s ?? "").trim().toLowerCase();
 
-  // Find all cluster groups (Design Patterns)
-  const designPatterns = nodes.filter((n: any) => n.isGroup && n.category === 'ClusterGroup');
-  const boxologyId = `boxology_${uuidv4().slice(0, 8)}`;
-  const boxologyLabel = diagram.model.modelData?.name || 'My Boxology';
+/** 3) True iff node is a *process* by its semantic name (NEVER by label) */
+function isProcessNode(n: any): boolean {
+  const name = norm(n.name);
+  return PROCESS_SET.has(name);
+}
 
-  // Helper: build component object
-  const buildComponent = (node: any) => ({
-    id: node.key,
-    type: node.shape || node.category || 'Data',
-    label: node.label || node.text || node.name || 'Unnamed Component'
-  });
-
-  // Build DesignPatterns array
-  const DesignPatterns = designPatterns.map((pattern: any) => {
-    const patternId = pattern.key || `pattern_${uuidv4().slice(0, 8)}`;
-    const patternLabel = pattern.label || pattern.text || pattern.name || 'Unnamed Pattern';
-    const patternNodes = nodes.filter((n: any) => !n.isGroup && n.group === pattern.key);
-
-    // Assign roles based on type
-    const input: any[] = [];
-    const output: any[] = [];
-    let process: any = null;
-
-    patternNodes.forEach((node: any) => {
-      const comp = buildComponent(node);
-      const type = (comp.type || '').toLowerCase();
-
-      // Assign input
-      if (inputTypes.some(t => t.toLowerCase() === type)) {
-        input.push(comp);
-      }
-      // Assign output
-      if (outputTypes.some(t => t.toLowerCase() === type)) {
-        output.push(comp);
-      }
-      // Assign process (only one per pattern)
-      if (
-        processTypes.some(t => t.toLowerCase() === type) &&
-        !process
-      ) {
-        process = comp;
-      }
-    });
-
-    return {
-      id: patternId,
-      label: patternLabel,
-      input,
-      output: output.length === 1 ? output[0] : output,
-      process
-    };
-  });
-
+/** 4) Build a plain component object (keep both name + UI label, but label is display-only) */
+function toComponent(n: any) {
   return {
-    id: boxologyId,
-    label: boxologyLabel,
-    DesignPatterns
+    id: n.key,
+    name: n.name ?? "",
+    label: n.label ?? n.text ?? "",
   };
 }
 
-/**
- * Analyze node roles based on their connections within a pattern
- */
-const analyzeNodeRoles = (patternNodes: any[], allLinks: any[]): { [nodeKey: string]: string } => {
-  const roles: { [nodeKey: string]: string } = {};
-  const nodeKeys = patternNodes.map((n: any) => n.key);
+/** 5) Main export - Uses raw GoJS model data like save function */
+export function exportBoxologyJSON(diagram: go.Diagram) {
+  const model = diagram.model as go.GraphLinksModel;
+  
+  // Get raw data directly from model (like save function does)
+  const rawJson = JSON.parse(model.toJson());
+  const nodes = rawJson.nodeDataArray || [];
+  const links = rawJson.linkDataArray || [];
 
-  patternNodes.forEach((node: any) => {
-    const nodeKey = node.key;
+  console.log("🔍 Export Debug - Total nodes:", nodes.length);
+  console.log("🔍 Export Debug - Total links:", links.length);
+  console.log("🔍 All links:", links);
 
-    // Count incoming and outgoing links within this pattern
-    const incomingLinks = allLinks.filter((l: any) => 
-      l.to === nodeKey && nodeKeys.includes(l.from)
-    );
-    const outgoingLinks = allLinks.filter((l: any) => 
-      l.from === nodeKey && nodeKeys.includes(l.to)
-    );
+  const nodeByKey = new Map<string, any>(nodes.map((n: any) => [n.key, n]));
+  const groups = nodes.filter((n: any) => n.isGroup);
 
-    // Role detection heuristics
-    const hasIncoming = incomingLinks.length > 0;
-    const hasOutgoing = outgoingLinks.length > 0;
+  console.log("🔍 Export Debug - Groups found:", groups.length);
 
-    // Check for explicit markers in node data
-    if (node.role) {
-      roles[nodeKey] = node.role;
-      return;
-    }
+  const patterns: any[] = [];
 
-    // Heuristic-based role detection
-    if (!hasIncoming && hasOutgoing) {
-      roles[nodeKey] = 'input'; // Source nodes
-    } else if (hasIncoming && !hasOutgoing) {
-      roles[nodeKey] = 'output'; // Sink nodes
-    } else if (hasIncoming && hasOutgoing) {
-      // Middle nodes - check for process indicators
-      const nodeName = (node.label || node.text || node.name || '').toLowerCase();
-      if (nodeName.includes('train') || nodeName.includes('process') || 
-          nodeName.includes('transform') || nodeName.includes('fine-tune') ||
-          nodeName.includes('generate') || nodeName.includes('compute')) {
-        roles[nodeKey] = 'process';
-      } else {
-        // Could be intermediate data or process
-        roles[nodeKey] = 'process';
+  // Build each pattern
+  for (const g of groups) {
+    console.log(`\n🔍 Processing group: ${g.key} - ${g.label}`);
+    
+    // Get all nodes inside this group
+    const inside = nodes.filter((n: any) => !n.isGroup && n.group === g.key);
+    const insideKeys = new Set(inside.map((n: any) => n.key));
+    
+    console.log(`  Nodes inside: ${inside.map((n: any) => `${n.key}(${n.name})`).join(', ')}`);
+
+    // Get all links related to this group
+    const internal = links.filter((L: any) => insideKeys.has(L.from) && insideKeys.has(L.to));
+    const outgoing = links.filter((L: any) => insideKeys.has(L.from) && !insideKeys.has(L.to));
+
+    console.log(`  Internal links: ${internal.length}, Outgoing: ${outgoing.length}`);
+
+    // Find process nodes
+    const processNodes = inside.filter((n: any) => isProcessNode(n));
+    console.log(`  Process nodes: ${processNodes.map((p: any) => p.key).join(', ')}`);
+
+    // INPUTS: nodes that connect TO a process
+    const inputMap = new Map<string, any>();
+    
+    // Check internal connections to process
+    for (const L of internal) {
+      const src = nodeByKey.get(L.from);
+      const tgt = nodeByKey.get(L.to);
+      if (src && tgt && !isProcessNode(src) && isProcessNode(tgt)) {
+        console.log(`    INPUT (internal): ${src.key}(${src.name}) → ${tgt.key}(${tgt.name})`);
+        inputMap.set(src.key, toComponent(src));
       }
-    } else {
-      // Isolated node - default to input
-      roles[nodeKey] = 'input';
     }
-  });
 
-  return roles;
-};
+    // OUTPUTS: nodes that receive FROM a process
+    const outputsMap = new Map<string, any>();
+    
+    for (const L of internal) {
+      const src = nodeByKey.get(L.from);
+      const tgt = nodeByKey.get(L.to);
+      if (src && tgt && isProcessNode(src) && !isProcessNode(tgt)) {
+        console.log(`    OUTPUT (internal): ${src.key}(${src.name}) → ${tgt.key}(${tgt.name})`);
+        outputsMap.set(tgt.key, toComponent(tgt));
+      }
+    }
+
+    // Build process object
+    let process: any = undefined;
+    if (processNodes.length === 1) {
+      const p = processNodes[0];
+      process = {
+        id: p.key,
+        name: p.name,
+        label: p.label ?? p.text ?? "",
+      };
+    } else if (processNodes.length > 1) {
+      process = processNodes.map((p: any) => ({
+        id: p.key,
+        name: p.name,
+        label: p.label ?? p.text ?? "",
+      }));
+    }
+
+    const inputArr = Array.from(inputMap.values());
+    const outputArr = Array.from(outputsMap.values());
+    const outputField = outputArr.length === 1 ? outputArr[0] : outputArr;
+
+    patterns.push({
+      id: g.key,
+      label: g.label ?? g.text ?? "DesignPattern",
+      input: inputArr,
+      output: outputField,
+      process,
+    });
+  }
+
+  // SECOND PASS: Handle cross-pattern connections (shared components)
+  console.log("\n🔍 Second Pass - Looking for cross-pattern links:");
+  
+  for (const link of links) {
+    const fromNode = nodeByKey.get(link.from);
+    const toNode = nodeByKey.get(link.to);
+    
+    if (!fromNode || !toNode) {
+      console.log(`  ⚠️ Link references missing node: ${link.from} → ${link.to}`);
+      continue;
+    }
+    
+    const fromGroup = fromNode.group;
+    const toGroup = toNode.group;
+    
+    // Cross-pattern link detected
+    if (fromGroup && toGroup && fromGroup !== toGroup) {
+      console.log(`  🔗 Cross-pattern link found: ${fromNode.key}(${fromNode.name}) [${fromGroup}] → ${toNode.key}(${toNode.name}) [${toGroup}]`);
+      
+      // If target is a process, source becomes input to target's pattern
+      if (isProcessNode(toNode)) {
+        const targetPattern = patterns.find(p => p.id === toGroup);
+        if (targetPattern) {
+          const sharedComp = toComponent(fromNode);
+          const alreadyExists = targetPattern.input.some((inp: any) => inp.id === sharedComp.id);
+          
+          if (!alreadyExists) {
+            console.log(`    ✅ Adding ${fromNode.key}(${fromNode.name}) as INPUT to pattern ${toGroup}`);
+            targetPattern.input.push(sharedComp);
+          } else {
+            console.log(`    ℹ️ ${fromNode.key} already exists as input in pattern ${toGroup}`);
+          }
+        } else {
+          console.log(`    ⚠️ Target pattern ${toGroup} not found!`);
+        }
+      } else {
+        console.log(`    ℹ️ Target ${toNode.key}(${toNode.name}) is not a process, skipping`);
+      }
+    }
+  }
+
+  // Calculate shared components
+  const appearances = new Map<string, number>();
+  for (const p of patterns) {
+    const add = (c: any) => {
+      if (c && c.id) {
+        appearances.set(c.id, (appearances.get(c.id) ?? 0) + 1);
+      }
+    };
+    if (p.input && Array.isArray(p.input)) {
+      for (const c of p.input) add(c);
+    }
+    const outs = Array.isArray(p.output) ? p.output : (p.output ? [p.output] : []);
+    for (const c of outs) add(c);
+  }
+  
+  const sharedComponents = [...appearances.entries()]
+    .filter(([, cnt]) => cnt > 1)
+    .map(([id]) => id);
+
+  console.log("\n🔍 Final shared components:", sharedComponents);
+  console.log("\n🔍 Final patterns:", JSON.stringify(patterns, null, 2));
+
+  return {
+    id: "id1",
+    label: "Boxology",
+    DesignPatterns: patterns,
+    sharedComponents,
+  };
+}
 
 /**
  * Export all pages in RML-compatible format
  */
 export const generateMultiPageRMLExport = (pages: any[]): any => {
-  return {
-    boxologies: pages.map(page => {
-      const boxologyId = page.id.replace(/-/g, '_');
+  const boxologies = pages.map(page => {
+    // Use the same logic as exportBoxologyJSON but for page data
+    const nodes = page.nodeDataArray || [];
+    const links = page.linkDataArray || [];
+    
+    const nodeByKey = new Map<string, any>(nodes.map((n: any) => [n.key, n]));
+    const groups = nodes.filter((n: any) => n.isGroup);
+    
+    const patterns: any[] = [];
+    
+    for (const g of groups) {
+      const inside = nodes.filter((n: any) => !n.isGroup && n.group === g.key);
+      const insideKeys = new Set(inside.map((n: any) => n.key));
       
-      return {
-        id: boxologyId,
-        label: page.name,
-        DesignPattern: extractPatternsFromPage(page)
-      };
-    })
-  };
+      const internal = links.filter((L: any) => insideKeys.has(L.from) && insideKeys.has(L.to));
+      
+      const processNodes = inside.filter((n: any) => isProcessNode(n));
+      
+      const inputMap = new Map<string, any>();
+      for (const L of internal) {
+        const src = nodeByKey.get(L.from);
+        const tgt = nodeByKey.get(L.to);
+        if (src && tgt && !isProcessNode(src) && isProcessNode(tgt)) {
+          inputMap.set(src.key, toComponent(src));
+        }
+      }
+      
+      const outputsMap = new Map<string, any>();
+      for (const L of internal) {
+        const src = nodeByKey.get(L.from);
+        const tgt = nodeByKey.get(L.to);
+        if (src && tgt && isProcessNode(src) && !isProcessNode(tgt)) {
+          outputsMap.set(tgt.key, toComponent(tgt));
+        }
+      }
+      
+      let process: any = undefined;
+      if (processNodes.length === 1) {
+        const p = processNodes[0];
+        process = {
+          id: p.key,
+          name: p.name,
+          label: p.label ?? p.text ?? "",
+        };
+      } else if (processNodes.length > 1) {
+        process = processNodes.map((p: any) => ({
+          id: p.key,
+          name: p.name,
+          label: p.label ?? p.text ?? "",
+        }));
+      }
+      
+      const inputArr = Array.from(inputMap.values());
+      const outputArr = Array.from(outputsMap.values());
+      const outputField = outputArr.length === 1 ? outputArr[0] : outputArr;
+      
+      patterns.push({
+        id: g.key,
+        label: g.label ?? g.text ?? "DesignPattern",
+        input: inputArr,
+        output: outputField,
+        process,
+      });
+    }
+    
+    // Second pass for cross-pattern links
+    for (const link of links) {
+      const fromNode = nodeByKey.get(link.from);
+      const toNode = nodeByKey.get(link.to);
+      
+      if (!fromNode || !toNode) continue;
+      
+      const fromGroup = fromNode.group;
+      const toGroup = toNode.group;
+      
+      if (fromGroup && toGroup && fromGroup !== toGroup && isProcessNode(toNode)) {
+        const targetPattern = patterns.find(p => p.id === toGroup);
+        if (targetPattern) {
+          const sharedComp = toComponent(fromNode);
+          const alreadyExists = targetPattern.input.some((inp: any) => inp.id === sharedComp.id);
+          if (!alreadyExists) {
+            targetPattern.input.push(sharedComp);
+          }
+        }
+      }
+    }
+    
+    return {
+      id: page.id.replace(/-/g, '_'),
+      label: page.name,
+      DesignPattern: patterns
+    };
+  });
+  
+  return { boxologies };
 };
 
 /**
- * Extract patterns from a page
+ * Enhanced JSON export that generates RML-compatible structure - NOT USED
  */
-const extractPatternsFromPage = (page: any): any[] => {
-  const patterns: any[] = [];
-  const nodes = page.nodeDataArray || [];
-  const links = page.linkDataArray || [];
-
-  // Find all cluster groups in this page
-  const clusters = nodes.filter((n: any) => n.isGroup && n.category === 'ClusterGroup');
-
-  clusters.forEach((cluster: any) => {
-    const patternNodes = nodes.filter((n: any) => !n.isGroup && n.group === cluster.key);
-    const nodeRoles = analyzeNodeRoles(patternNodes, links);
-
-    const pattern: any = {
-      id: cluster.key || `pattern_${uuidv4().slice(0, 8)}`,
-      label: cluster.label || cluster.text || 'Unnamed Pattern',
-      hasInput: [],
-      hasOutput: [],
-      hasProcess: []
-    };
-
-    patternNodes.forEach((node: any) => {
-      const component = {
-        id: node.key || `component_${uuidv4().slice(0, 8)}`,
-        name: node.shape || node.category || 'Data',
-        label: node.label || node.text || node.name || 'Unnamed Component',
-        role: nodeRoles[node.key] || 'input'
-      };
-
-      // Categorize by role
-      switch (nodeRoles[node.key]) {
-        case 'input':
-          pattern.hasInput.push(component);
-          break;
-        case 'output':
-          pattern.hasOutput.push(component);
-          break;
-        case 'process':
-          pattern.hasProcess.push(component);
-          break;
-        default:
-          pattern.hasInput.push(component);
-      }
-    });
-
-    patterns.push(pattern);
-  });
-
-  return patterns;
+export const generateRMLCompatibleJSON = (diagram: go.Diagram): any => {
+  return exportBoxologyJSON(diagram);
 };

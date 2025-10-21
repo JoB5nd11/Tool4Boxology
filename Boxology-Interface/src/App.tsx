@@ -539,8 +539,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             exportId: exportUUID,
             userId: userId,
             exportDate: new Date().toISOString(),
-            version: '1.0',
-            format: 'RML-compatible'
           },
           ...rmlData
         };
@@ -549,7 +547,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
         downloadFile(blob, `boxology_${userId}_${timestamp}_${exportUUID}.json`);
         
-        alert('RML-compatible JSON exported successfully!');
+        alert('JSON exported successfully!');
         break;
       }
 
