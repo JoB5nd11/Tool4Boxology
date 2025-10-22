@@ -566,7 +566,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           linkDataArray: (diagram.model as go.GraphLinksModel).linkDataArray || [],
         };
         const drawioXml = convertToDrawioXML(data, timestamp);
-        const blob = new Blob([drawioXml], { type: 'application/xml;charset=utf-8' });
+        const blob = new Blob([drawioXml], { type: 'application/xml' });
         downloadFile(blob, `diagram_${timestamp}.drawio`);
         break;
       }
@@ -1098,7 +1098,10 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
               </div>
             </div>
           ) : (
-            <RightSidebar selectedData={selectedData} diagramRef={diagramRef} />
+            <RightSidebar
+              selectedData={selectedData}
+              diagramRef={diagramRef}
+            />
           )}
         </div>
       </div>

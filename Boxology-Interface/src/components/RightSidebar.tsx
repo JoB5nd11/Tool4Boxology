@@ -111,41 +111,44 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
         overflowY: 'auto',
         height: '100%',
         borderLeft: '1px solid #ddd',
-        fontSize: '13px',
+        fontSize: '13px'
       }}
     >
       <h3 style={{ marginTop: 0, marginBottom: 16, color: '#333', fontSize: '16px' }}>Properties</h3>
-      
-      {/* Show properties only when exactly ONE shape is selected */}
-      {selectedData && selectedCount === 1 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          
-          {/* Label Input */}
-          <div>
-            <div style={{ fontWeight: 'bold', marginBottom: 6, fontSize: '12px' }}>
+
+      {!selectedData ? (
+        <p style={{ color: '#666', fontSize: '13px' }}>Select an object to edit properties</p>
+      ) : (
+        <>
+          {/* REMOVE THIS ENTIRE LABEL SECTION */}
+          {/* 
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontWeight: '600', marginBottom: 4, color: '#555' }}>
               Label:
-            </div>
+            </label>
             <input
               type="text"
               value={localLabel}
-              onChange={(e) => handleLabelChange(e.target.value)}
-              placeholder="Enter text..."
-              style={{ 
-                width: '100%', 
-                padding: '8px', 
+              onChange={(e) => {
+                setLocalLabel(e.target.value);
+                handleSidebarChange('label', e.target.value);
+              }}
+              style={{
+                width: '100%',
+                padding: '6px 8px',
                 border: '1px solid #ccc',
                 borderRadius: '4px',
-                fontSize: '13px',
-                boxSizing: 'border-box'
+                fontSize: '13px'
               }}
             />
           </div>
+          */}
 
-          {/* Fill Color */}
-          <div>
-            <div style={{ fontWeight: 'bold', marginBottom: 6, fontSize: '12px' }}>
+          {/* Keep the rest: Color section */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontWeight: '600', marginBottom: 8, color: '#555' }}>
               Fill Color:
-            </div>
+            </label>
             {/* Color presets */}
             <div style={{ 
               display: 'flex', 
@@ -183,11 +186,11 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
             />
           </div>
 
-          {/* Stroke Color */}
-          <div>
-            <div style={{ fontWeight: 'bold', marginBottom: 6, fontSize: '12px' }}>
-              Border Color:
-            </div>
+          {/* Keep: Stroke Color section */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontWeight: '600', marginBottom: 8, color: '#555' }}>
+              Stroke Color:
+            </label>
             {/* Stroke presets */}
             <div style={{ 
               display: 'flex', 
@@ -225,96 +228,7 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
               }}
             />
           </div>
-
-          {/* Shape Selector */}
-          <div>
-            <div style={{ fontWeight: 'bold', marginBottom: 6, fontSize: '12px' }}>
-              Shape:
-            </div>
-            <select
-              value={localShape}
-              onChange={(e) => handleShapeChange(e.target.value)}
-              style={{ 
-                width: '100%', 
-                padding: '8px', 
-                border: '1px solid #ccc', 
-                borderRadius: '4px', 
-                fontSize: '13px',
-                backgroundColor: 'white'
-              }}
-            >
-              <option value="Rectangle">Rectangle</option>
-              <option value="RoundedRectangle">Rounded Rectangle</option>
-              <option value="Diamond">Diamond</option>
-              <option value="Ellipse">Ellipse</option>
-              <option value="Triangle">Triangle</option>
-              <option value="TriangleDown">Triangle Down</option>
-              <option value="Hexagon">Hexagon</option>
-            </select>
-          </div>
-
-          {/* Object Info */}
-          <div style={{
-            backgroundColor: '#fff',
-            border: '1px solid #ddd',
-            borderRadius: '4px',
-            padding: '12px'
-          }}>
-            <div style={{ 
-              fontSize: '12px', 
-              fontWeight: 'bold',
-              marginBottom: '8px',
-              color: '#333'
-            }}>
-              Object Info
-            </div>
-            <div style={{ fontSize: '11px', color: '#666' }}>
-              <div style={{ marginBottom: '4px' }}>
-                <strong>Type:</strong> {selectedData.shape || 'Unknown'}
-              </div>
-              {selectedData.isSuperNode && (
-                <div style={{ 
-                  color: '#1976d2',
-                  fontWeight: '500'
-                }}>
-                  🔗 Super Node
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Multiple objects selected */}
-      {selectedCount > 1 && (
-        <div style={{ 
-          padding: '16px', 
-          textAlign: 'center', 
-          color: '#666',
-          backgroundColor: '#fff',
-          border: '1px solid #ddd',
-          borderRadius: '4px'
-        }}>
-          <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-            {selectedCount} objects selected
-          </div>
-          <div style={{ marginTop: '8px', fontSize: '12px' }}>
-            Use alignment tools in toolbar
-          </div>
-        </div>
-      )}
-
-      {/* No objects selected */}
-      {selectedCount === 0 && (
-        <div style={{ 
-          padding: '16px', 
-          textAlign: 'center', 
-          color: '#666'
-        }}>
-          <div style={{ fontSize: '14px' }}>
-            Select an object to edit properties
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

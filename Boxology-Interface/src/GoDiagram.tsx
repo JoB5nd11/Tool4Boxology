@@ -252,7 +252,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         new go.Binding('parameter1', 'parameter1')
       ),
       
-      // Label (centered)
+      // Label (centered) - UPDATED: Make editable
       $(
         go.TextBlock,
         {
@@ -261,7 +261,9 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           font: 'bold 12px sans-serif',
           stroke: '#333',
           maxLines: 2,
-          overflow: go.TextBlock.OverflowEllipsis
+          overflow: go.TextBlock.OverflowEllipsis,
+          editable: true,  // ADD THIS LINE
+          textEditor: null  // Use default text editor
         },
         new go.Binding('text', 'label').makeTwoWay()
       ),
