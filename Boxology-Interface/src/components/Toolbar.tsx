@@ -28,6 +28,8 @@ type ToolbarProps = {
   onExportDrawio: () => void;
   onExportDOT: () => void;
   onOpenGraphviz: () => void;
+  showTypeBadges: boolean;
+  onToggleTypeBadges: () => void;
 };
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -46,6 +48,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onExportDrawio,
   onExportDOT,
   onOpenGraphviz,
+  showTypeBadges,
+  onToggleTypeBadges
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
   const exportMenuRef = React.useRef<HTMLDivElement>(null);
@@ -462,9 +466,27 @@ const Toolbar: React.FC<ToolbarProps> = ({
         style={simpleButtonStyle}
         title="Open DOT in Graphviz Visual Editor"
       >
-        🟦 Open Graphviz
+        🟦 Graphviz
       </button>
-      
+
+      <div style={{ width: '1px', height: '20px', background: '#ccc', margin: '0 4px' }} />
+
+      {/* NEW: Type Badges Toggle Button */}
+      <button
+        onClick={onToggleTypeBadges}
+        style={{
+          ...simpleButtonStyle,
+          backgroundColor: showTypeBadges ? '#e3f2fd' : '#fff',
+          borderColor: showTypeBadges ? '#2196f3' : '#ccc',
+          color: showTypeBadges ? '#1976d2' : '#666'
+        }}
+        title={showTypeBadges ? "Hide type badges" : "Show type badges"}
+      >
+        {showTypeBadges ? '👁️' : '👁️‍🗨️'} Types
+      </button>
+
+      <div style={{ width: '1px', height: '20px', background: '#ccc', margin: '0 4px' }} />
+
       <button onClick={onUndo} style={simpleButtonStyle}>🔄 Undo</button>
       <button onClick={onRedo} style={simpleButtonStyle}>🔃 Redo</button>
       <button onClick={onValidate} style={simpleButtonStyle}>✅ Validate</button>

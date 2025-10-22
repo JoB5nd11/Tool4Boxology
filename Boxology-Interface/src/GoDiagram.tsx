@@ -15,6 +15,7 @@ interface GoDiagramProps {
   setContextMenu: Dispatch<SetStateAction<ContextMenuPosition | null>>;
   containers: string[];
   customGroups: Record<string, any[]>;
+  showTypeBadges: boolean;
 }
 
 // UPDATED: Type selector function with correct positioning
@@ -112,7 +113,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
   setSelectedData,
   setContextMenu,
   containers,
-  customGroups
+  customGroups,
+  showTypeBadges
 }) => {
   const diagramDivRef = useRef<HTMLDivElement>(null);
 
@@ -128,6 +130,22 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     }
     model.commitTransaction('update');
   };
+
+  // ADD: Effect to update type badge visibility when showTypeBadges changes
+  useEffect(() => {
+    if (!diagramRef.current) return;
+    
+    const diagram = diagramRef.current;
+    
+    // Update all nodes to show/hide type badges
+    diagram.nodes.each((node) => {
+      const typeBadge = node.findObject('TYPE_BADGE');
+      if (typeBadge) {
+        typeBadge.visible = showTypeBadges;
+      }
+    });
+    
+  }, [showTypeBadges, diagramRef]);
 
   useEffect(() => {
     if (!diagramDivRef.current) return;
@@ -186,10 +204,10 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     diagram.toolManager.linkingTool.isEnabled = true;
     diagram.toolManager.relinkingTool.isEnabled = true;
 
-    // UPDATED: Node template with type selector at the top
+    // UPDATED: Node template with named type badge panel
     diagram.nodeTemplate = $(
       go.Node,
-      'Spot',  // Changed from 'Auto' to 'Spot' for better positioning
+      'Spot',
       {
         locationSpot: go.Spot.Center,
         selectable: true,
@@ -248,20 +266,22 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         new go.Binding('text', 'label').makeTwoWay()
       ),
       
-      // Type selector at the top (small pill badge)
+      // Type selector - ADD name property and initial visible state
       $(go.Panel, 'Auto',
         {
+          name: 'TYPE_BADGE',  // ADD: Name to find this panel later
           alignment: go.Spot.Top,
           alignmentFocus: go.Spot.Bottom,
-          margin: new go.Margin(-8, 0, 0, 0),  // Position above the shape
-          cursor: 'pointer'
+          margin: new go.Margin(-8, 0, 0, 0),
+          cursor: 'pointer',
+          visible: showTypeBadges  // Initial state
         },
         $(go.Shape, 'RoundedRectangle',
           {
             fill: 'white',
             stroke: '#d1d5db',
             strokeWidth: 1,
-            parameter1: 10  // rounded corners
+            parameter1: 10
           }
         ),
         $(go.Panel, 'Horizontal',
@@ -514,7 +534,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         diagramRef.current = null;
       }
     };
-  }, [diagramRef, setSelectedData, setContextMenu, containers]);
+  }, [diagramRef, setSelectedData, setContextMenu, containers, customGroups]);
 
   const handleValidate = () => {
     if (!diagramRef.current) {

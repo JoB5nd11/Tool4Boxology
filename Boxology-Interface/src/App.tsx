@@ -25,6 +25,7 @@ function App() {
   const [selectedData, setSelectedData] = useState<any>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [customGroups, setCustomGroups] = useState<{ [key: string]: any[] }>({});
+  const [showTypeBadges, setShowTypeBadges] = useState<boolean>(true);
 
   // Page management for GoJS diagrams
   type PageData = {
@@ -849,6 +850,11 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     diagram.commitTransaction('cluster group');
   };
 
+  // Add this function after handleAddContainer (around line 157):
+  const handleToggleTypeBadges = () => {
+    setShowTypeBadges(prev => !prev);
+  };
+
   return (
     <div className="app" style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>
       {/* Toolbar */}
@@ -876,6 +882,8 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           if (!dot) { alert('No DOT available.'); return; }
           openInGraphviz(dot, 'dot');
         }}
+        showTypeBadges={showTypeBadges}
+        onToggleTypeBadges={handleToggleTypeBadges}
       />
 
       {/* Tab Bar */}
@@ -1034,6 +1042,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             setContextMenu={setContextMenu}
             containers={containers}
             customGroups={customGroups}
+            showTypeBadges={showTypeBadges}
           />
           <ContextMenu 
             contextMenu={contextMenu}
