@@ -2,6 +2,7 @@ import React, { useEffect, useRef, type Dispatch, type SetStateAction } from 're
 import * as go from 'gojs';
 import { setupDiagramValidation, validateGoJSDiagram } from './plugin/GoJSBoxologyValidation';
 import { mapShapeToGoJSFigure } from './utils/shapeMapping';
+import { shapeTypes } from './data/shape';
 
 interface ContextMenuPosition {
   x: number;
@@ -14,6 +15,96 @@ interface GoDiagramProps {
   setContextMenu: Dispatch<SetStateAction<ContextMenuPosition | null>>;
   containers: string[];
   customGroups: Record<string, any[]>;
+}
+
+// UPDATED: Type selector function with correct positioning
+function showTypeSelector(e: go.InputEvent, node: go.Node) {
+  const diagram = node.diagram;
+  if (!diagram) return;
+
+  const nodeName = node.data.name;
+  const availableTypes = shapeTypes[nodeName] || ["No Type"];
+  
+  // Get the diagram div position
+  const diagramDiv = diagram.div;
+  if (!diagramDiv) return;
+  
+  const diagramRect = diagramDiv.getBoundingClientRect();
+  
+  // Convert diagram coordinates to screen coordinates
+  const viewPoint = diagram.transformDocToView(node.location);
+  
+  // Calculate absolute position on the page
+  const screenX = diagramRect.left + viewPoint.x + window.scrollX;
+  const screenY = diagramRect.top + viewPoint.y + window.scrollY - 40; // Position above the node
+  
+  // Create custom styled dropdown
+  const dropdownContainer = document.createElement("div");
+  dropdownContainer.style.position = "absolute";
+  dropdownContainer.style.left = screenX + "px";
+  dropdownContainer.style.top = screenY + "px";
+  dropdownContainer.style.zIndex = "10000";
+  dropdownContainer.style.backgroundColor = "white";
+  dropdownContainer.style.border = "1px solid #d1d5db";
+  dropdownContainer.style.borderRadius = "4px";
+  dropdownContainer.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.15)";
+  dropdownContainer.style.minWidth = "120px";
+  dropdownContainer.style.overflow = "hidden";
+  dropdownContainer.style.fontFamily = "system-ui, -apple-system, sans-serif";
+  
+  // Add options as custom buttons
+  availableTypes.forEach((type, index) => {
+    const option = document.createElement("div");
+    option.textContent = type;
+    option.style.padding = "8px 12px";
+    option.style.cursor = "pointer";
+    option.style.fontSize = "12px";
+    option.style.transition = "background-color 0.15s ease";
+    option.style.borderBottom = index < availableTypes.length - 1 ? "1px solid #f3f4f6" : "none";
+    
+    // Highlight current selection
+    if (type === (node.data.type || "No Type")) {
+      option.style.backgroundColor = "#e0f2fe";
+      option.style.color = "#0369a1";
+      option.style.fontWeight = "600";
+    }
+    
+    // Hover effect
+    option.onmouseenter = () => {
+      if (type !== (node.data.type || "No Type")) {
+        option.style.backgroundColor = "#f9fafb";
+      }
+    };
+    option.onmouseleave = () => {
+      if (type !== (node.data.type || "No Type")) {
+        option.style.backgroundColor = "white";
+      }
+    };
+    
+    // Click handler
+    option.onclick = () => {
+      diagram.model.startTransaction("change type");
+      diagram.model.set(node.data, "type", type);
+      diagram.model.commitTransaction("change type");
+      dropdownContainer.remove();
+    };
+    
+    dropdownContainer.appendChild(option);
+  });
+  
+  // Close on click outside
+  const closeHandler = (event: MouseEvent) => {
+    if (!dropdownContainer.contains(event.target as Node)) {
+      dropdownContainer.remove();
+      document.removeEventListener("click", closeHandler);
+    }
+  };
+  
+  setTimeout(() => {
+    document.addEventListener("click", closeHandler);
+  }, 0);
+  
+  document.body.appendChild(dropdownContainer);
 }
 
 const GoDiagram: React.FC<GoDiagramProps> = ({
@@ -52,18 +143,17 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     // Define custom figures for GoJS
     go.Shape.defineFigureGenerator("CustomHexagon", function(shape, w, h) {
       let param1 = shape ? shape.parameter1 : NaN;
-      if (isNaN(param1)) param1 = 1; // default corner radius
+      if (isNaN(param1)) param1 = 1;
       
       const geo = new go.Geometry();
-      const fig = new go.PathFigure(0, h * 0.5, true); // start point at left center
+      const fig = new go.PathFigure(0, h * 0.5, true);
       
-      // Create hexagon points - rotated 90 degrees to match sidebar
-      fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.25, 0));      // top-left
-      fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.75, 0));      // top-right  
-      fig.add(new go.PathSegment(go.PathSegment.Line, w, h * 0.5));       // right point
-      fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.75, h));      // bottom-right
-      fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.25, h));      // bottom-left
-      fig.add(new go.PathSegment(go.PathSegment.Line, 0, h * 0.5).close()); // back to left point
+      fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.25, 0));
+      fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.75, 0));
+      fig.add(new go.PathSegment(go.PathSegment.Line, w, h * 0.5));
+      fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.75, h));
+      fig.add(new go.PathSegment(go.PathSegment.Line, w * 0.25, h));
+      fig.add(new go.PathSegment(go.PathSegment.Line, 0, h * 0.5).close());
       
       geo.add(fig);
       return geo;
@@ -81,25 +171,25 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       ),
     });
 
-    // Ensure new clusters (groups) have stable identity and editable visuals
     diagram.commandHandler.archetypeGroupData = {
       isGroup: true,
       category: 'ClusterGroup',
-      name: 'cluster',             // stable identity for validation
-      label: 'Cluster',            // user-editable label
-      color: '#e9ecef',            // fill (editable)
-      stroke: '#adb5bd',           // border color (editable)
-      strokeWidth: 1.5,            // border width (editable)
-      parameter1: 6                // corner radius (editable)
+      name: 'cluster',
+      label: 'Cluster',
+      color: '#e9ecef',
+      stroke: '#adb5bd',
+      strokeWidth: 1.5,
+      parameter1: 6
     };
 
     diagram.toolManager.draggingTool.isGridSnapEnabled = true;
     diagram.toolManager.linkingTool.isEnabled = true;
     diagram.toolManager.relinkingTool.isEnabled = true;
 
+    // UPDATED: Node template with type selector at the top
     diagram.nodeTemplate = $(
       go.Node,
-      'Auto',
+      'Spot',  // Changed from 'Auto' to 'Spot' for better positioning
       {
         locationSpot: go.Spot.Center,
         selectable: true,
@@ -116,10 +206,12 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         },
       },
       new go.Binding('location', 'loc', go.Point.parse).makeTwoWay(go.Point.stringify),
+      
+      // Main shape
       $(
         go.Shape,
         {
-          name: 'SHAPE',  // Important: name it so resizeObjectName works
+          name: 'SHAPE',
           strokeWidth: 1,
           stroke: '#999',
           portId: '',
@@ -141,26 +233,91 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         new go.Binding('strokeWidth', 'strokeWidth'),
         new go.Binding('parameter1', 'parameter1')
       ),
-        $(
-          go.TextBlock,
+      
+      // Label (centered)
+      $(
+        go.TextBlock,
+        {
+          alignment: go.Spot.Center,
+          margin: 8,
+          font: 'bold 12px sans-serif',
+          stroke: '#333',
+          maxLines: 2,
+          overflow: go.TextBlock.OverflowEllipsis
+        },
+        new go.Binding('text', 'label').makeTwoWay()
+      ),
+      
+      // Type selector at the top (small pill badge)
+      $(go.Panel, 'Auto',
+        {
+          alignment: go.Spot.Top,
+          alignmentFocus: go.Spot.Bottom,
+          margin: new go.Margin(-8, 0, 0, 0),  // Position above the shape
+          cursor: 'pointer'
+        },
+        $(go.Shape, 'RoundedRectangle',
           {
-            margin: 8,
-            font: 'bold 12px sans-serif',
-            stroke: '#333',
-            maxLines: 2,
-            overflow: go.TextBlock.OverflowEllipsis
-          },
-          new go.Binding('text', 'label').makeTwoWay()
-        )
-      );
+            fill: 'white',
+            stroke: '#d1d5db',
+            strokeWidth: 1,
+            parameter1: 10  // rounded corners
+          }
+        ),
+        $(go.Panel, 'Horizontal',
+          { margin: new go.Margin(3, 8, 3, 8) },
+          // Small colored dot indicator
+          $(go.Shape, 'Circle',
+            {
+              width: 5,
+              height: 5,
+              stroke: null,
+              margin: new go.Margin(0, 4, 0, 0)
+            },
+            new go.Binding('fill', 'type', (type) => {
+              if (!type || type === 'No Type') return '#9ca3af';
+              return '#3b82f6';
+            })
+          ),
+          // Type text
+          $(go.TextBlock,
+            {
+              font: '9px system-ui, -apple-system, sans-serif',
+              stroke: '#6b7280'
+            },
+            new go.Binding('text', 'type', (type) => type || 'No Type'),
+            new go.Binding('stroke', 'type', (type) => {
+              if (!type || type === 'No Type') return '#9ca3af';
+              return '#3b82f6';
+            })
+          ),
+          // Dropdown arrow
+          $(go.Shape, 'TriangleDown',
+            {
+              width: 5,
+              height: 3,
+              fill: '#9ca3af',
+              stroke: null,
+              margin: new go.Margin(0, 0, 0, 3)
+            }
+          )
+        ),
+        {
+          click: (e, obj) => {
+            const node = obj.part as go.Node;
+            showTypeSelector(e, node);
+          }
+        }
+      )
+    );
+
     diagram.linkTemplate = $(
       go.Link,
       { routing: go.Link.AvoidsNodes, corner: 5, selectable: true },
-      $(go.Shape, { strokeWidth: 2, stroke: "#555" }), // the link line
-      $(go.Shape, { toArrow: "Triangle", fill: "#555", stroke: null }) // the arrowhead
+      $(go.Shape, { strokeWidth: 2, stroke: "#555" }),
+      $(go.Shape, { toArrow: "Triangle", fill: "#555", stroke: null })
     );
 
-    // ADD: Cluster group template (gray background with editable top-left label)
     diagram.groupTemplateMap.add('ClusterGroup',
       $(go.Group, 'Spot',
         {
@@ -173,7 +330,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           fromLinkable: false,
           toLinkable: false
         },
-        // Background panel with Placeholder that sizes to members
         $(go.Panel, 'Auto',
           $(go.Shape, 'RoundedRectangle', {
             name: 'CLUSTER_SHAPE',
@@ -182,7 +338,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
             strokeWidth: 1.5,
             parameter1: 6
           },
-            // Make visuals fully editable via data bindings
             new go.Binding('fill', 'color').makeTwoWay(),
             new go.Binding('stroke', 'stroke').makeTwoWay(),
             new go.Binding('strokeWidth', 'strokeWidth').makeTwoWay(),
@@ -190,7 +345,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           ),
           $(go.Placeholder, { padding: 20 })
         ),
-        // Editable label at top-left corner
         $(go.TextBlock,
           {
             alignment: go.Spot.TopLeft,
@@ -201,13 +355,11 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
             stroke: '#333',
             background: null
           },
-          // Label is editable, but identity remains name='cluster'
           new go.Binding('text', 'label').makeTwoWay()
         )
       )
     );
 
-    // Handle node selection
     diagram.addDiagramListener('ChangedSelection', () => {
       const node = diagram.selection.first();
       if (node instanceof go.Node) {
@@ -224,7 +376,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       }
     });
 
-    // Handle node double-click to edit
     diagram.addDiagramListener('ObjectDoubleClicked', (e) => {
       const node = e.subject.part;
       if (node instanceof go.Node) {
@@ -239,7 +390,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       }
     });
 
-    // Handle drag-and-drop from sidebar
     const handleDragOver = (e: DragEvent) => {
       e.preventDefault();
     };
@@ -261,13 +411,11 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       const point = diagram.transformViewToDoc(new go.Point(x, y));
       
       if (patternData) {
-        // Handle pattern drop
         const pattern = JSON.parse(patternData);
         diagram.startTransaction('drop pattern');
         
         const nodeKeyMap = new Map<string, string>();
         
-        // Add all nodes first
         pattern.nodes.forEach((node: any) => {
           const newKey = `node_${Date.now()}_${node.id}`;
           nodeKeyMap.set(node.id, newKey);
@@ -280,6 +428,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
             color: node.color,
             stroke: node.stroke,
             loc: go.Point.stringify(new go.Point(point.x + node.x, point.y + node.y)),
+            type: "No Type"  // ADD: Default type
           };
 
           if (node.shape === 'RoundedRectangle') {
@@ -289,7 +438,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           (diagram.model as go.GraphLinksModel).addNodeData(nodeData);
         });
         
-        // Add all links
         pattern.links.forEach((link: any) => {
           const fromKey = nodeKeyMap.get(link.from);
           const toKey = nodeKeyMap.get(link.to);
@@ -310,7 +458,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       }
       
       if (shapeData) {
-        // Handle single shape drop (existing logic)
         const shape = JSON.parse(shapeData);
         
         const nodeData: any = {
@@ -321,21 +468,19 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           color: shape.color,
           stroke: shape.stroke,
           loc: go.Point.stringify(point),
+          type: "No Type",  // ADD: Default type
           ...(shape.width && { width: shape.width }),
           ...(shape.height && { height: shape.height }),
         };
 
         if (shape.shape === 'RoundedRectangle') {
           const radius = shape.borderRadius ? parseFloat(shape.borderRadius) : 15;
-          nodeData.parameter1 = radius; // Must be a NUMBER, not a string
+          nodeData.parameter1 = radius;
         }
         
         if (shape.shape === 'Hexagon') {
           nodeData.parameter1 = 1;
-          console.log('📐 Adding Hexagon with shape:', shape.shape);
         }
-        
-        console.log('🎨 Adding node to diagram:', nodeData);
         
         diagram.startTransaction("add node");
         diagram.model.addNodeData(nodeData);
@@ -343,7 +488,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       }
     };
 
-    // Prevent browser context menu
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
       return false;
@@ -357,11 +501,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     }
 
     diagramRef.current = diagram;
-
-    // Setup validation listeners
     setupDiagramValidation(diagram);
 
-    // Cleanup function
     return () => {
       if (diagramDiv) {
         diagramDiv.removeEventListener('dragover', handleDragOver);
@@ -374,7 +515,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       }
     };
   }, [diagramRef, setSelectedData, setContextMenu, containers]);
-  
+
   const handleValidate = () => {
     if (!diagramRef.current) {
       alert('❌ Diagram not ready for validation.');
@@ -400,6 +541,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     }
   };
 
+  // ADD: Handle custom group drops
   useEffect(() => {
     const diagramDiv = diagramRef.current?.div;
     if (!diagramDiv) return;
@@ -422,7 +564,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
 
           diagram.startTransaction('drop custom group shape');
 
-          // Find min location for offset
           const minLoc = shape.nodeDataArray.reduce(
             (min: { x: number; y: number }, n: any) => {
               const [x, y] = (n.loc || "0 0").split(' ').map(Number);
@@ -436,7 +577,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           const offsetX = pt.x - minLoc.x;
           const offsetY = pt.y - minLoc.y;
 
-          // Generate new keys and locations for nodes
           const keyMap: Record<string, string> = {};
           const newNodes = shape.nodeDataArray.map((n: any) => {
             const newKey = `node_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
@@ -445,14 +585,13 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
             return {
               ...n,
               key: newKey,
-              loc: `${x + offsetX} ${y + offsetY}`
+              loc: `${x + offsetX} ${y + offsetY}`,
+              type: n.type || "No Type"  // Preserve or default type
             };
           });
 
-          // Add all new nodes first
           newNodes.forEach((n: any) => diagram.model.addNodeData(n));
 
-          // Now add links, using new keys
           const newLinks = shape.linkDataArray.map((l: any) => ({
             ...l,
             from: keyMap[l.from],
@@ -474,6 +613,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     };
   }, [diagramRef, customGroups]);
 
+  // Render the diagram container
   return (
     <div
       ref={diagramDivRef}
@@ -486,10 +626,10 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         border: '1px solid #ccc',
         overflowX: 'scroll',
         overflowY: 'scroll',
-
       }}
     />
   );
 };
 
+// ADD: Export the component as default
 export default GoDiagram;

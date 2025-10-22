@@ -24,6 +24,25 @@ export const shapes: ShapeDefinition[] = [
   { name: 'comment', label: 'Comment', shape: 'Rectangle', color: '#F5F5DC', stroke: '#A9A9A9', group: 'Documentation' },
 ];
 
+// ADD: Type definitions for each shape
+export const shapeTypes: Record<string, string[]> = {
+  "symbol": ["No Type", "Trace", "Label"],
+  "data": ["No Type", "Number", "Tensor", "Text", "Image", "Audio", "Video", "Table", "Graph", "Time Series"],
+  "artifact": ["No Type", "data", "symbol"],
+  "model": ["No Type"," Statistical", "Semantic", "Hybrid"],
+  "model:semantic": ["No Type"],
+  "model:statistics": ["No Type"],
+  "actor": ["No Type", "Human", "System", "Organization", "Agent"],
+  "generate": ["No Type","train","engineer"],
+  "generate:train": ["No Type"],
+  "generate:engineer": ["No Type"],
+  "infer:deduce": ["No Type","classification","prediction"],
+  "infer": ["No Type","deduce","induction"],
+  "transform": ["No Type","embed","Normalize","aggregate"],
+  "transform:embed": ["No Type"],
+  "comment": ["No Type"]
+};
+
 export type GoShape =
   | 'Rectangle'
   | 'RoundedRectangle'
