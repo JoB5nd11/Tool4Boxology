@@ -1,7 +1,7 @@
 // exportHelpers.ts
 import * as go from "gojs";
 
-/** 1) Canonical process names (semantic, not UI) - UPDATED to match BoxologyValidation.js */
+/** 1) Canonical process names (semantic, not UI) */
 const PROCESS_SET = new Set<string>([
   "generate",
   "generate:train",
@@ -24,7 +24,7 @@ function isProcessNode(n: any): boolean {
   return PROCESS_SET.has(name);
 }
 
-/** 4) Build a plain component object (keep both name + UI label, but label is display-only) */
+/** 4) Build a plain component object (name = semantic, label = UI display) */
 function toComponent(n: any) {
   return {
     id: n.key,
@@ -33,72 +33,59 @@ function toComponent(n: any) {
   };
 }
 
-/** 5) Main export - Uses raw GoJS model data like save function */
+/** 5) Main export function */
 export function exportBoxologyJSON(diagram: go.Diagram) {
   const model = diagram.model as go.GraphLinksModel;
-  
-  // Get raw data directly from model (like save function does)
-  const rawJson = JSON.parse(model.toJson());
-  const nodes = rawJson.nodeDataArray || [];
-  const links = rawJson.linkDataArray || [];
-
-  console.log("🔍 Export Debug - Total nodes:", nodes.length);
-  console.log("🔍 Export Debug - Total links:", links.length);
-  console.log("🔍 All links:", links);
+  const nodes = model.nodeDataArray;
+  const links = model.linkDataArray;
 
   const nodeByKey = new Map<string, any>(nodes.map((n: any) => [n.key, n]));
-  const groups = nodes.filter((n: any) => n.isGroup);
-
-  console.log("🔍 Export Debug - Groups found:", groups.length);
+  
+  // Find all groups (clusters)
+  const groups = nodes.filter((n: any) => n.category === 'ClusterGroup');
 
   const patterns: any[] = [];
 
-  // Build each pattern
+  // For each group, build a DesignPattern
   for (const g of groups) {
-    console.log(`\n🔍 Processing group: ${g.key} - ${g.label}`);
-    
-    // Get all nodes inside this group
-    const inside = nodes.filter((n: any) => !n.isGroup && n.group === g.key);
+    // 1) Find nodes inside this group
+    const inside = nodes.filter((n: any) => n.group === g.key);
     const insideKeys = new Set(inside.map((n: any) => n.key));
+
+    // 2) Internal links (both endpoints inside group)
+    const internal = links.filter(
+      (L: any) => insideKeys.has(L.from) && insideKeys.has(L.to)
+    );
     
-    console.log(`  Nodes inside: ${inside.map((n: any) => `${n.key}(${n.name})`).join(', ')}`);
+    // 3) Outgoing links (from inside to outside)
+    const outgoing = links.filter(
+      (L: any) => insideKeys.has(L.from) && !insideKeys.has(L.to)
+    );
 
-    // Get all links related to this group
-    const internal = links.filter((L: any) => insideKeys.has(L.from) && insideKeys.has(L.to));
-    const outgoing = links.filter((L: any) => insideKeys.has(L.from) && !insideKeys.has(L.to));
-
-    console.log(`  Internal links: ${internal.length}, Outgoing: ${outgoing.length}`);
-
-    // Find process nodes
+    // 4) Find process nodes
     const processNodes = inside.filter((n: any) => isProcessNode(n));
-    console.log(`  Process nodes: ${processNodes.map((p: any) => p.key).join(', ')}`);
 
-    // INPUTS: nodes that connect TO a process
+    // 5) Build inputs: non-process nodes that connect TO a process
     const inputMap = new Map<string, any>();
-    
-    // Check internal connections to process
     for (const L of internal) {
       const src = nodeByKey.get(L.from);
       const tgt = nodeByKey.get(L.to);
       if (src && tgt && !isProcessNode(src) && isProcessNode(tgt)) {
-        console.log(`    INPUT (internal): ${src.key}(${src.name}) → ${tgt.key}(${tgt.name})`);
         inputMap.set(src.key, toComponent(src));
       }
     }
 
-    // OUTPUTS: nodes that receive FROM a process
+    // 6) Build outputs: non-process nodes that receive FROM a process
     const outputsMap = new Map<string, any>();
-    
     for (const L of internal) {
       const src = nodeByKey.get(L.from);
       const tgt = nodeByKey.get(L.to);
       if (src && tgt && isProcessNode(src) && !isProcessNode(tgt)) {
-        console.log(`    OUTPUT (internal): ${src.key}(${src.name}) → ${tgt.key}(${tgt.name})`);
         outputsMap.set(tgt.key, toComponent(tgt));
       }
     }
 
-    // Build process object
+    // 7) Build process field
     let process: any = undefined;
     if (processNodes.length === 1) {
       const p = processNodes[0];
@@ -115,8 +102,11 @@ export function exportBoxologyJSON(diagram: go.Diagram) {
       }));
     }
 
+    // 8) Convert to arrays
     const inputArr = Array.from(inputMap.values());
     const outputArr = Array.from(outputsMap.values());
+
+    // 9) Output field: single object if one output, else array
     const outputField = outputArr.length === 1 ? outputArr[0] : outputArr;
 
     patterns.push({
@@ -128,43 +118,28 @@ export function exportBoxologyJSON(diagram: go.Diagram) {
     });
   }
 
-  // SECOND PASS: Handle cross-pattern connections (shared components)
-  console.log("\n🔍 Second Pass - Looking for cross-pattern links:");
-  
+  // SECOND PASS: cross-pattern connections (shared components)
   for (const link of links) {
     const fromNode = nodeByKey.get(link.from);
     const toNode = nodeByKey.get(link.to);
-    
-    if (!fromNode || !toNode) {
-      console.log(`  ⚠️ Link references missing node: ${link.from} → ${link.to}`);
-      continue;
-    }
-    
+    if (!fromNode || !toNode) continue;
+
     const fromGroup = fromNode.group;
     const toGroup = toNode.group;
-    
-    // Cross-pattern link detected
+
+    // If link crosses patterns and target is a process
     if (fromGroup && toGroup && fromGroup !== toGroup) {
-      console.log(`  🔗 Cross-pattern link found: ${fromNode.key}(${fromNode.name}) [${fromGroup}] → ${toNode.key}(${toNode.name}) [${toGroup}]`);
-      
-      // If target is a process, source becomes input to target's pattern
       if (isProcessNode(toNode)) {
-        const targetPattern = patterns.find(p => p.id === toGroup);
+        const targetPattern = patterns.find((p) => p.id === toGroup);
         if (targetPattern) {
           const sharedComp = toComponent(fromNode);
-          const alreadyExists = targetPattern.input.some((inp: any) => inp.id === sharedComp.id);
-          
+          const alreadyExists = targetPattern.input.some(
+            (inp: any) => inp.id === sharedComp.id
+          );
           if (!alreadyExists) {
-            console.log(`    ✅ Adding ${fromNode.key}(${fromNode.name}) as INPUT to pattern ${toGroup}`);
             targetPattern.input.push(sharedComp);
-          } else {
-            console.log(`    ℹ️ ${fromNode.key} already exists as input in pattern ${toGroup}`);
           }
-        } else {
-          console.log(`    ⚠️ Target pattern ${toGroup} not found!`);
         }
-      } else {
-        console.log(`    ℹ️ Target ${toNode.key}(${toNode.name}) is not a process, skipping`);
       }
     }
   }
@@ -180,21 +155,17 @@ export function exportBoxologyJSON(diagram: go.Diagram) {
     if (p.input && Array.isArray(p.input)) {
       for (const c of p.input) add(c);
     }
-    const outs = Array.isArray(p.output) ? p.output : (p.output ? [p.output] : []);
+    const outs = Array.isArray(p.output) ? p.output : p.output ? [p.output] : [];
     for (const c of outs) add(c);
   }
-  
   const sharedComponents = [...appearances.entries()]
     .filter(([, cnt]) => cnt > 1)
     .map(([id]) => id);
 
-  console.log("\n🔍 Final shared components:", sharedComponents);
-  console.log("\n🔍 Final patterns:", JSON.stringify(patterns, null, 2));
-
   return {
     id: "id1",
     label: "Boxology",
-    DesignPatterns: patterns,
+    DesignPattern: patterns,
     sharedComponents,
   };
 }
@@ -204,28 +175,50 @@ export function exportBoxologyJSON(diagram: go.Diagram) {
  */
 export const generateMultiPageRMLExport = (pages: any[]): any => {
   const boxologies = pages.map(page => {
-    // Use the same logic as exportBoxologyJSON but for page data
     const nodes = page.nodeDataArray || [];
     const links = page.linkDataArray || [];
     
+    console.log('📦 Processing page:', page.name);
+    console.log('  Total nodes:', nodes.length);
+    console.log('  Total links:', links.length);
+    console.log('  Node sample:', nodes.slice(0, 3));
+    
     const nodeByKey = new Map<string, any>(nodes.map((n: any) => [n.key, n]));
-    const groups = nodes.filter((n: any) => n.isGroup);
+    
+    // Check for groups
+    const groups = nodes.filter((n: any) => n.isGroup === true);
+    console.log('  Groups found:', groups.length);
+    console.log('  Group details:', groups.map((g: { key: string; label?: string; isGroup: boolean; category?: string }) => ({
+      key: g.key,
+      label: g.label,
+      isGroup: g.isGroup,
+      category: g.category
+    })));
     
     const patterns: any[] = [];
     
     for (const g of groups) {
-      const inside = nodes.filter((n: any) => !n.isGroup && n.group === g.key);
+      console.log(`\n  Processing group: ${g.key} - ${g.label}`);
+      
+      const inside = nodes.filter((n: any) => n.group === g.key);
+      console.log(`    Nodes inside: ${inside.length}`, inside.map((n: any) => `${n.key}(${n.name})`));
+      
       const insideKeys = new Set(inside.map((n: any) => n.key));
       
-      const internal = links.filter((L: any) => insideKeys.has(L.from) && insideKeys.has(L.to));
+      const internal = links.filter(
+        (L: any) => insideKeys.has(L.from) && insideKeys.has(L.to)
+      );
+      console.log(`    Internal links: ${internal.length}`, internal.map((l: any) => `${l.from}→${l.to}`));
       
       const processNodes = inside.filter((n: any) => isProcessNode(n));
+      console.log(`    Process nodes: ${processNodes.length}`, processNodes.map((p: any) => p.name));
       
       const inputMap = new Map<string, any>();
       for (const L of internal) {
         const src = nodeByKey.get(L.from);
         const tgt = nodeByKey.get(L.to);
         if (src && tgt && !isProcessNode(src) && isProcessNode(tgt)) {
+          console.log(`      INPUT: ${src.name} → ${tgt.name}`);
           inputMap.set(src.key, toComponent(src));
         }
       }
@@ -235,6 +228,7 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
         const src = nodeByKey.get(L.from);
         const tgt = nodeByKey.get(L.to);
         if (src && tgt && isProcessNode(src) && !isProcessNode(tgt)) {
+          console.log(`      OUTPUT: ${src.name} → ${tgt.name}`);
           outputsMap.set(tgt.key, toComponent(tgt));
         }
       }
@@ -259,6 +253,8 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
       const outputArr = Array.from(outputsMap.values());
       const outputField = outputArr.length === 1 ? outputArr[0] : outputArr;
       
+      console.log(`    Final - Inputs: ${inputArr.length}, Outputs: ${outputArr.length}, Process: ${process ? 'Yes' : 'No'}`);
+      
       patterns.push({
         id: g.key,
         label: g.label ?? g.text ?? "DesignPattern",
@@ -279,16 +275,20 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
       const toGroup = toNode.group;
       
       if (fromGroup && toGroup && fromGroup !== toGroup && isProcessNode(toNode)) {
+        console.log(`  Cross-pattern link: ${fromNode.name}[${fromGroup}] → ${toNode.name}[${toGroup}]`);
         const targetPattern = patterns.find(p => p.id === toGroup);
         if (targetPattern) {
           const sharedComp = toComponent(fromNode);
           const alreadyExists = targetPattern.input.some((inp: any) => inp.id === sharedComp.id);
           if (!alreadyExists) {
+            console.log(`    Adding shared input: ${fromNode.name}`);
             targetPattern.input.push(sharedComp);
           }
         }
       }
     }
+    
+    console.log(`\n✅ Page complete - ${patterns.length} patterns created\n`);
     
     return {
       id: page.id.replace(/-/g, '_'),
@@ -298,11 +298,4 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
   });
   
   return { boxologies };
-};
-
-/**
- * Enhanced JSON export that generates RML-compatible structure - NOT USED
- */
-export const generateRMLCompatibleJSON = (diagram: go.Diagram): any => {
-  return exportBoxologyJSON(diagram);
 };

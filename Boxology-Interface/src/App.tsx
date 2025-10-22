@@ -16,7 +16,7 @@ import { findUnclusteredNodes } from './utils/validation';
 import { parseDOTToModel } from './utils/dotImport';
 import { buildPagesFromModel } from './utils/pageBuilder';
 import { openInGraphviz } from './utils/openInGraphviz';
-import { generateRMLCompatibleJSON, generateMultiPageRMLExport } from './utils/exportHelpers';
+import { generateMultiPageRMLExport } from './utils/exportHelpers';
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
@@ -531,8 +531,15 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         })();
         const exportUUID = uuidv4().replace(/-/g, '').slice(0, 8);
 
-        // Generate RML-compatible JSON
+        // FIXED: Save current page data before export
+        const model = diagramRef.current.model as go.GraphLinksModel;
+        updateCurrentPage(model.nodeDataArray, model.linkDataArray);
+
+        // Generate RML-compatible JSON with updated pages data
         const rmlData = generateMultiPageRMLExport(pages);
+        
+        console.log('📤 Export Debug - Pages being exported:', pages.length);
+        console.log('📤 Export Debug - RML Data:', rmlData);
         
         // Add metadata
         const exportData = {
@@ -548,6 +555,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
         downloadFile(blob, `boxology_${userId}_${timestamp}_${exportUUID}.json`);
         
+        console.log('✅ JSON export completed');
         alert('JSON exported successfully!');
         break;
       }
