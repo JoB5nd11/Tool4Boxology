@@ -28,7 +28,7 @@ function isProcessNode(n: any): boolean {
 function toComponent(n: any) {
   return {
     id: n.key,
-    name: n.name ?? "",
+    name: n.type ?? n.name ?? "",  // 🔧 FIX: Use type field (not subtype)
     label: n.label ?? n.text ?? "",
   };
 }
@@ -91,13 +91,13 @@ export function exportBoxologyJSON(diagram: go.Diagram) {
       const p = processNodes[0];
       process = {
         id: p.key,
-        name: p.name,
+        name: p.type ?? p.name ?? "",  // 🔧 FIX: Use type field
         label: p.label ?? p.text ?? "",
       };
     } else if (processNodes.length > 1) {
       process = processNodes.map((p: any) => ({
         id: p.key,
-        name: p.name,
+        name: p.type ?? p.name ?? "",  // 🔧 FIX: Use type field
         label: p.label ?? p.text ?? "",
       }));
     }

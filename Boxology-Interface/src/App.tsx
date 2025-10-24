@@ -533,13 +533,35 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
 
         // FIXED: Save current page data before export
         const model = diagramRef.current.model as go.GraphLinksModel;
-        updateCurrentPage(model.nodeDataArray, model.linkDataArray);
+        
+        // Ensure we capture ALL properties including subtype
+        const currentPageNodes = model.nodeDataArray.map(node => {
+          // Create a deep copy with all properties
+          return {
+            ...node,
+            subtype: node.subtype || undefined, // Explicitly include subtype
+            type: node.type || undefined,
+            category: node.category || undefined,
+            shape: node.shape || undefined,
+            label: node.label || node.text || undefined,
+            color: node.color || undefined,
+            stroke: node.stroke || undefined,
+            loc: node.loc || undefined,
+            group: node.group || undefined,
+            isGroup: node.isGroup || false
+          };
+        });
+        
+        const currentPageLinks = model.linkDataArray.map(link => ({ ...link }));
+        
+        updateCurrentPage(currentPageNodes, currentPageLinks);
 
         // Generate RML-compatible JSON with updated pages data
         const rmlData = generateMultiPageRMLExport(pages);
         
         console.log('📤 Export Debug - Pages being exported:', pages.length);
         console.log('📤 Export Debug - RML Data:', rmlData);
+        console.log('📤 Export Debug - Sample node with subtype:', currentPageNodes.find(n => n.subtype));
         
         // Add metadata
         const exportData = {
@@ -556,7 +578,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         downloadFile(blob, `boxology_${userId}_${timestamp}_${exportUUID}.json`);
         
         console.log('✅ JSON export completed');
-        alert('JSON exported successfully!');
+        alert('JSON exported successfully with all properties including subtype!');
         break;
       }
 
@@ -890,8 +912,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           if (!dot) { alert('No DOT available.'); return; }
           openInGraphviz(dot, 'dot');
         }}
-        showTypeBadges={showTypeBadges}
-        onToggleTypeBadges={handleToggleTypeBadges}
       />
 
       {/* Tab Bar */}
@@ -1050,7 +1070,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             setContextMenu={setContextMenu}
             containers={containers}
             customGroups={customGroups}
-            showTypeBadges={showTypeBadges}
           />
           <ContextMenu 
             contextMenu={contextMenu}

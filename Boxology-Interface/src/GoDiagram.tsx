@@ -131,7 +131,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     model.commitTransaction('update');
   };
 
-  // ADD: Effect to update type badge visibility when showTypeBadges changes
+  // REMOVED: Effect to update type badge visibility - badges are now always visible
+
   useEffect(() => {
     if (!diagramRef.current) return;
     
@@ -268,15 +269,15 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         new go.Binding('text', 'label').makeTwoWay()
       ),
       
-      // Type selector - ADD name property and initial visible state
+      // Type selector - Always visible
       $(go.Panel, 'Auto',
         {
-          name: 'TYPE_BADGE',  // ADD: Name to find this panel later
+          name: 'TYPE_BADGE',
           alignment: go.Spot.Top,
           alignmentFocus: go.Spot.Bottom,
           margin: new go.Margin(-8, 0, 0, 0),
           cursor: 'pointer',
-          visible: showTypeBadges  // Initial state
+          visible: true  // CHANGED: Always visible
         },
         $(go.Shape, 'RoundedRectangle',
           {
@@ -412,6 +413,26 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       }
     });
 
+    diagram.addDiagramListener('ExternalObjectsDropped', (e) => {
+      const droppedParts = e.subject;
+      droppedParts.each((part: go.Part) => {
+        if (part instanceof go.Node && !part.data.isGroup) {
+          const nodeData = part.data;
+          
+          // 🔧 FIX: Set default type to the shape's name if not already set
+          if (!nodeData.type && nodeData.name) {
+            diagram.model.setDataProperty(nodeData, 'type', nodeData.name);
+          }
+          
+          // Update label to include type
+          const currentLabel = nodeData.label || nodeData.text || nodeData.name || 'Node';
+          const displayLabel = currentLabel.charAt(0).toUpperCase() + currentLabel.slice(1);
+          diagram.model.setDataProperty(nodeData, 'label', displayLabel);
+          diagram.model.setDataProperty(nodeData, 'text', displayLabel);
+        }
+      });
+    });
+
     const handleDragOver = (e: DragEvent) => {
       e.preventDefault();
     };
@@ -450,7 +471,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
             color: node.color,
             stroke: node.stroke,
             loc: go.Point.stringify(new go.Point(point.x + node.x, point.y + node.y)),
-            type: "No Type"  // ADD: Default type
+            type: node.type || node.name  // 🔧 FIX: Use pattern's type or default to name
           };
 
           if (node.shape === 'RoundedRectangle') {
@@ -490,7 +511,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           color: shape.color,
           stroke: shape.stroke,
           loc: go.Point.stringify(point),
-          type: "No Type",  // ADD: Default type
+          type: shape.name,  // 🔧 FIX: Set default type to shape name
           ...(shape.width && { width: shape.width }),
           ...(shape.height && { height: shape.height }),
         };
@@ -608,7 +629,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
               ...n,
               key: newKey,
               loc: `${x + offsetX} ${y + offsetY}`,
-              type: n.type || "No Type"  // Preserve or default type
+              type: n.type || n.name  // 🔧 FIX: Preserve type or default to name
             };
           });
 
