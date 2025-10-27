@@ -15,7 +15,6 @@ interface GoDiagramProps {
   setContextMenu: Dispatch<SetStateAction<ContextMenuPosition | null>>;
   containers: string[];
   customGroups: Record<string, any[]>;
-  showTypeBadges: boolean;
 }
 
 // UPDATED: Type selector function with correct positioning
@@ -114,7 +113,6 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
   setContextMenu,
   containers,
   customGroups,
-  showTypeBadges
 }) => {
   const diagramDivRef = useRef<HTMLDivElement>(null);
 
@@ -142,15 +140,14 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     diagram.nodes.each((node) => {
       const typeBadge = node.findObject('TYPE_BADGE');
       if (typeBadge) {
-        typeBadge.visible = showTypeBadges;
+        typeBadge.visible = true;
       }
     });
     
-  }, [showTypeBadges, diagramRef]);
+  }, [diagramRef]);
 
   useEffect(() => {
     if (!diagramDivRef.current) return;
-
     const $ = go.GraphObject.make;
 
     if (diagramRef.current) {

@@ -25,7 +25,6 @@ function App() {
   const [selectedData, setSelectedData] = useState<any>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [customGroups, setCustomGroups] = useState<{ [key: string]: any[] }>({});
-  const [showTypeBadges, setShowTypeBadges] = useState<boolean>(true);
 
   // Page management for GoJS diagrams
   type PageData = {
@@ -433,9 +432,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
   };
 };
 
-  const handleExport = async (
-    format: 'svg' | 'png' | 'jpg' | 'xml' | 'json' | 'drawio' | 'dot'
-  ) => {
+  const handleExport = async (kind: 'svg' | 'png' | 'jpg' | 'xml' | 'json' | 'drawio' | 'dot') => {
     // Validate clustering before export
     const validation = validateNodeClustering();
     if (!validation.valid) {
@@ -455,7 +452,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     const diagram = diagramRef.current;
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 
-    switch (format) {
+    switch (kind) {
       case 'svg': {
         const svg = diagram.makeSvg({ scale: 1, background: 'white' });
         if (!svg) {
@@ -473,7 +470,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         const imgData = diagram.makeImageData({
           scale: 2,
           background: 'white',
-          type: format === 'png' ? 'image/png' : 'image/jpeg',
+          type: kind === 'png' ? 'image/png' : 'image/jpeg',
         });
         if (!imgData) {
           alert('Failed to generate image');
@@ -481,7 +478,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         }
         if (typeof imgData === 'string') {
           const blob = await (await fetch(imgData)).blob();
-          downloadFile(blob, `diagram_${timestamp}.${format}`);
+          downloadFile(blob, `diagram_${timestamp}.${kind}`);
         } else if (imgData instanceof HTMLImageElement) {
           // If makeImageData returns an HTMLImageElement, convert it to a blob
           const canvas = document.createElement('canvas');
@@ -492,11 +489,11 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             ctx.drawImage(imgData, 0, 0);
             canvas.toBlob((blob) => {
               if (blob) {
-                downloadFile(blob, `diagram_${timestamp}.${format}`);
+                downloadFile(blob, `diagram_${timestamp}.${kind}`);
               } else {
                 alert('Failed to generate image blob');
               }
-            }, format === 'png' ? 'image/png' : 'image/jpeg');
+            }, kind === 'png' ? 'image/png' : 'image/jpeg');
           } else {
             alert('Failed to create canvas context');
           }
@@ -518,11 +515,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
       }
 
       case 'json': {
-        // Enhanced JSON export for RML compatibility
-        if (!diagramRef.current) {
-          alert('No diagram available');
-          return;
-        }
+        if (!diagramRef.current) { alert('No diagram available'); return; }
 
         const userId = window.localStorage.getItem('userId') || (() => {
           const id = `user_${Math.random().toString(36).slice(2, 10)}`;
@@ -530,45 +523,29 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           return id;
         })();
         const exportUUID = uuidv4().replace(/-/g, '').slice(0, 8);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 
-        // FIXED: Save current page data before export
+        // Build updated pages inline (avoid async setState race)
         const model = diagramRef.current.model as go.GraphLinksModel;
-        
-        // Ensure we capture ALL properties including subtype
-        const currentPageNodes = model.nodeDataArray.map(node => {
-          // Create a deep copy with all properties
-          return {
-            ...node,
-            subtype: node.subtype || undefined, // Explicitly include subtype
-            type: node.type || undefined,
-            category: node.category || undefined,
-            shape: node.shape || undefined,
-            label: node.label || node.text || undefined,
-            color: node.color || undefined,
-            stroke: node.stroke || undefined,
-            loc: node.loc || undefined,
-            group: node.group || undefined,
-            isGroup: node.isGroup || false
-          };
-        });
-        
-        const currentPageLinks = model.linkDataArray.map(link => ({ ...link }));
-        
-        updateCurrentPage(currentPageNodes, currentPageLinks);
+        const currentPageNodes = model.nodeDataArray.map((n: any) => ({
+          ...n,
+          type: n.type ?? n.name // ensure type present
+        }));
+        const currentPageLinks = model.linkDataArray.map((l: any) => ({ ...l }));
 
-        // Generate RML-compatible JSON with updated pages data
-        const rmlData = generateMultiPageRMLExport(pages);
-        
-        console.log('📤 Export Debug - Pages being exported:', pages.length);
-        console.log('📤 Export Debug - RML Data:', rmlData);
-        console.log('📤 Export Debug - Sample node with subtype:', currentPageNodes.find(n => n.subtype));
-        
-        // Add metadata
+        const updatedPages = pages.map(p =>
+          p.id === currentPageId
+            ? { ...p, nodeDataArray: currentPageNodes, linkDataArray: currentPageLinks }
+            : p
+        );
+
+        const rmlData = generateMultiPageRMLExport(updatedPages);
+
         const exportData = {
           metadata: {
             exportId: exportUUID,
-            userId: userId,
-            exportDate: new Date().toISOString(),
+            userId,
+            exportDate: new Date().toISOString()
           },
           ...rmlData
         };
@@ -576,9 +553,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         const json = JSON.stringify(exportData, null, 2);
         const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
         downloadFile(blob, `boxology_${userId}_${timestamp}_${exportUUID}.json`);
-        
-        console.log('✅ JSON export completed');
-        alert('JSON exported successfully with all properties including subtype!');
         break;
       }
 
@@ -878,11 +852,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     });
 
     diagram.commitTransaction('cluster group');
-  };
-
-  // Add this function after handleAddContainer (around line 157):
-  const handleToggleTypeBadges = () => {
-    setShowTypeBadges(prev => !prev);
   };
 
   return (
