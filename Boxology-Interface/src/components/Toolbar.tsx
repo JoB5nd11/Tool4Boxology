@@ -223,7 +223,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       nodes.forEach((node, index) => {
         node.move(new go.Point(currentX, baseY));
         if (index < nodes.length - 1) {
-          currentX += node.actualBounds.width + 80;
+          currentX += node.actualBounds.width + 40;
         }
       });
     } catch (error) {
@@ -255,7 +255,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       nodes.forEach((node, index) => {
         node.move(new go.Point(baseX, currentY));
         if (index < nodes.length - 1) {
-          currentY += node.actualBounds.height + 80;
+          currentY += node.actualBounds.height + 40;
         }
       });
     } catch (error) {

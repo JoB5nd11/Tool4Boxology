@@ -339,7 +339,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     );
 
     diagram.groupTemplateMap.add('ClusterGroup',
-      $(go.Group, 'Spot',
+      $(go.Group, 'Auto',
         {
           isSubGraphExpanded: true,
           layerName: 'Background',
@@ -347,35 +347,44 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           movable: true,
           handlesDragDropForMembers: true,
           computesBoundsAfterDrag: true,
+          computesBoundsIncludingLinks: true,
           fromLinkable: false,
-          toLinkable: false
+          toLinkable: false,
+          minSize: new go.Size(120, 60),
+          resizable: true,
         },
-        $(go.Panel, 'Auto',
-          $(go.Shape, 'RoundedRectangle', {
+        // The Shape that will resize to fit the inner Panel (label + placeholder)
+        $(go.Shape, 'RoundedRectangle', {
             name: 'CLUSTER_SHAPE',
             fill: '#e9ecef',
             stroke: '#adb5bd',
             strokeWidth: 1.5,
             parameter1: 6
           },
-            new go.Binding('fill', 'color').makeTwoWay(),
-            new go.Binding('stroke', 'stroke').makeTwoWay(),
-            new go.Binding('strokeWidth', 'strokeWidth').makeTwoWay(),
-            new go.Binding('parameter1', 'parameter1').makeTwoWay()
-          ),
-          $(go.Placeholder, { padding: 20 })
+          new go.Binding('fill', 'color').makeTwoWay(),
+          new go.Binding('stroke', 'stroke').makeTwoWay(),
+          new go.Binding('strokeWidth', 'strokeWidth').makeTwoWay(),
+          new go.Binding('parameter1', 'parameter1').makeTwoWay()
         ),
-        $(go.TextBlock,
-          {
-            alignment: go.Spot.TopLeft,
-            alignmentFocus: go.Spot.TopLeft,
-            margin: new go.Margin(6, 0, 0, 8),
-            editable: true,
-            font: 'bold 12px sans-serif',
-            stroke: '#333',
-            background: null
-          },
-          new go.Binding('text', 'label').makeTwoWay()
+        // Put label and placeholder into a Vertical panel so the Shape's bounds include both
+        $(go.Panel, 'Vertical',
+          { defaultStretch: go.GraphObject.Horizontal },
+          $(go.TextBlock,
+            {
+              name: 'G_LABEL',
+              margin: new go.Margin(6, 8, 0, 8),
+              editable: true,
+              font: 'bold 12px sans-serif',
+              stroke: '#333',
+              background: null,
+              maxSize: new go.Size(200, NaN), // constrain width so long labels wrap
+              wrap: go.TextBlock.WrapFit,
+              overflow: go.TextBlock.OverflowEllipsis,
+              alignment: go.Spot.TopLeft
+            },
+            new go.Binding('text', 'label').makeTwoWay()
+          ),
+          $(go.Placeholder, { padding: 12 })
         )
       )
     );
