@@ -178,6 +178,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     const diagram = $(go.Diagram, diagramDivRef.current, {
       'undoManager.isEnabled': true,
       allowDrop: true,
+      padding: new go.Margin(40),               // << -- add space around content
+      initialContentAlignment: go.Spot.TopLeft, // keep content origin at top-left
       grid: $(
         go.Panel,
         'Grid',

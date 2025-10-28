@@ -8,7 +8,9 @@ const norm = (s?: string) => (s ?? '').trim().toLowerCase();
 const PROCESS_TYPES = new Set<string>([
   'transform', 'deduce', 'training', 'engineering',
   'generate', 'generate:train', 'generate:engineer',
-  'infer', 'infer:deduce', 'transform:embed', 'embed' // <-- added 'embed'
+  "classification", "prediction",
+  "Symbolic Learning", "Statistical Learning", "Deep Learning", "Reinforcement Learning",
+  'infer', 'infer:deduce', 'transform:embed', 'embed','normalize','aggregate'// <-- added 'embed'
 ]);
 
 // UPDATED: check type, then subtype, then name, then label (case-insensitive)
