@@ -467,39 +467,8 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
 
       case 'png':
       case 'jpg': {
-        const imgData = diagram.makeImageData({
-          scale: 2,
-          background: 'white',
-          type: kind === 'png' ? 'image/png' : 'image/jpeg',
-        });
-        if (!imgData) {
-          alert('Failed to generate image');
-          return;
-        }
-        if (typeof imgData === 'string') {
-          const blob = await (await fetch(imgData)).blob();
-          downloadFile(blob, `diagram_${timestamp}.${kind}`);
-        } else if (imgData instanceof HTMLImageElement) {
-          // If makeImageData returns an HTMLImageElement, convert it to a blob
-          const canvas = document.createElement('canvas');
-          canvas.width = imgData.naturalWidth;
-          canvas.height = imgData.naturalHeight;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(imgData, 0, 0);
-            canvas.toBlob((blob) => {
-              if (blob) {
-                downloadFile(blob, `diagram_${timestamp}.${kind}`);
-              } else {
-                alert('Failed to generate image blob');
-              }
-            }, kind === 'png' ? 'image/png' : 'image/jpeg');
-          } else {
-            alert('Failed to create canvas context');
-          }
-        } else {
-          alert('Unsupported image data type');
-        }
+        // Use helper to export the full document bounds (not the viewport)
+        await exportFullDiagramImage(kind, 2, 20);
         break;
       }
 
@@ -675,6 +644,91 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     link.click();
     document.body.removeChild(link);
   };
+
+  // Export full diagram (entire document bounds) at given scale and kind
+  async function exportFullDiagramImage(kind: 'png' | 'jpg', scale = 2, pad = 20) {
+    if (!diagramRef.current) {
+      alert('No diagram to export');
+      return;
+    }
+    const diagram = diagramRef.current;
+    const bounds = diagram.documentBounds;
+    if (!bounds || bounds.width === 0 || bounds.height === 0) {
+      alert('Diagram is empty or has no bounds to export.');
+      return;
+    }
+
+    const imgType = kind === 'png' ? 'image/png' : 'image/jpeg';
+
+    // Calculate target size (scaled) and include padding
+    const targetW = Math.ceil(bounds.width * scale) + pad * 2;
+    const targetH = Math.ceil(bounds.height * scale) + pad * 2;
+
+    // Ask GoJS to produce an image that covers the whole document bounds.
+    // Use maxSize so the generated image covers the full document area at the requested scale.
+    const rawImg = diagram.makeImageData({
+      background: 'white',
+      scale,
+      type: imgType,
+      maxSize: new go.Size(targetW, targetH)
+    });
+
+    // Reuse existing conversion logic (string | HTMLImageElement | ImageData)
+    const toImageElement = async (srcOrEl: string | HTMLImageElement | ImageData | null): Promise<HTMLImageElement> => {
+      if (!srcOrEl) throw new Error('No image returned from GoJS');
+      if (srcOrEl instanceof HTMLImageElement) return srcOrEl;
+      if (typeof srcOrEl === 'string') {
+        return await new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = (e) => reject(e);
+          img.src = srcOrEl;
+        });
+      }
+      // ImageData -> draw on temporary canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = srcOrEl.width;
+      canvas.height = srcOrEl.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Failed to create canvas context for ImageData conversion');
+      ctx.putImageData(srcOrEl, 0, 0);
+      const dataUrl = canvas.toDataURL(imgType);
+      return await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = (e) => reject(e);
+        img.src = dataUrl;
+      });
+    };
+
+    try {
+      const imgEl = await toImageElement(rawImg);
+
+      // Create canvas with padding so output is neat (important for JPG)
+      const canvas = document.createElement('canvas');
+      canvas.width = imgEl.naturalWidth + pad * 2;
+      canvas.height = imgEl.naturalHeight + pad * 2;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { alert('Failed to create canvas context'); return; }
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(imgEl, pad, pad);
+
+      await new Promise<void>((resolve) => {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            downloadFile(blob, `diagram_full_${new Date().toISOString().slice(0,19)}.${kind}`);
+          } else {
+            alert('Failed to generate image blob');
+          }
+          resolve();
+        }, imgType);
+      });
+    } catch (err) {
+      console.error('Full diagram export error:', err);
+      alert('Failed to export full diagram image.');
+    }
+  }
 
   // Diagram operations
   const handleDiagramOperation = (operation: 'undo' | 'redo' | 'validate') => {
