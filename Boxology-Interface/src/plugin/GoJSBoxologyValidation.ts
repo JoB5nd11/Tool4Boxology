@@ -38,16 +38,16 @@ const allPatterns: { name: string; edges: [string, string][] }[] = [
   { name: "transform to symbol (symbol)", edges: [["symbol", "transform"], ["transform", "symbol"]] },
   { name: "transform to symbol (artifacts)", edges: [["artifacts", "transform"], ["transform", "symbol"]] },
   { name: "transform_model (model)", edges: [["model", "transform"], ["transform", "model"]] },
-  { name: "actor transform symbol to symbol", edges: [["symbol", "transform"], ["actor", "transform"], ["transform", "symbol"]] },
-  { name: "actor transform symbol to data", edges: [["symbol", "transform"], ["actor", "transform"], ["transform", "data"]] },
-  { name: "actor transform data to data", edges: [["data", "transform"], ["actor", "transform"], ["transform", "data"]] },
-  { name: "actor transform artifacts to data", edges: [["artifacts", "transform"], ["actor", "transform"], ["transform", "data"]] },
+  //{ name: "actor transform symbol to symbol", edges: [["symbol", "transform"], ["actor", "transform"], ["transform", "symbol"]] },
+  //{ name: "actor transform symbol to data", edges: [["symbol", "transform"], ["actor", "transform"], ["transform", "data"]] },
+  //{ name: "actor transform data to data", edges: [["data", "transform"], ["actor", "transform"], ["transform", "data"]] },
+  //{ name: "actor transform artifacts to data", edges: [["artifacts", "transform"], ["actor", "transform"], ["transform", "data"]] },
   
   //engineer model from actor and artifacts
   { name: "generate_model from actor", edges: [["actor", "engineering"], ["engineering", "model"]] },
   { name: "generate_model from actor", edges: [["actor", "engineering"], ["engineering", "SemanticModel"]] },
   { name: "generate_model from actor", edges: [["actor", "engineering"], ["engineering", "StatisticalModel"]] },
-  { name: "actor generate model", edges: [["actor", "generate"], ["symbol", "generate"], ["generate", "model"]] },
+  //{ name: "actor engineer data from data", edges: [["actor", "engineering"], ["data", "engineering"], ["engineering", "data"]] },
   { name: "generate_symbol from actor", edges: [["actor", "engineering"], ["engineering", "symbol"]] },
   { name: "generate_data from actor", edges: [["actor", "engineering"], ["engineering", "data"]] },
 
