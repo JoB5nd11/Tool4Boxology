@@ -30,7 +30,7 @@ function toComponent(n: any) {
 
 function singleOrArray(arr: any[]) {
   if (!arr || arr.length === 0) return undefined;
-  return arr.length === 1 ? arr[0] : arr;
+  return arr;
 }
 
 /**
