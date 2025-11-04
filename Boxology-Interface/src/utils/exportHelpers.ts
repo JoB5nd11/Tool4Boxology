@@ -129,7 +129,7 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
     const patterns = buildDesignPatternsFromModelData(page.nodeDataArray ?? [], page.linkDataArray ?? []);
     return {
       id: page.id,
-      label: page.name ?? 'Page',
+      label: `Diagram`,
       DesignPattern: patterns
     };
   });

@@ -3,16 +3,15 @@ import './App.css';
 import Toolbar from './components/Toolbar';
 import LeftSidebar from './components/LeftSidebar';
 import GoDiagram from './GoDiagram';
+import { saveWithPicker } from './utils/fs-save';
 import * as go from 'gojs';
 import RightSidebar from './components/RightSidebar';
 import ContextMenu from './ContextMenu';
-import { validateGoJSDiagram, setupDiagramValidation } from './plugin/GoJSBoxologyValidation';
+import { validateGoJSDiagram } from './plugin/GoJSBoxologyValidation';
 import { v4 as uuidv4 } from 'uuid';
-import { validateDiagram } from './utils/validation';
 import type { ValidationResult } from './utils/validation';
 import { elementaryPatterns } from './data/patterns';
 import { modelToDOT } from './utils/dot';
-import { findUnclusteredNodes } from './utils/validation';
 import { parseDOTToModel } from './utils/dotImport';
 import { buildPagesFromModel } from './utils/pageBuilder';
 import { openInGraphviz } from './utils/openInGraphviz';
@@ -38,12 +37,25 @@ function App() {
     [
       {
         id: uuidv4(),
-        name: "Main Page",
+        name: "Diagram",
         nodeDataArray: [],
         linkDataArray: [],
       },
     ]
   );
+
+  // sanitize a filename for Windows/posix
+  const sanitizeFilename = (name: string) =>
+    name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim().replace(/\s+/g, '_').slice(0, 120);
+
+  // allow renaming a page (double-click tab)
+  const handleRenamePage = (pageId: string) => {
+    const p = pages.find(pp => pp.id === pageId);
+    if (!p) return;
+    const newName = prompt('Enter new page name:', p.name);
+    if (!newName) return;
+    setPages(prev => prev.map(pg => pg.id === pageId ? { ...pg, name: newName.trim() } : pg));
+  };
 
   const [currentPageId, setCurrentPageId] = useState(pages[0].id);
 
@@ -67,7 +79,7 @@ function App() {
 
     const newPage: PageData = {
       id: uuidv4(),
-      name: `Page ${pages.length + 1}`,
+      name: `Diagram ${pages.length + 1}`,
       nodeDataArray: [],
       linkDataArray: [],
     };
@@ -226,25 +238,47 @@ function App() {
     alert(`${selectedNodes.length > 0 ? 'Selection' : 'Diagram'} saved as custom shape in "${groupName}" group!`);
   };
 
+  // Unified export/save helper: try picker, else download
+  const isUserCancelledError = (err: any) =>
+    err?.name === 'AbortError' || err?.canceled === true || /aborted|cancel/i.test(String(err?.message));
+
+  const saveOrDownload = async (blob: Blob, filename: string, mime: string): Promise<boolean> => {
+    try {
+      await saveWithPicker(blob, filename, mime);
+      return true;
+    } catch (err) {
+      // If the user canceled the picker, do not save
+      if (isUserCancelledError(err)) return false;
+      // On other errors (e.g., unsupported), fallback to classic download
+      try {
+        downloadFile(blob, filename);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  };
+
   // Consolidated file operations
-  const handleFileOperation = (operation: 'save' | 'open') => {
+  const handleFileOperation = async (operation: 'save' | 'open') => {
     if (operation === 'save') {
       if (!diagramRef.current) {
         alert('No diagram available');
         return;
       }
-      const json = diagramRef.current.model.toJson();
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `diagram_${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      alert('Diagram saved!');
+      const modelJson = diagramRef.current.model.toJson();
+
+      // use current page name for save filename (only for save, not exports)
+      const pageName = pages.find(p => p.id === currentPageId)?.name || 'diagram';
+      const safe = sanitizeFilename(pageName) || 'diagram';
+      const date = new Date().toISOString().slice(0, 10);
+      const filename = `${safe}_${date}.json`;
+
+      const blob = new Blob([modelJson], { type: 'application/json' });
+      const saved = await saveOrDownload(blob, filename, 'application/json');
+      if (saved) alert('Diagram saved!');
       return;
+      
     }
 
     // OPEN
@@ -291,107 +325,6 @@ function App() {
       }
     };
     input.click();
-  };
-
-  // Helper function to convert GoJS data to Graphviz DOT format
-  const convertToDOT = (data: any): string => {
-    const nodes = data.nodeDataArray || [];
-    const links = data.linkDataArray || [];
-
-    // Groups (clusters)
-    const groups = nodes.filter((n: any) => n.isGroup);
-    const membersByGroup: Record<string, any[]> = {};
-    groups.forEach((g: any) => {
-      membersByGroup[g.key] = nodes.filter((n: any) => !n.isGroup && n.group === g.key);
-    });
-
-    const topLevelNodes = nodes.filter((n: any) => !n.isGroup && !n.group);
-
-    // Sanitize to a legal DOT ID and ensure it starts with a letter
-    const dotId = (key: string) =>
-      `n_${String(key).replace(/[^A-Za-z0-9_]/g, '_')}`;
-
-    const esc = (s: string) => (s || '').replace(/"/g, '\\"');
-
-    const mapShape = (shape: string) => {
-      switch (shape) {
-        case 'Rectangle': return 'box';
-        case 'RoundedRectangle': return 'box';
-        case 'Ellipse': return 'ellipse';
-        case 'Diamond': return 'diamond';
-        case 'Triangle': return 'triangle';
-        case 'TriangleDown': return 'invtriangle';
-        case 'Hexagon': return 'hexagon';
-        default: return 'box';
-      }
-    };
-
-    const nodeLine = (n: any, indent = '  ') => {
-      const attrs: string[] = [];
-      attrs.push(`label="${esc(n.label || n.name || n.key)}"`);
-      attrs.push(`shape=${mapShape(n.shape)}`);
-      // style: rounded only for RoundedRectangle, always filled if we have a fill color
-      const styleParts = [];
-      if (n.shape === 'RoundedRectangle') styleParts.push('rounded');
-      styleParts.push('filled');
-      attrs.push(`style="${styleParts.join(',')}"`);
-      if (n.color) attrs.push(`fillcolor="${esc(n.color)}"`);
-      if (n.stroke) attrs.push(`color="${esc(n.stroke)}"`);
-      attrs.push(`fontname="Helvetica"`);
-
-      return `${indent}${dotId(n.key)} [${attrs.join(', ')}];`;
-    };
-
-    const lines: string[] = [];
-    lines.push('digraph Boxology {');
-    lines.push('  graph [rankdir=TB, bgcolor="white"];');
-    lines.push('  node [style="filled", fontname="Helvetica"];');
-    lines.push('  edge [color="#555555"];');
-
-    // Top-level nodes
-    topLevelNodes.forEach((n: any) => lines.push(nodeLine(n)));
-
-    // Clusters
-    groups.forEach((g: any) => {
-      const gid = dotId(g.key);
-      lines.push(`  subgraph cluster_${gid} {`);
-      lines.push(`    label="${esc(g.label || g.name || 'Cluster')}";`);
-      lines.push('    style="filled";');
-      lines.push('    color="#d3d3d3";');
-      (membersByGroup[g.key] || []).forEach((n: any) => {
-        lines.push(nodeLine(n, '    '));
-      });
-      lines.push('  }');
-    });
-
-    // Edges
-    links.forEach((l: any) => {
-      if (!l.from || !l.to) return;
-      lines.push(`  ${dotId(l.from)} -> ${dotId(l.to)};`);
-    });
-
-    lines.push('}');
-    return lines.join('\n');
-  };
-
-  // Gatekeeper: every node must be in a cluster (user group)
-  const ensureExportPreconditions = (): { ok: boolean; error?: string } => {
-    if (!diagramRef.current) return { ok: false, error: 'No diagram found.' };
-    const raw = JSON.parse(diagramRef.current.model.toJson());
-    const bad = findUnclusteredNodes(raw);
-    if (bad.length) {
-      const list = bad.slice(0, 10).map((n: any) => `- ${n.label ?? n.text ?? n.key}`).join('\n');
-      return {
-        ok: false,
-        error:
-`Export blocked: all nodes must belong to a cluster.
-
-Unclustered nodes (${bad.length}):
-${list}
-Tip: select nodes → right-click → "Cluster Group".`
-      };
-    }
-    return { ok: true };
   };
 
   // Add validation function to check if all nodes belong to exactly one cluster
@@ -450,7 +383,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     }
 
     const diagram = diagramRef.current;
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 
     switch (kind) {
       case 'svg': {
@@ -461,7 +394,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         }
         const svgStr = new XMLSerializer().serializeToString(svg);
         const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
-        downloadFile(blob, `diagram_${timestamp}.svg`);
+        await saveOrDownload(blob, `diagram_${timestamp}.svg`, 'image/svg+xml');
         break;
       }
 
@@ -479,7 +412,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         };
         const xml = modelToXML(data);
         const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
-        downloadFile(blob, `diagram_${timestamp}.xml`);
+        await saveOrDownload(blob, `diagram_${timestamp}.xml`, 'application/xml');
         break;
       }
 
@@ -492,7 +425,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           return id;
         })();
         const exportUUID = uuidv4().replace(/-/g, '').slice(0, 8);
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 
         // Build updated pages inline (avoid async setState race)
         const model = diagramRef.current.model as go.GraphLinksModel;
@@ -521,7 +453,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
 
         const json = JSON.stringify(exportData, null, 2);
         const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-        downloadFile(blob, `boxology_${userId}_${timestamp}_${exportUUID}.json`);
+        await saveOrDownload(blob, `boxology_${userId}_${timestamp}_${exportUUID}.json`, 'application/json');
         break;
       }
 
@@ -530,9 +462,9 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           nodeDataArray: diagram.model.nodeDataArray,
           linkDataArray: (diagram.model as go.GraphLinksModel).linkDataArray || [],
         };
-        const drawioXml = convertToDrawioXML(data, timestamp);
+        const drawioXml = convertToDrawioXML(data);
         const blob = new Blob([drawioXml], { type: 'application/xml' });
-        downloadFile(blob, `diagram_${timestamp}.drawio`);
+        await saveOrDownload(blob, `diagram_${timestamp}.drawio`, 'application/xml');
         break;
       }
 
@@ -543,14 +475,14 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         };
         const dot = modelToDOT(data, { graphLabel: 'Boxology' });
         const blob = new Blob([dot], { type: 'text/vnd.graphviz;charset=utf-8' });
-        downloadFile(blob, `diagram_${timestamp}.dot`);
+        await saveOrDownload(blob, `diagram_${timestamp}.dot`, 'text/vnd.graphviz');
         break;
       }
     }
   };
 
   // Helper function to convert GoJS data to Draw.io XML format
-  const convertToDrawioXML = (data: any, timestamp: string): string => {
+  const convertToDrawioXML = (data: any): string => {
     const nodes = data.nodeDataArray || [];
     const links = data.linkDataArray || [];
     
@@ -636,15 +568,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     URL.revokeObjectURL(url);
   };
 
-  const downloadImageFile = (src: string, filename: string) => {
-    const link = document.createElement('a');
-    link.href = src;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   // Export full diagram (entire document bounds) at given scale and kind
   async function exportFullDiagramImage(kind: 'png' | 'jpg', scale = 2, pad = 20) {
     if (!diagramRef.current) {
@@ -664,8 +587,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     const targetW = Math.ceil(bounds.width * scale) + pad * 2;
     const targetH = Math.ceil(bounds.height * scale) + pad * 2;
 
-    // Ask GoJS to produce an image that covers the whole document bounds.
-    // Use maxSize so the generated image covers the full document area at the requested scale.
     const rawImg = diagram.makeImageData({
       background: 'white',
       scale,
@@ -673,7 +594,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
       maxSize: new go.Size(targetW, targetH)
     });
 
-    // Reuse existing conversion logic (string | HTMLImageElement | ImageData)
     const toImageElement = async (srcOrEl: string | HTMLImageElement | ImageData | null): Promise<HTMLImageElement> => {
       if (!srcOrEl) throw new Error('No image returned from GoJS');
       if (srcOrEl instanceof HTMLImageElement) return srcOrEl;
@@ -685,7 +605,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           img.src = srcOrEl;
         });
       }
-      // ImageData -> draw on temporary canvas
       const canvas = document.createElement('canvas');
       canvas.width = srcOrEl.width;
       canvas.height = srcOrEl.height;
@@ -704,7 +623,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     try {
       const imgEl = await toImageElement(rawImg);
 
-      // Create canvas with padding so output is neat (important for JPG)
       const canvas = document.createElement('canvas');
       canvas.width = imgEl.naturalWidth + pad * 2;
       canvas.height = imgEl.naturalHeight + pad * 2;
@@ -715,9 +633,10 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
       ctx.drawImage(imgEl, pad, pad);
 
       await new Promise<void>((resolve) => {
-        canvas.toBlob((blob) => {
+        canvas.toBlob(async (blob) => {
           if (blob) {
-            downloadFile(blob, `diagram_full_${new Date().toISOString().slice(0,19)}.${kind}`);
+            const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            await saveOrDownload(blob, `diagram_${ts}.${kind}`, imgType);
           } else {
             alert('Failed to generate image blob');
           }
@@ -950,6 +869,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           <button
             key={page.id}
             onClick={() => handlePageSwitch(page.id)}
+            onDoubleClick={(e) => { e.stopPropagation(); handleRenamePage(page.id); }}
             style={{
               backgroundColor: page.id === currentPageId ? '#1976d2' : '#e0e0e0',
               color: page.id === currentPageId ? '#fff' : '#000',
