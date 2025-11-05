@@ -15,7 +15,7 @@ import { modelToDOT } from './utils/dot';
 import { parseDOTToModel } from './utils/dotImport';
 import { buildPagesFromModel } from './utils/pageBuilder';
 import { openInGraphviz } from './utils/openInGraphviz';
-import { generateMultiPageRMLExport } from './utils/exportHelpers';
+import { generateMultiPageRMLExport, generateStableIdFromData } from './utils/exportHelpers';
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
@@ -26,12 +26,15 @@ function App() {
   const [customGroups, setCustomGroups] = useState<{ [key: string]: any[] }>({});
 
   // Page management for GoJS diagrams
-  type PageData = {
-    id: string;
-    name: string;
-    nodeDataArray: any[];
-    linkDataArray: any[];
-  };
+    type PageData = {
+      id: string;
+      name: string;
+      nodeDataArray: any[];
+      linkDataArray: any[];
+      // optional stable identifiers/labels used by Boxology exports/imports
+      boxologyId?: string;
+      boxologyLabel?: string;
+    };
 
   const [pages, setPages] = useState<PageData[]>(
     [
@@ -266,6 +269,32 @@ function App() {
         alert('No diagram available');
         return;
       }
+      const model = diagramRef.current.model as go.GraphLinksModel;
+
+      // ensure model.modelData exists
+      if (!model.modelData) (model as any).modelData = {};
+
+      // ensure current page persisted boxology id/label and store into model.modelData
+      const page = pages.find(p => p.id === currentPageId);
+      const pageNodes = model.nodeDataArray as any[] || [];
+      const pageLinks = (model as go.GraphLinksModel).linkDataArray || [];
+
+      const id = page?.boxologyId ?? page?.id ?? generateStableIdFromData(pageNodes, pageLinks);
+      const label = page?.boxologyLabel ?? page?.name ?? 'Diagram';
+      
+      // persist on model.modelData using GoJS setter (keeps model consistent)
+      try {
+        model.setDataProperty(model.modelData, 'boxologyId', id);
+        model.setDataProperty(model.modelData, 'boxologyLabel', label);
+      } catch {
+        // fallback if not possible
+        (model as any).modelData.boxologyId = id;
+        (model as any).modelData.boxologyLabel = label;
+      }
+
+      // persist into pages state as well
+      setPages(prev => prev.map(pg => pg.id === currentPageId ? { ...pg, boxologyId: id, boxologyLabel: label } : pg));
+
       const modelJson = diagramRef.current.model.toJson();
 
       // use current page name for save filename (only for save, not exports)
@@ -311,13 +340,40 @@ function App() {
       // Build pages
       try {
         const { pages: newPages } = buildPagesFromModel(model, file.name.replace(/\.[^.]+$/, ''));
-        setPages(newPages);
-        setCurrentPageId(newPages[0].id);
+
+        // Extract boxologyId/boxologyLabel from model.modelData if present
+        const savedBoxologyId = model.modelData?.boxologyId;
+        const savedBoxologyLabel = model.modelData?.boxologyLabel;
+
+        // Ensure every page has a boxologyId/boxologyLabel
+        const ensuredPages = newPages.map(pg => {
+          // Priority: saved id from modelData > existing page.boxologyId > deterministic hash
+          const id = savedBoxologyId ?? (pg as any).boxologyId ?? pg.id ?? generateStableIdFromData(pg.nodeDataArray, pg.linkDataArray);
+          // Priority: saved label from modelData > existing page.boxologyLabel > page name
+          const label = savedBoxologyLabel ?? (pg as any).boxologyLabel ?? pg.name ?? `Diagram`;
+          return { ...pg, boxologyId: id, boxologyLabel: label };
+        });
+
+        setPages(ensuredPages);
+        setCurrentPageId(ensuredPages[0].id);
 
         // Load the first page into the diagram
-        const pg = newPages[0];
+        const pg = ensuredPages[0];
         if (diagramRef.current) {
           diagramRef.current.model = new go.GraphLinksModel(pg.nodeDataArray, pg.linkDataArray);
+          // Restore boxologyId/boxologyLabel into model.modelData
+          try {
+            const loadedModel = diagramRef.current.model as go.GraphLinksModel;
+            if (!loadedModel.modelData) (loadedModel as any).modelData = {};
+            loadedModel.setDataProperty(loadedModel.modelData, 'boxologyId', pg.boxologyId);
+            loadedModel.setDataProperty(loadedModel.modelData, 'boxologyLabel', pg.boxologyLabel);
+          } catch { 
+            // fallback
+            const m = diagramRef.current.model as any;
+            if (!m.modelData) m.modelData = {};
+            m.modelData.boxologyId = pg.boxologyId;
+            m.modelData.boxologyLabel = pg.boxologyLabel;
+          }
         }
       } catch (e) {
         console.error('Page build error:', e);
@@ -439,6 +495,9 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             ? { ...p, nodeDataArray: currentPageNodes, linkDataArray: currentPageLinks }
             : p
         );
+
+        // persist pages with any newly generated boxology ids/labels (generateMultiPageRMLExport will also set them if missing)
+        setPages(updatedPages);
 
         const rmlData = generateMultiPageRMLExport(updatedPages);
 

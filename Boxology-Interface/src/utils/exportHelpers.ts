@@ -122,14 +122,45 @@ export function buildDesignPatternsFromModelData(
 }
 
 /**
+ * Create a stable id from topology (node keys + links). Deterministic across loads.
+ */
+export function generateStableIdFromData(nodeDataArray: any[] = [], linkDataArray: any[] = []) {
+  const nodeKeys = (nodeDataArray ?? []).map(n => String(n.key)).sort();
+  const linkReprs = (linkDataArray ?? []).map(l => `${String(l.from)}->${String(l.to)}`).sort();
+  const seed = JSON.stringify({ nodes: nodeKeys, links: linkReprs });
+
+  // djb2 hash (returns hex)
+  let hash = 5381;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) + hash) + seed.charCodeAt(i);
+    // keep 32-bit
+    hash = hash & 0xffffffff;
+  }
+  const hex = (hash >>> 0).toString(16);
+  return `box_${hex}`;
+}
+
+/**
  * Export all pages in RML-compatible format
+ * - preserves existing page.boxologyId / page.boxologyLabel if present
+ * - otherwise creates a deterministic id from topology
+ * - mutates pages objects to persist boxologyId/boxologyLabel so subsequent saves/export reuse them
  */
 export const generateMultiPageRMLExport = (pages: any[]): any => {
-  const boxologies = pages.map(page => {
+  const boxologies = pages.map((page, idx) => {
     const patterns = buildDesignPatternsFromModelData(page.nodeDataArray ?? [], page.linkDataArray ?? []);
+
+    // determine stable id: prefer explicit boxologyId, then page.id, then stable hash of topology
+    const id = page.boxologyId ?? page.id ?? generateStableIdFromData(page.nodeDataArray, page.linkDataArray);
+    if (!page.boxologyId) page.boxologyId = id;
+
+    // determine label: prefer explicit boxologyLabel, then page.name, then existing label or default
+    const label = page.boxologyLabel ?? page.name ?? page.label ?? `Diagram ${idx + 1}`;
+    if (!page.boxologyLabel) page.boxologyLabel = label;
+
     return {
-      id: page.id,
-      label: `Diagram`,
+      id,
+      label,
       DesignPattern: patterns
     };
   });
