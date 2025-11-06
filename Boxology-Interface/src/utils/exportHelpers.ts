@@ -141,6 +141,59 @@ export function generateStableIdFromData(nodeDataArray: any[] = [], linkDataArra
 }
 
 /**
+ * Normalize a node key to ensure it's always a positive string
+ */
+export function normalizeNodeKey(key: any): string {
+  if (typeof key === 'number' && key < 0) {
+    // Convert negative keys to positive unique strings
+    return `node_${Math.abs(key)}${Date.now()}`;
+  }
+  return String(key);
+}
+
+/**
+ * Normalize all keys in nodeDataArray and linkDataArray
+ */
+export function normalizeModelData(nodeDataArray: any[], linkDataArray: any[]): {
+  nodeDataArray: any[];
+  linkDataArray: any[];
+  keyMap: Map<string, string>;
+} {
+  const keyMap = new Map<string, string>();
+
+  // First pass: create mapping for all negative keys
+  nodeDataArray.forEach(node => {
+    const oldKey = String(node.key);
+    if (typeof node.key === 'number' && node.key < 0) {
+      const newKey = normalizeNodeKey(node.key);
+      keyMap.set(oldKey, newKey);
+    } else {
+      keyMap.set(oldKey, oldKey);
+    }
+  });
+
+  // Second pass: apply mapping to nodes
+  const normalizedNodes = nodeDataArray.map(node => ({
+    ...node,
+    key: keyMap.get(String(node.key)) || node.key,
+    group: node.group ? (keyMap.get(String(node.group)) || node.group) : node.group
+  }));
+
+  // Third pass: apply mapping to links
+  const normalizedLinks = linkDataArray.map(link => ({
+    ...link,
+    from: keyMap.get(String(link.from)) || link.from,
+    to: keyMap.get(String(link.to)) || link.to
+  }));
+
+  return {
+    nodeDataArray: normalizedNodes,
+    linkDataArray: normalizedLinks,
+    keyMap
+  };
+}
+
+/**
  * Export all pages in RML-compatible format
  * - preserves existing page.boxologyId / page.boxologyLabel if present
  * - otherwise creates a deterministic id from topology
@@ -148,18 +201,16 @@ export function generateStableIdFromData(nodeDataArray: any[] = [], linkDataArra
  */
 export const generateMultiPageRMLExport = (pages: any[]): any => {
   const boxologies = pages.map((page, idx) => {
-    // Normalize negative keys before building patterns
-    const normalizedNodes = (page.nodeDataArray ?? []).map((node: any) => ({
-      ...node,
-      key: typeof node.key === 'number' && node.key < 0 
-        ? `node_${Math.abs(node.key)}${Date.now()}` 
-        : node.key
-    }));
+    // Normalize keys first
+    const { nodeDataArray, linkDataArray } = normalizeModelData(
+      page.nodeDataArray ?? [],
+      page.linkDataArray ?? []
+    );
 
-    const patterns = buildDesignPatternsFromModelData(normalizedNodes, page.linkDataArray ?? []);
+    const patterns = buildDesignPatternsFromModelData(nodeDataArray, linkDataArray);
 
     // determine stable id: prefer explicit boxologyId, then page.id, then stable hash of topology
-    const id = page.boxologyId ?? page.id ?? generateStableIdFromData(page.nodeDataArray, page.linkDataArray);
+    const id = page.boxologyId ?? page.id ?? generateStableIdFromData(nodeDataArray, linkDataArray);
     if (!page.boxologyId) page.boxologyId = id;
 
     // determine label: prefer explicit boxologyLabel, then page.name, then existing label or default

@@ -15,7 +15,7 @@ import { modelToDOT } from './utils/dot';
 import { parseDOTToModel } from './utils/dotImport';
 import { buildPagesFromModel } from './utils/pageBuilder';
 import { openInGraphviz } from './utils/openInGraphviz';
-import { generateMultiPageRMLExport, generateStableIdFromData } from './utils/exportHelpers';
+import { generateMultiPageRMLExport, generateStableIdFromData, normalizeModelData } from './utils/exportHelpers';
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
@@ -271,33 +271,48 @@ function App() {
       }
       const model = diagramRef.current.model as go.GraphLinksModel;
 
+      // Normalize all keys before saving
+      const { nodeDataArray, linkDataArray } = normalizeModelData(
+        (model.nodeDataArray as any[]) || [],
+        model.linkDataArray || []
+      );
+
+      // Update the model with normalized data
+      diagramRef.current.model = go.Model.fromJson(JSON.stringify({
+        class: "GraphLinksModel",
+        nodeDataArray,
+        linkDataArray,
+        modelData: model.modelData
+      }));
+
       // ensure model.modelData exists
-      if (!model.modelData) (model as any).modelData = {};
+      const updatedModel = diagramRef.current.model as go.GraphLinksModel;
+      if (!updatedModel.modelData) (updatedModel as any).modelData = {};
 
       // ensure current page persisted boxology id/label and store into model.modelData
       const page = pages.find(p => p.id === currentPageId);
-      const pageNodes = model.nodeDataArray as any[] || [];
-      const pageLinks = (model as go.GraphLinksModel).linkDataArray || [];
 
-      const id = page?.boxologyId ?? page?.id ?? generateStableIdFromData(pageNodes, pageLinks);
+      const id = page?.boxologyId ?? page?.id ?? generateStableIdFromData(nodeDataArray, linkDataArray);
       const label = page?.boxologyLabel ?? page?.name ?? 'Diagram';
-      
-      // persist on model.modelData using GoJS setter (keeps model consistent)
+
+      // persist on model.modelData using GoJS setter
       try {
-        model.setDataProperty(model.modelData, 'boxologyId', id);
-        model.setDataProperty(model.modelData, 'boxologyLabel', label);
+        updatedModel.setDataProperty(updatedModel.modelData, 'boxologyId', id);
+        updatedModel.setDataProperty(updatedModel.modelData, 'boxologyLabel', label);
       } catch {
-        // fallback if not possible
-        (model as any).modelData.boxologyId = id;
-        (model as any).modelData.boxologyLabel = label;
+        (updatedModel as any).modelData.boxologyId = id;
+        (updatedModel as any).modelData.boxologyLabel = label;
       }
 
-      // persist into pages state as well
-      setPages(prev => prev.map(pg => pg.id === currentPageId ? { ...pg, boxologyId: id, boxologyLabel: label } : pg));
+      // persist into pages state with normalized data
+      setPages(prev => prev.map(pg => 
+        pg.id === currentPageId 
+          ? { ...pg, nodeDataArray, linkDataArray, boxologyId: id, boxologyLabel: label } 
+          : pg
+      ));
 
-      const modelJson = diagramRef.current.model.toJson();
+      const modelJson = updatedModel.toJson();
 
-      // use current page name for save filename (only for save, not exports)
       const pageName = pages.find(p => p.id === currentPageId)?.name || 'diagram';
       const safe = sanitizeFilename(pageName) || 'diagram';
       const date = new Date().toISOString().slice(0, 10);
@@ -307,7 +322,6 @@ function App() {
       const saved = await saveOrDownload(blob, filename, 'application/json');
       if (saved) alert('Diagram saved!');
       return;
-      
     }
 
     // OPEN
