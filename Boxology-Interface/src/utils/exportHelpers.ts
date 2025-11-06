@@ -148,7 +148,15 @@ export function generateStableIdFromData(nodeDataArray: any[] = [], linkDataArra
  */
 export const generateMultiPageRMLExport = (pages: any[]): any => {
   const boxologies = pages.map((page, idx) => {
-    const patterns = buildDesignPatternsFromModelData(page.nodeDataArray ?? [], page.linkDataArray ?? []);
+    // Normalize negative keys before building patterns
+    const normalizedNodes = (page.nodeDataArray ?? []).map((node: any) => ({
+      ...node,
+      key: typeof node.key === 'number' && node.key < 0 
+        ? `node_${Math.abs(node.key)}${Date.now()}` 
+        : node.key
+    }));
+
+    const patterns = buildDesignPatternsFromModelData(normalizedNodes, page.linkDataArray ?? []);
 
     // determine stable id: prefer explicit boxologyId, then page.id, then stable hash of topology
     const id = page.boxologyId ?? page.id ?? generateStableIdFromData(page.nodeDataArray, page.linkDataArray);
