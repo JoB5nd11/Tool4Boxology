@@ -5,11 +5,11 @@ import * as go from "gojs";
 
 const validNext: Record<string, string[]> = {
 	"actor": ["engineering", "actor", "transform","deduce"],
-	"artifacts": ["artifacts","symbol", "data","deduce", "transform:embed", "generate", "transform", "generate", "training"],
-  "symbol": ["deduce", "training", "generate", "embed", "transform", "symbol", "artifacts"],
-  "data": ["deduce", "training", "generate", "transform", "data", "embed", "artifacts"],
+	"artifacts": ["artifacts","symbol", "data","deduce","engineering", "transform:embed", "generate", "transform", "generate", "training"],
+  "symbol": ["deduce", "training", "generate","engineering", "embed", "transform", "symbol", "artifacts"],
+  "data": ["deduce", "training", "generate","engineering", "transform", "data", "embed", "artifacts"],
   "deduce": ["symbol", "model", "deduce", "data", "artifacts", "SemanticModel", "StatisticalModel"],
-  "model": ["deduce", "model", "generate", "training", "StatisticalModel", "SemanticModel", "embed", "transform"],
+  "model": ["deduce", "model", "generate", "training","engineering", "StatisticalModel", "SemanticModel", "embed", "transform"],
   "training": ["model", "training", "SemanticModel", "StatisticalModel", "training", "generate"],
   "generate": ["model", "generate", "SemanticModel", "StatisticalModel", "data", "symbol", "artifacts","training","engineering"],
   "engineering": ["model","StatisticalModel","SemanticModel", "engineering", "generate", "data", "symbol", "artifacts"],
@@ -57,6 +57,8 @@ const allPatterns: { name: string; edges: [string, string][] }[] = [
   { name: "infer_model (symbol → model → model)", edges: [["model", "deduce"], ["symbol", "deduce"], ["deduce", "model"]] },
   { name: "infer_model (artifacts → model → model)", edges: [["model", "deduce"], ["artifacts", "deduce"], ["deduce", "model"]] },
   { name: "infer_model (data → model → model)", edges: [["model", "deduce"], ["data", "deduce"], ["deduce", "model"]] },
+  { name: "infer_data (data → model → data)", edges: [["model", "deduce"], ["data", "deduce"], ["deduce", "data"]] },
+  { name: "infer_data (symbol → model → data)", edges: [["model", "deduce"], ["symbol", "deduce"], ["deduce", "data"]] },
   { name: "embed transform", edges: [["symbol", "embed"], ["data", "embed"], ["embed", "SemanticModel"]] },
 
   { name: "data-symbol transform", edges: [["symbol", "transform"], ["data", "transform"], ["transform", "data"]] },

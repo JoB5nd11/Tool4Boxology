@@ -27,7 +27,7 @@ export const shapes: ShapeDefinition[] = [
 // ADD: Type definitions for each shape
 export const shapeTypes: Record<string, string[]> = {
   "symbol": ["symbol", "Trace", "Label", "Knowledge Graph"," Ontology","Rules"],
-  "data": ["data", "Number", "Tensor", "Text", "Image", "Audio", "Video", "Table", "Time Series"],
+  "data": ["data", "Number","Dataset", "Tensor", "Text", "Image", "Audio", "Video", "Table", "Time Series"],
   //"artifact": ["artifact", "data", "symbol"],
   "model": ["model", "StatisticModel", "SemanticModel", "NeuralModel"],
   "SemanticModel": ["SemanticModel", "Embedding Model", "Knowledge Graph Embedding"],
