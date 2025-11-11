@@ -468,7 +468,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         const nodeKeyMap = new Map<string, string>();
         
         pattern.nodes.forEach((node: any) => {
-          const newKey = `node_${Date.now()}_${node.id}`;
+          const newKey = `node_${Date.now()}${node.id}`;
           nodeKeyMap.set(node.id, newKey);
           
           const nodeData: any = {
@@ -630,7 +630,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
 
           const keyMap: Record<string, string> = {};
           const newNodes = shape.nodeDataArray.map((n: any) => {
-            const newKey = `node_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+            const newKey = `node_${Date.now()}${Math.floor(Math.random() * 1000000)}`;
             keyMap[n.key] = newKey;
             const [x, y] = (n.loc || "0 0").split(' ').map(Number);
             return {
