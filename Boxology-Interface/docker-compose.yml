@@ -1,4 +1,3 @@
-
 services:
   # Production build
   boxology-interface:
@@ -31,8 +30,18 @@ services:
       - NODE_ENV=development
     networks:
       - boxology-network
-    profiles:
-      - dev
+    command: npm run dev -- --host 0.0.0.0
+  
+  boxology_kg:
+    container_name: boxology_kg
+    image: kemele/virtuoso:7-stable
+    restart: unless-stopped
+    ports:
+      - "8890:8890"
+    volumes:
+      - kg_data:/data
+    networks:
+      - boxology-network
 
 networks:
   boxology-network:
