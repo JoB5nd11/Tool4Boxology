@@ -1,21 +1,28 @@
 services:
-  # Production build
-  boxology-interface:
-    build: 
+  # Backend (development) - runs the uvicorn command you use locally
+  backend:
+    build:
       context: .
-      dockerfile: Dockerfile
-    container_name: boxology-interface
+      dockerfile: backend/Dockerfile
+    container_name: boxology-backend
     ports:
-      - "3000:80"
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
-    environment:
-      - NODE_ENV=production
     networks:
       - boxology-network
-    labels:
-      - "com.docker.compose.project=boxology-interface"
+    environment:
+      - SPARQL_QUERY_ENDPOINT=http://boxology_kg:8890/sparql
+      - SPARQL_UPDATE_ENDPOINT=http://boxology_kg:8890/sparql-auth
+    
+    depends_on:
+      - boxology_kg
 
-  # Development build (optional)
+
+
+  # Development build (frontend) — depends on backend
   boxology-interface-dev:
     build:
       context: .
@@ -26,11 +33,12 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-    environment:
-      - NODE_ENV=development
     networks:
       - boxology-network
-    command: npm run dev -- --host 0.0.0.0
+    depends_on:
+      - backend
+    environment:
+      - VITE_BACKEND_URL=http://backend:8000
   
   boxology_kg:
     container_name: boxology_kg
@@ -43,6 +51,10 @@ services:
     networks:
       - boxology-network
 
+
 networks:
   boxology-network:
     driver: bridge
+
+volumes:
+  kg_data:

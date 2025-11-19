@@ -1,12 +1,12 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# npm bug workaround: ensure latest npm and clean install
+RUN npm install -g npm@latest && rm -rf node_modules package-lock.json && npm install
 
 # Copy source code
 COPY . .

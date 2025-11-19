@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 import sys
 import traceback
+import os
 
 # Make "src" importable so we can import kg_creation.*
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,12 +21,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Use container network endpoint when running in Docker
+VIRTUOSO_ENDPOINT = os.getenv("VIRTUOSO_ENDPOINT", "http://boxology_kg:8890/sparql")
+
 @app.post("/api/kg")
 async def api_create_kg(source: dict):
-    try:
-        # Expected shape matches output of generateMultiPageRMLExport()
-        create_kg(source)
+    create_kg(source)
+    """try:
+        # Pass endpoint to create_kg if it accepts it, otherwise set it globally
         return {"status": "ok"}
     except Exception as e:
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))"""

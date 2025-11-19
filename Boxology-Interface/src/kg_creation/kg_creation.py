@@ -5,9 +5,9 @@ except:
 
 from SPARQLWrapper import SPARQLWrapper, POST, DIGEST, JSON
 
-global SPARQL_ENDPOINT
-SPARQL_ENDPOINT = "http://localhost:8890/sparql"
-SPARQL_UPDATE_ENDPOINT = "http://localhost:8890/sparql-auth"  # <- for INSERT/DELETE
+global SPARQL_ENDPOINT , SPARQL_UPDATE_ENDPOINT
+SPARQL_ENDPOINT = "http://boxology_kg:8890/sparql"
+SPARQL_UPDATE_ENDPOINT = "http://boxology_kg:8890/sparql-auth"  # <- for INSERT/DELETE
 def _get_query_sparql():
     sparql = SPARQLWrapper(SPARQL_ENDPOINT, defaultGraph=SPARQL_ENDPOINT)
     sparql.setReturnFormat(JSON)
