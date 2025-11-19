@@ -1,6 +1,8 @@
 import os
 import csv
 import pandas as pd
+from pathlib import Path
+
 import rdflib
 from rdflib.plugins.sparql import prepareQuery
 from concurrent.futures import ThreadPoolExecutor
@@ -1833,7 +1835,9 @@ def semantify_json(triples_map, triples_map_list, delimiter, data, iterator):
     return i
 
 def kg_generation(source):
-	triples_map_list = mapping_parser("../mapping.ttl")
-	for triples_map in triples_map_list:
-		semantify_json(triples_map, triples_map_list, "", source, triples_map.iterator)
-	return knowledge_graph
+    # Resolve mapping.ttl relative to THIS file
+    mapping_path = Path(__file__).resolve().parent.parent / "mapping.ttl"
+    triples_map_list = mapping_parser(str(mapping_path))
+    for triples_map in triples_map_list:
+        semantify_json(triples_map, triples_map_list, "", source, triples_map.iterator)
+    return knowledge_graph

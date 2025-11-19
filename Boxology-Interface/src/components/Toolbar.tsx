@@ -12,8 +12,8 @@ import ViewStreamIcon from '@mui/icons-material/ViewStream';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 // Define ToolbarProps type
-interface ToolbarProps {
-  diagram: go.Diagram | null;
+type ToolbarProps = {
+  diagram?: go.Diagram | null;
   onOpen: () => void;
   onSave: () => void;
   onUndo: () => void;
@@ -28,6 +28,7 @@ interface ToolbarProps {
   onExportDrawio: () => void;
   onExportDOT: () => void;
   onOpenGraphviz: () => void;
+  onCreateKG?: () => void; // <-- add this
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -46,6 +47,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onExportDrawio,
   onExportDOT,
   onOpenGraphviz,
+  onCreateKG,
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
   const exportMenuRef = React.useRef<HTMLDivElement>(null);
@@ -469,8 +471,27 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
       <button onClick={onUndo} style={simpleButtonStyle}>🔄 Undo</button>
       <button onClick={onRedo} style={simpleButtonStyle}>🔃 Redo</button>
-      <button onClick={onValidate} style={simpleButtonStyle}>✅ Validate</button>
+      <button
+        onClick={onValidate}
+        style={simpleButtonStyle}
+        title="Validate selected pattern or entire diagram"
+      >
+        ✅ Validate
+      </button>
       
+      <button
+        onClick={onCreateKG}
+        style={{
+          ...simpleButtonStyle,
+          backgroundColor: '#2e7d32',
+          color: 'white',
+          borderColor: '#2e7d32'
+        }}
+        title="Create Knowledge Graph in Virtuoso from current pages"
+      >
+        🔗 Create KG
+      </button>
+
       {/* Separator */}
       <div style={{ width: '1px', height: '20px', backgroundColor: '#ccc', margin: '0 4px' }} />
 

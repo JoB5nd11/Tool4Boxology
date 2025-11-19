@@ -7,9 +7,24 @@ from SPARQLWrapper import SPARQLWrapper, POST, DIGEST, JSON
 
 global SPARQL_ENDPOINT
 SPARQL_ENDPOINT = "http://localhost:8890/sparql"
+SPARQL_UPDATE_ENDPOINT = "http://localhost:8890/sparql-auth"  # <- for INSERT/DELETE
+def _get_query_sparql():
+    sparql = SPARQLWrapper(SPARQL_ENDPOINT, defaultGraph=SPARQL_ENDPOINT)
+    sparql.setReturnFormat(JSON)
+    return sparql
+
+
+def _get_update_sparql():
+    sparql = SPARQLWrapper(SPARQL_UPDATE_ENDPOINT, defaultGraph=SPARQL_ENDPOINT)
+    sparql.setReturnFormat(JSON)
+    sparql.setMethod(POST)           # <- update MUST be POST
+    sparql.setHTTPAuth(DIGEST)
+    sparql.setCredentials("dba", "dba")  # or your own user + password
+    return sparql
 
 def boxology_exists(source):
-	sparql = SPARQLWrapper(SPARQL_ENDPOINT,defaultGraph=SPARQL_ENDPOINT)
+	sparql = _get_query_sparql()
+	#sparql = SPARQLWrapper(SPARQL_ENDPOINT,defaultGraph=SPARQL_ENDPOINT)
 	for boxology in source["boxologies"]:
 		boxology_entity = "<http://tool4boxology.org/Boxology/" + boxology["id"] + ">"
 		query = "ASK WHERE { " + boxology_entity + " a <http://tool4boxology.org/Boxology> .}"
@@ -21,14 +36,16 @@ def boxology_exists(source):
 	return False
 
 def insert_triples(triples):
-	sparql = SPARQLWrapper(SPARQL_ENDPOINT,defaultGraph=SPARQL_ENDPOINT)
+	sparql = _get_update_sparql()
+	#sparql = SPARQLWrapper(SPARQL_ENDPOINT,defaultGraph=SPARQL_ENDPOINT)
 	query = "INSERT DATA { " + triples + "}"
 	sparql.setReturnFormat(JSON)
 	sparql.setQuery(query)
 	results = sparql.query().convert()
 
 def update_kg(source,triples):
-	sparql = SPARQLWrapper(SPARQL_ENDPOINT,defaultGraph=SPARQL_ENDPOINT)
+	sparql = _get_update_sparql()
+	#sparql = SPARQLWrapper(SPARQL_ENDPOINT,defaultGraph=SPARQL_ENDPOINT)
 	for boxology in source["boxologies"]:
 		boxology_entity = "<http://tool4boxology.org/Boxology/" + boxology["id"] + ">"
 		query = "DELETE WHERE {" 
@@ -60,7 +77,6 @@ def update_kg(source,triples):
 def create_kg(source):
 	knowledge_graph = kg_generation(source)
 	update_needed = boxology_exists(source)
-	print(update_needed)
 	if update_needed:
 		update_kg(source,knowledge_graph)
 	else:

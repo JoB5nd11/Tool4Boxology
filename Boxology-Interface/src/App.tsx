@@ -16,6 +16,7 @@ import { parseDOTToModel } from './utils/dotImport';
 import { buildPagesFromModel } from './utils/pageBuilder';
 import { openInGraphviz } from './utils/openInGraphviz';
 import { generateMultiPageRMLExport, generateStableIdFromData, normalizeModelData } from './utils/exportHelpers';
+import { API_BASE } from './config';
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
@@ -900,6 +901,48 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     diagram.commitTransaction('cluster group');
   };
 
+  const handleCreateKG = async () => {
+    const validation = validateNodeClustering();
+    if (!validation.valid) {
+      alert(`Validation failed:\n\n${validation.errors.join('\n')}`);
+      return;
+    }
+    if (!diagramRef.current) { alert('Diagram not ready.'); return; }
+
+    // Snapshot current page
+    const model = diagramRef.current.model as go.GraphLinksModel;
+    const currentPageNodes = model.nodeDataArray.map((n: any) => ({ ...n, type: n.type ?? n.name }));
+    const currentPageLinks = (model.linkDataArray || []).map((l: any) => ({ ...l }));
+    const updatedPages = pages.map(p =>
+      p.id === currentPageId ? { ...p, nodeDataArray: currentPageNodes, linkDataArray: currentPageLinks } : p
+    );
+    setPages(updatedPages);
+
+    // Build same structure as Export → JSON
+    const rmlData = generateMultiPageRMLExport(updatedPages);
+    const userId = window.localStorage.getItem('userId') || (() => {
+      const id = `user_${Math.random().toString(36).slice(2, 10)}`; window.localStorage.setItem('userId', id); return id;
+    })();
+    const exportUUID = uuidv4().replace(/-/g, '').slice(0, 8);
+    const exportData = {
+      metadata: { exportId: exportUUID, userId, exportDate: new Date().toISOString() },
+      ...rmlData
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/api/kg`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(exportData)
+      });
+      if (!res.ok) throw new Error(`Backend error ${res.status}: ${await res.text()}`);
+      alert('KG created successfully.');
+    } catch (err: any) {
+      console.error(err);
+      alert(`Failed to create KG:\n${err?.message ?? err}`);
+    }
+  };
+
   return (
     <div className="app" style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>
       {/* Toolbar */}
@@ -927,6 +970,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           if (!dot) { alert('No DOT available.'); return; }
           openInGraphviz(dot, 'dot');
         }}
+        onCreateKG={handleCreateKG} // <-- add this
       />
 
       {/* Tab Bar */}
