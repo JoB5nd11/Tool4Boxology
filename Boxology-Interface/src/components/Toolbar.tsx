@@ -267,6 +267,22 @@ const Toolbar: React.FC<ToolbarProps> = ({
     diagram.commitTransaction('organize vertically');
   };
 
+
+  const openSparqlEditor = () => {
+    const query = `PREFIX t4b: <http://tool4boxology.org/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?boxology ?label
+WHERE {
+  ?boxology a t4b:Boxology ;
+            rdfs:label ?label .
+}
+LIMIT 100`;
+    navigator.clipboard?.writeText(query).catch(()=>{});
+    alert('An example SPARQL query copied to clipboard. Paste it into Virtuoso.');
+    window.open('http://localhost:8890/sparql', '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div style={{
       display: 'flex',
@@ -490,6 +506,15 @@ const Toolbar: React.FC<ToolbarProps> = ({
         title="Create Knowledge Graph in Virtuoso from current pages"
       >
         🔗 Create KG
+      </button>
+
+      {/* Simple button to open Virtuoso SPARQL endpoint */}
+      <button
+        onClick={openSparqlEditor}
+        style={simpleButtonStyle}
+        title="Open SPARQL editor (query copied to clipboard)"
+      >
+        🔍 SPARQL
       </button>
 
       {/* Separator */}
