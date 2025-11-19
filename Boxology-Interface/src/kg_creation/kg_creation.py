@@ -82,4 +82,3 @@ def create_kg(source):
 	else:
 		insert_triples(knowledge_graph)
 
-	

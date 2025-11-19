@@ -9,11 +9,14 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+    working_dir: /app
+    command: python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
     networks:
       - boxology-network
     environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
       - SPARQL_QUERY_ENDPOINT=http://boxology_kg:8890/sparql
       - SPARQL_UPDATE_ENDPOINT=http://boxology_kg:8890/sparql-auth
     
@@ -35,10 +38,11 @@ services:
       - /app/node_modules
     networks:
       - boxology-network
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
     depends_on:
       - backend
     environment:
-      - VITE_BACKEND_URL=http://backend:8000
+      - VITE_BACKEND_URL=http://localhost:8000
   
   boxology_kg:
     container_name: boxology_kg
