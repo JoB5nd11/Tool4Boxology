@@ -28,7 +28,8 @@ type ToolbarProps = {
   onExportDrawio: () => void;
   onExportDOT: () => void;
   onOpenGraphviz: () => void;
-  onCreateKG?: () => void; // <-- add this
+  onCreateKG?: () => void;
+  onUploadKG?: (files: FileList) => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -48,9 +49,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onExportDOT,
   onOpenGraphviz,
   onCreateKG,
+  onUploadKG
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
   const exportMenuRef = React.useRef<HTMLDivElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Close export menu when clicking outside
   React.useEffect(() => {
@@ -68,6 +71,18 @@ const Toolbar: React.FC<ToolbarProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showExportMenu]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0 && onUploadKG) {
+      onUploadKG(files);
+    }
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   // Simple small button style for existing buttons
   const simpleButtonStyle: React.CSSProperties = {
     padding: '4px 8px',
@@ -495,18 +510,41 @@ LIMIT 100`;
         ✅ Validate
       </button>
       
-      <button
-        onClick={onCreateKG}
-        style={{
-          ...simpleButtonStyle,
-          backgroundColor: '#2e7d32',
-          color: 'white',
-          borderColor: '#2e7d32'
-        }}
-        title="Create Knowledge Graph in Virtuoso from current pages"
-      >
-        🔗 Create KG
-      </button>
+      {onCreateKG && (
+        <button
+          onClick={onCreateKG}
+          style={{
+            ...simpleButtonStyle,
+            backgroundColor: '#2e7d32',
+            color: 'white',
+            borderColor: '#2e7d32'
+          }}
+          title="Create Knowledge Graph in Virtuoso from current pages"
+        >
+          🔗 Create KG
+        </button>
+      )}
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileUpload}
+      />
+
+      {/* Upload KG button */}
+      {onUploadKG && (
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          style={simpleButtonStyle}
+          title="Upload JSON files to create Knowledge Graph"
+        >
+          📤 Upload KG
+        </button>
+      )}
 
       {/* Simple button to open Virtuoso SPARQL endpoint */}
       <button

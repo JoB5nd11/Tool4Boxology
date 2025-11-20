@@ -934,12 +934,47 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(exportData)
+        
       });
       if (!res.ok) throw new Error(`Backend error ${res.status}: ${await res.text()}`);
       alert('KG created successfully.');
     } catch (err: any) {
       console.error(err);
       alert(`Failed to create KG:\n${err?.message ?? err}`);
+    }
+  };
+
+  const handleUploadKG = async (files: FileList) => {
+    try {
+      const fileArray = Array.from(files);
+      
+      for (const file of fileArray) {
+        if (!file.name.endsWith('.json')) {
+          alert(`Skipping ${file.name}: only JSON files are supported`);
+          continue;
+        }
+
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        // Send to backend
+        const res = await fetch(`${API_BASE}/api/kg`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+          throw new Error(`Backend error ${res.status}: ${await res.text()}`);
+        }
+
+        console.log(`✅ KG created from ${file.name}`);
+      }
+
+      alert(`Successfully created KG from ${fileArray.length} file(s)`);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Failed to upload KG:\n${err?.message ?? err}`);
     }
   };
 
@@ -971,6 +1006,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           openInGraphviz(dot, 'dot');
         }}
         onCreateKG={handleCreateKG} // <-- add this
+        onUploadKG={handleUploadKG}
       />
 
       {/* Tab Bar */}
