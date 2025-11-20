@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import traceback
 import os
+import socket
 
 # Add the project root and src to Python path
 ROOT = Path(__file__).resolve().parents[1]  # Go up from backend/ to project root
@@ -36,9 +37,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Get Virtuoso endpoint from environment
-VIRTUOSO_ENDPOINT = os.getenv("SPARQL_UPDATE_ENDPOINT", "http://localhost:8890/sparql-auth")
-print(f"Virtuoso endpoint: {VIRTUOSO_ENDPOINT}")
+def _detect_host(service_name: str = "boxology_kg") -> str:
+    # 1. Explicit override via env var SPARQL_HOST
+    env_host = os.getenv("SPARQL_HOST")
+    if env_host:
+        return env_host
+    # 2. Docker detection (file /.dockerenv) – prefer service name if resolvable
+    try:
+        socket.gethostbyname(service_name)
+        return service_name
+    except OSError:
+        pass
+    # 3. Fallback
+    return "localhost"
+
+_kg_host = _detect_host()
+
+SPARQL_ENDPOINT = f"http://{_kg_host}:8890/sparql"
+SPARQL_UPDATE_ENDPOINT = f"http://{_kg_host}:8890/sparql-auth"
+print(f"Resolved Virtuoso host='{_kg_host}' query='{SPARQL_ENDPOINT}' update='{SPARQL_UPDATE_ENDPOINT}'")
 
 @app.post("/api/kg")
 async def api_create_kg(source: dict):
@@ -60,4 +77,4 @@ async def api_create_kg(source: dict):
 
 @app.get("/")
 async def root():
-    return {"message": "Backend is running", "virtuoso": VIRTUOSO_ENDPOINT}
+    return {"message": "Backend is running", "virtuoso": SPARQL_UPDATE_ENDPOINT}

@@ -4,10 +4,26 @@ except:
     from .in_memory_rdfizer.generator import kg_generation
 
 from SPARQLWrapper import SPARQLWrapper, POST, DIGEST, JSON
+import os
+import socket
 
 global SPARQL_ENDPOINT , SPARQL_UPDATE_ENDPOINT
-SPARQL_ENDPOINT = "http://boxology_kg:8890/sparql"
-SPARQL_UPDATE_ENDPOINT = "http://boxology_kg:8890/sparql-auth"  # <- for INSERT/DELETE
+
+def _detect_host(service_name: str = "boxology_kg") -> str:
+    env_host = os.getenv("SPARQL_HOST")
+    if env_host:
+        return env_host
+    try:
+        socket.gethostbyname(service_name)
+        return service_name
+    except OSError:
+        return "localhost"
+
+_host = _detect_host()
+SPARQL_ENDPOINT = f"http://{_host}:8890/sparql"
+SPARQL_UPDATE_ENDPOINT = f"http://{_host}:8890/sparql-auth"
+print(f"[KG] Using Virtuoso host={_host}")
+
 def _get_query_sparql():
     sparql = SPARQLWrapper(SPARQL_ENDPOINT, defaultGraph=SPARQL_ENDPOINT)
     sparql.setReturnFormat(JSON)
@@ -31,6 +47,7 @@ def boxology_exists(source):
 		sparql.setReturnFormat(JSON)
 		sparql.setQuery(query)
 		results = sparql.query().convert()
+		print(results, "BOXOLOGY EXISTS?")
 		if results["boolean"] == True:
 			return True
 	return False
