@@ -17,6 +17,7 @@ import { buildPagesFromModel } from './utils/pageBuilder';
 import { openInGraphviz } from './utils/openInGraphviz';
 import { generateMultiPageRMLExport, generateStableIdFromData, normalizeModelData } from './utils/exportHelpers';
 import { API_BASE } from './config';
+import InstructionDialog from './components/InstructionDialog';
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
@@ -772,6 +773,20 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     setShowAbout(true);
   };
 
+  // Instructions modal state + handler
+  const [showInstructions, setShowInstructions] = useState(false); // add state
+
+  const handleShowInstructions = () => setShowInstructions(true);  // open
+  const handleCloseInstructions = () => setShowInstructions(false); // close
+
+  // If you still auto‑show on first visit, uncomment:
+  useEffect(() => {
+     if (localStorage.getItem('hasSeenInstructions') !== 'true') {
+       setShowInstructions(true);
+       localStorage.setItem('hasSeenInstructions', 'true');
+     }
+   }, []);
+   
   // Copy email function
   const copyEmailToClipboard = () => {
   const email = 'mahsa.forghani.tehrani@stud.uni-hannover.de';
@@ -988,6 +1003,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         onUndo={() => handleDiagramOperation('undo')}
         onRedo={() => handleDiagramOperation('redo')}
         onAbout={handleAbout}
+        onShowInstructions={handleShowInstructions}
         onValidate={() => handleDiagramOperation('validate')}
         onExportSVG={() => handleExport('svg')}
         onExportPNG={() => handleExport('png')}
@@ -1005,7 +1021,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           if (!dot) { alert('No DOT available.'); return; }
           openInGraphviz(dot, 'dot');
         }}
-        onCreateKG={handleCreateKG} // <-- add this
+        onCreateKG={handleCreateKG}
         onUploadKG={handleUploadKG}
       />
 
@@ -1484,6 +1500,12 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           </div>
         </div>
       )}
+
+      {/* Instruction Dialog */}
+      <InstructionDialog
+        open={showInstructions}
+        onClose={handleCloseInstructions}
+      />
     </div>
   );
 }

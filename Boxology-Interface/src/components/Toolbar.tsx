@@ -19,6 +19,7 @@ type ToolbarProps = {
   onUndo: () => void;
   onRedo: () => void;
   onAbout: () => void;
+  onShowInstructions: () => void;          // <-- added
   onValidate: () => void;
   onExportSVG: () => void;
   onExportPNG: () => void;
@@ -39,6 +40,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onUndo,
   onRedo,
   onAbout,
+  onShowInstructions,          // <-- added
   onValidate,
   onExportSVG,
   onExportPNG,
@@ -52,7 +54,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onUploadKG
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
+  const [showHelpMenu, setShowHelpMenu] = React.useState(false);  // <-- added
   const exportMenuRef = React.useRef<HTMLDivElement>(null);
+  const helpMenuRef = React.useRef<HTMLDivElement>(null);         // <-- added
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Close export menu when clicking outside
@@ -61,16 +65,17 @@ const Toolbar: React.FC<ToolbarProps> = ({
       if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
         setShowExportMenu(false);
       }
+      if (helpMenuRef.current && !helpMenuRef.current.contains(event.target as Node)) {
+        setShowHelpMenu(false);
+      }
     };
 
-    if (showExportMenu) {
+    if (showExportMenu || showHelpMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showExportMenu]);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showExportMenu, showHelpMenu]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -309,15 +314,80 @@ LIMIT 100`;
       flexWrap: 'wrap',
       minHeight: '36px'
     }}>
-      {/* Existing toolbar buttons - made smaller and simpler */}
-      <button onClick={onAbout} style={simpleButtonStyle}>ℹ️ About</button>
+      {/* HELP dropdown (replaces direct About button) */}
+      <div ref={helpMenuRef} style={{ position: 'relative', display: 'inline-block' }}>
+        <button
+          onClick={() => {
+            setShowHelpMenu(!showHelpMenu);
+            setShowExportMenu(false);
+          }}
+          style={{
+            padding: '4px 8px',
+            margin: '2px',
+            border: '1px solid #ccc',
+            backgroundColor: showHelpMenu ? '#e9ecef' : '#ffffff',
+            borderRadius: '3px',
+            cursor: 'pointer',
+            fontSize: '11px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+          title="Help menu"
+        >
+          ❓ Help {showHelpMenu ? '▲' : '▼'}
+        </button>
+        {showHelpMenu && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            zIndex: 1200,
+            backgroundColor: '#fff',
+            border: '1px solid #ccc',
+            borderRadius: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            minWidth: '190px',
+            padding: '6px 0',
+            overflow: 'hidden'
+          }}>
+            <button
+              onClick={() => {
+                setShowHelpMenu(false);
+                onAbout();
+              }}
+              style={helpItemStyle}
+              onMouseOver={hoverOn}
+              onMouseOut={hoverOff}
+            >
+              ℹ️ About
+            </button>
+            <button
+              onClick={() => {
+                setShowHelpMenu(false);
+                onShowInstructions();
+              }}
+              style={helpItemStyle}
+              onMouseOver={hoverOn}
+              onMouseOut={hoverOff}
+            >
+              📘 Instructions
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Open / Save */}
       <button onClick={onOpen} style={simpleButtonStyle}>📁 Open</button>
       <button onClick={onSave} style={simpleButtonStyle}>💾 Save</button>
-      
-      {/* Export Dropdown Menu */}
+
+      {/* Export Dropdown (unchanged) */}
       <div ref={exportMenuRef} style={{ position: 'relative', display: 'inline-block' }}>
-        <button 
-          onClick={() => setShowExportMenu(!showExportMenu)}
+        <button
+          onClick={() => {
+            setShowExportMenu(!showExportMenu);
+            setShowHelpMenu(false);
+          }}
           style={{
             ...simpleButtonStyle,
             backgroundColor: showExportMenu ? '#e9ecef' : 'white',
@@ -328,13 +398,12 @@ LIMIT 100`;
         >
           📤 Export {showExportMenu ? '▲' : '▼'}
         </button>
-        
         {showExportMenu && (
           <div style={{
             position: 'absolute',
             top: '100%',
             left: 0,
-            zIndex: 1000,
+            zIndex: 1100,
             backgroundColor: 'white',
             border: '1px solid #ccc',
             borderRadius: '4px',
@@ -347,20 +416,9 @@ LIMIT 100`;
                 onExportJSON();
                 setShowExportMenu(false);
               }}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                background: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '13px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              style={exportItemStyle}
+              onMouseOver={hoverOn}
+              onMouseOut={hoverOff}
             >
               📄 JSON
             </button>
@@ -370,20 +428,9 @@ LIMIT 100`;
                 onExportDOT();        // NEW
                 setShowExportMenu(false);
               }}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                background: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '13px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              style={exportItemStyle}
+              onMouseOver={hoverOn}
+              onMouseOut={hoverOff}
             >
               🟦 Graphviz DOT
             </button>
@@ -393,20 +440,9 @@ LIMIT 100`;
                 onExportDrawio();
                 setShowExportMenu(false);
               }}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                background: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '13px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              style={exportItemStyle}
+              onMouseOver={hoverOn}
+              onMouseOut={hoverOff}
             >
               🎨 Draw.io XML
             </button>
@@ -416,20 +452,9 @@ LIMIT 100`;
                 onExportSVG();
                 setShowExportMenu(false);
               }}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                background: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '13px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              style={exportItemStyle}
+              onMouseOver={hoverOn}
+              onMouseOut={hoverOff}
             >
               🖼️ SVG
             </button>
@@ -439,49 +464,23 @@ LIMIT 100`;
                 onExportPNG();
                 setShowExportMenu(false);
               }}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                background: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '13px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              style={exportItemStyle}
+              onMouseOver={hoverOn}
+              onMouseOut={hoverOff}
             >
-              �️ PNG
+              🗂️ PNG
             </button>
             
-            <div style={{
-              borderTop: '1px solid #eee',
-              margin: '4px 0'
-            }} />
+            <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
             
             <button
               onClick={() => {
                 onExportXML();
                 setShowExportMenu(false);
               }}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                background: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '13px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: '#666'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              style={{ ...exportItemStyle, color: '#666' }}
+              onMouseOver={hoverOn}
+              onMouseOut={hoverOff}
             >
               📋 XML (Legacy)
             </button>
@@ -696,6 +695,56 @@ LIMIT 100`;
       </div>
     </div>
   );
+};
+
+// Shared styles
+const simpleButtonStyle: React.CSSProperties = {
+  padding: '4px 8px',
+  margin: '2px',
+  border: '1px solid #ccc',
+  backgroundColor: '#f8f8f8',
+  borderRadius: '3px',
+  cursor: 'pointer',
+  fontSize: '11px',
+  color: '#333',
+  height: '24px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center'
+};
+
+const exportItemStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '8px 12px',
+  border: 'none',
+  background: 'none',
+  textAlign: 'left',
+  cursor: 'pointer',
+  fontSize: '13px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px'
+};
+
+const helpItemStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 14px',
+  border: 'none',
+  background: 'none',
+  textAlign: 'left',
+  cursor: 'pointer',
+  fontSize: '13px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '10px',
+  fontWeight: 500
+};
+
+const hoverOn = (e: React.MouseEvent<HTMLButtonElement>) => {
+  e.currentTarget.style.backgroundColor = '#f5f7fa';
+};
+const hoverOff = (e: React.MouseEvent<HTMLButtonElement>) => {
+  e.currentTarget.style.backgroundColor = 'transparent';
 };
 
 export default Toolbar;
