@@ -140,9 +140,6 @@ export function generateStableIdFromData(nodeDataArray: any[] = [], linkDataArra
   return `box_${hex}`;
 }
 
-/**
- * Normalize a node key to ensure it's always a positive string
- */
 export function normalizeNodeKey(key: any): string {
   if (typeof key === 'number' && key < 0) {
     // Convert negative keys to positive unique strings
@@ -150,10 +147,6 @@ export function normalizeNodeKey(key: any): string {
   }
   return String(key);
 }
-
-/**
- * Normalize all keys in nodeDataArray and linkDataArray
- */
 export function normalizeModelData(nodeDataArray: any[], linkDataArray: any[]): {
   nodeDataArray: any[];
   linkDataArray: any[];
@@ -193,12 +186,6 @@ export function normalizeModelData(nodeDataArray: any[], linkDataArray: any[]): 
   };
 }
 
-/**
- * Export all pages in RML-compatible format
- * - preserves existing page.boxologyId / page.boxologyLabel if present
- * - otherwise creates a deterministic id from topology
- * - mutates pages objects to persist boxologyId/boxologyLabel so subsequent saves/export reuse them
- */
 export const generateMultiPageRMLExport = (pages: any[]): any => {
   const boxologies = pages.map((page, idx) => {
     // Normalize keys first
@@ -209,17 +196,15 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
 
     const patterns = buildDesignPatternsFromModelData(nodeDataArray, linkDataArray);
 
-    // determine stable id: prefer explicit boxologyId, then page.id, then stable hash of topology
-    const id = page.boxologyId ?? page.id ?? generateStableIdFromData(nodeDataArray, linkDataArray);
+    const id = page.boxologyId ?? generateStableIdFromData(nodeDataArray, linkDataArray);
     if (!page.boxologyId) page.boxologyId = id;
 
-    // determine label: prefer explicit boxologyLabel, then page.name, then existing label or default
-    const label = page.boxologyLabel ?? page.name ?? page.label ?? `Diagram ${idx + 1}`;
-    if (!page.boxologyLabel) page.boxologyLabel = label;
+    const label = page.name || page.boxologyLabel || `Diagram ${idx + 1}`;
+    page.boxologyLabel = label; // Update to current name
 
     return {
-      id,
-      label,
+      id,  
+      label,   
       DesignPattern: patterns
     };
   });

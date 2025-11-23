@@ -541,7 +541,7 @@ LIMIT 100`;
           style={simpleButtonStyle}
           title="Upload JSON files to create Knowledge Graph"
         >
-          📤 Upload KG
+          📤 JSONtoKG
         </button>
       )}
 
