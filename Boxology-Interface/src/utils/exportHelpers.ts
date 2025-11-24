@@ -129,6 +129,7 @@ export function generateStableIdFromData(nodeDataArray: any[] = [], linkDataArra
   const linkReprs = (linkDataArray ?? []).map(l => `${String(l.from)}->${String(l.to)}`).sort();
   const seed = JSON.stringify({ nodes: nodeKeys, links: linkReprs });
 
+
   // djb2 hash (returns hex)
   let hash = 5381;
   for (let i = 0; i < seed.length; i++) {
@@ -186,7 +187,32 @@ export function normalizeModelData(nodeDataArray: any[], linkDataArray: any[]): 
   };
 }
 
+/**
+ * Generate a UUID v4 (RFC 4122 compliant)
+ * Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+ */
+export function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 export const generateMultiPageRMLExport = (pages: any[]): any => {
+  if (!pages || pages.length === 0) {
+    throw new Error('No diagrams available. Please create at least one diagram before generating a knowledge graph.');
+  }
+  
+  // Check if all pages are empty (no nodes or only empty diagrams)
+  const hasContent = pages.some(page => {
+    const nodeDataArray = page.nodeDataArray ?? [];
+    return nodeDataArray.length > 0;
+  });
+
+  if (!hasContent) {
+    throw new Error('All diagrams are empty. Please add shapes to at least one diagram before generating a knowledge graph.');
+  }
   const boxologies = pages.map((page, idx) => {
     // Normalize keys first
     const { nodeDataArray, linkDataArray } = normalizeModelData(
@@ -196,11 +222,12 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
 
     const patterns = buildDesignPatternsFromModelData(nodeDataArray, linkDataArray);
 
-    const id = page.boxologyId ?? generateStableIdFromData(nodeDataArray, linkDataArray);
+    // Use UUID instead of box_[hex]
+    const id = page.boxologyId ?? generateUUID();
     if (!page.boxologyId) page.boxologyId = id;
 
     const label = page.name || page.boxologyLabel || `Diagram ${idx + 1}`;
-    page.boxologyLabel = label; // Update to current name
+    page.boxologyLabel = label;
 
     return {
       id,  
