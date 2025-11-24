@@ -29,7 +29,7 @@ export const shapeTypes: Record<string, string[]> = {
   "symbol": ["symbol", "Trace", "Label", "Knowledge Graph"," Ontology","Rules"],
   "data": ["data", "Number","Dataset", "Tensor", "Text", "Image", "Audio", "Video", "Table", "Time Series"],
   //"artifact": ["artifact", "data", "symbol"],
-  "model": ["model", "StatisticModel", "SemanticModel", "NeuralModel"],
+  "model": ["model", "StatisticModel", "SemanticModel", "HybridModel"],
   "SemanticModel": ["SemanticModel", "Embedding Model", "Knowledge Graph Embedding"],
   "StatisticalModel": ["StatisticalModel", "Regression", "Classification", "Clustering"],
   "NeuralModel": ["NeuralModel", "CNN", "RNN", "Transformer","LLM"],
