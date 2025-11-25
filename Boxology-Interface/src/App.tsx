@@ -1167,9 +1167,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             <LeftSidebar
               containers={containers}
               customContainerShapes={customContainerShapes}
-              customGroups={customGroups}
               onAddContainer={handleAddContainer}
-              onCustomGroupAction={handleCustomGroupAction}
             />
           )}
         </div>

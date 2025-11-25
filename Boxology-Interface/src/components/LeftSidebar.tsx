@@ -35,35 +35,16 @@ const categoryIcons: { [key: string]: string } = {
 export interface LeftSidebarProps {
   containers: string[];
   customContainerShapes: { [key: string]: any[] };
-  customGroups: { [key: string]: any[] };
   onAddContainer: (containerName: string) => void;
-  onCustomGroupAction: (action: 'create' | 'save', groupName?: string) => void;
 }
 
 export default function LeftSidebar({ 
   containers, 
   onAddContainer, 
-  customContainerShapes,
-  customGroups,
-  onCustomGroupAction
+  customContainerShapes
 }: LeftSidebarProps) {
-  const [newGroupName, setNewGroupName] = useState<string>('');
-  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
-
-  const handleAddGroup = () => {
-    if (newGroupName.trim()) {
-      onCustomGroupAction('create');
-      setNewGroupName('');
-    }
-  };
-
-  const handleSaveAsCustomShape = () => {
-    if (selectedGroup) {
-      onCustomGroupAction('save', selectedGroup);
-    }
-  };
 
   const toggleCategory = (category: string) => {
     const newCollapsed = new Set(collapsedCategories);
@@ -94,12 +75,6 @@ export default function LeftSidebar({
 
   const clearSearch = () => {
     setSearchTerm('');
-  };
-
-  // Handle drag start for custom group items
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, item: any) => {
-    e.dataTransfer.setData('application/custom-group-item', JSON.stringify(item));
-    e.dataTransfer.effectAllowed = 'copy';
   };
 
   const renderShape = (shape: ShapeDefinition) => {
@@ -197,35 +172,6 @@ export default function LeftSidebar({
         }}>
           Shape Library
         </span>
-        <button 
-          onClick={() => onCustomGroupAction('create')} 
-          style={{ 
-            background: 'rgba(255,255,255,0.2)',
-            border: '1px solid rgba(255,255,255,0.3)',
-            color: '#fff',
-            borderRadius: '50%',
-            width: '28px',
-            height: '28px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            transition: 'all 0.2s ease',
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.3)';
-            e.currentTarget.style.transform = 'scale(1.1)';
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-          title="Add new shape group"
-        >
-          ＋
-        </button>
       </div>
 
       {/* Search Bar */}
@@ -280,7 +226,7 @@ export default function LeftSidebar({
               ✕
             </button>
           )}
-            <div style={{
+          <div style={{
             position: 'absolute',
             left: '4px',
             top: '50%',
@@ -294,10 +240,9 @@ export default function LeftSidebar({
             width: '16px',
             height: '16px',
             userSelect: 'none'
-
-            }}>
+          }}>
             🔍
-            </div>
+          </div>
         </div>
         {searchTerm && (
           <div style={{
@@ -399,8 +344,7 @@ export default function LeftSidebar({
                     }
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>                   <span style={{ fontSize: '16px' }}>
                       {categoryIcons[category] || '📁'}
                     </span>
                     <span>{category}</span>
@@ -450,13 +394,11 @@ export default function LeftSidebar({
           <div style={{ marginBottom: '16px' }}>
             <div style={{
               padding: '8px 12px',
-              //background: 'linear-gradient(135deg, #e8f5e8 0%, #f0f8ff 100%)',
               border: '1px solid #4caf50',
               borderRadius: '6px',
               marginBottom: '8px',
               fontSize: '12px',
               fontWeight: '600',
-              //color: '#2e7d32',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               display: 'flex',
@@ -511,7 +453,6 @@ export default function LeftSidebar({
                   <div style={{
                     width: '64px',
                     height: '40px',
-                    //background: 'linear-gradient(45deg, #c8e6c9 25%, transparent 25%), linear-gradient(-45deg, #c8e6c9 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c8e6c9 75%), linear-gradient(-45deg, transparent 75%, #c8e6c9 75%)',
                     backgroundSize: '6px 6px',
                     backgroundPosition: '0 0, 0 3px, 3px -3px, -3px 0px',
                     display: 'flex',
@@ -557,101 +498,6 @@ export default function LeftSidebar({
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Custom Groups Section */}
-        {Object.keys(customGroups).length > 0 && (
-          <div style={{ marginTop: '20px' }}>
-            <div style={{
-              background: 'linear-gradient(135deg, #ff9a56 0%, #ff6b35 100%)',
-              color: 'white',
-              padding: '12px 16px',
-              borderRadius: '8px',
-              marginBottom: '12px',
-              fontWeight: 'bold',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              ⭐ CUSTOM GROUPS
-            </div>
-
-            {Object.entries(customGroups)
-              .filter(([groupName]) => groupName !== 'Elementary Patterns') // Filter out patterns
-              .map(([groupName, groupItems]) => (
-                <div key={groupName} style={{ marginBottom: '16px' }}>
-                  <h4 style={{
-                    color: '#666',
-                    fontSize: '13px',
-                    marginBottom: '8px',
-                    fontWeight: '600'
-                  }}>
-                    📁 {groupName} ({groupItems.length})
-                  </h4>
-                  
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(64px, 1fr))',
-                    gap: '8px',
-                    padding: '8px',
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: '6px',
-                    border: '1px solid #e9ecef'
-                  }}>
-                    {groupItems.map((item: any, index: number) => (
-                      <div
-                        key={`${groupName}-${index}`}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, item)}
-                        style={{
-                          width: '64px',
-                          height: '48px',
-                          backgroundColor: item.color || '#f0f0f0',
-                          border: `2px solid ${item.stroke || '#999'}`,
-                          borderRadius: item.shape === 'RoundedRectangle' ? '8px' : 
-                                      item.shape === 'Ellipse' ? '50%' : '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '8px',
-                          fontWeight: 'bold',
-                          color: '#333',
-                          cursor: 'grab',
-                          transition: 'all 0.2s ease',
-                          userSelect: 'none'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'scale(1.05)';
-                          e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'scale(1)';
-                          e.currentTarget.style.boxShadow = 'none';
-                        }}
-                        title={item.name || item.label}
-                      >
-                        {(item.label || item.name || '?').substring(0, 6)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-            {Object.keys(customGroups).filter(name => name !== 'Elementary Patterns').length === 0 && (
-              <div style={{
-                padding: '20px',
-                textAlign: 'center',
-                color: '#666',
-                fontSize: '14px',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '6px',
-                border: '2px dashed #ddd'
-              }}>
-                No custom groups yet. Create your own!
-              </div>
-            )}
           </div>
         )}
       </div>
