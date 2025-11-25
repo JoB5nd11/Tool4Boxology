@@ -10,12 +10,9 @@ COPY ./images/sidebar-pattern.png /usr/local/tomcat/webapps/draw/images/sidebar-
 COPY ./images/sidebar-shape.png /usr/local/tomcat/webapps/draw/images/sidebar-shape.png
 COPY ./images/sidebar-annotation.png /usr/local/tomcat/webapps/draw/images/sidebar-annotation.png
 
-
-
-
 # Copy docker-entrypoint
 COPY docker-entrypoint.sh /
-ENTRYPOINT ["/docker-entrypoint.sh"]
+RUN chmod +x /docker-entrypoint.sh
 CMD ["copy","catalina.sh", "run"]
 
 
