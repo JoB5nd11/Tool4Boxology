@@ -295,8 +295,9 @@ SPARQL Queries
 
 # 📜 License
 -CC BY 4.0 — diagrams, documentation, educational assets
+
 -Apache 2.0 — included third-party or extended modules
--Details available in the repository's LICENSE* files 
+
 
 ---
 
