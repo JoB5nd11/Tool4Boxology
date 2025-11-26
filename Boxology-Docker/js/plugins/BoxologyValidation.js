@@ -11,72 +11,86 @@ Draw.loadPlugin(function(ui) {
     graph.getTooltipForCell = function(cell) {
         return cell.tooltip || null;
     };
-	const shapes = [
-	 "symbol",
+// --- UPDATED: canonical shapes based on src/data/shape.ts ---
+    const shapes = [
+        "symbol",
         "data",
-        "symbol/data",
-        "model",
         "actor",
-        "generate",
-        "generate:train",
-        "generate:engineer",
-        "infer:deduce",
-        "model:semantic",
-        "model:statistics",
-        "infer",
-        "deduce",
+        "model",
         "transform",
-        "transform:embed",
-        "text",
-        "conditions",
-        "description",
-        "note",
-        "pre-conditions",
-        "post-condition",
-        "group",	
-	]
-//List of all pattern
-    const allPatterns = [
-        { name: "train_model (symbol)", edges: [["symbol", "generate:train"], ["generate:train", "model"]] },
-        { name: "train_model (data)", edges: [["data", "generate:train"], ["generate:train", "model"]] },
-        { name: "transform symbol", edges: [["symbol", "transform"], ["transform", "data"]] },
-        { name: "transform symbol/data", edges: [["symbol/data", "transform"], ["transform", "data"]] },
-        { name: "transform data", edges: [["data", "transform"], ["transform", "data"]] },
-        { name: "generate_model from actor", edges: [["actor", "generate:engineer"], ["generate:engineer", "model"]] },
-        { name: "infer_symbol (symbol → model → symbol)", edges: [["model", "infer:deduce"], ["symbol", "infer:deduce"], ["infer:deduce", "symbol"]] },
-        { name: "infer_symbol (symbol/data → model → symbol)", edges: [["model", "infer:deduce"], ["symbol/data", "infer:deduce"], ["infer:deduce", "symbol"]] },
-        { name: "infer_symbol (data → model → symbol)", edges: [["model", "infer:deduce"], ["data", "infer:deduce"], ["infer:deduce", "symbol"]] },
-        { name: "infer_model (symbol → model → model)", edges: [["model", "infer:deduce"], ["symbol", "infer:deduce"], ["infer:deduce", "model"]] },
-        { name: "infer_model (symbol/data → model → model)", edges: [["model", "infer:deduce"], ["symbol/data", "infer:deduce"], ["infer:deduce", "model"]] },
-        { name: "infer_model (data → model → model)", edges: [["model", "infer:deduce"], ["data", "infer:deduce"], ["infer:deduce", "model"]] },
-        { name: "embed transform", edges: [["symbol", "transform:embed"], ["data", "transform:embed"], ["transform:embed", "model:semantic"]] },
-	//New rules
-		{ name: "generate_model from model and data ", edges: [["model", "generate"], ["data", "generate"], ["generate", "model"]] },
-		{ name: "train_model (symbol)", edges: [["symbol", "generate"], ["generate", "model"]] },
-		{ name: "generate model (data → symbol → model)", edges: [["data", "generate"], ["symbol", "generate"], ["generate", "model"]] },
-		{ name: "generate_symbol from actor", edges: [["actor", "generate:engineer"], ["generate:engineer", "symbol"]] },
-		{ name: "data-symbol transform", edges: [["symbol", "transform"], ["data", "transform"], ["transform", "data"]] },
-		{ name: "actor generate model", edges: [["actor", "generate"], ["symbol", "generate"], ["generate", "model"]]},
-		{ name: "infer symbol from more model", edges: [["model", "infer:deduce"],["data", "infer:deduce"], ["infer:deduce", "symbol"]] },
-		
-		
+        "deduce",
+        "training",
+        "engineering",
+        "comment",
     ];
 
-//To limit user for connecting nodes, which logicaly can not be next step in flow
+// --- UPDATED: patterns aligned to GoJS Boxology and shape.ts ---
+const allPatterns = [
+  // Train model with artifacts
+  { name: "train_model (symbol)", edges: [["symbol", "training"], ["training", "model"]] },
+  { name: "train_model (data)", edges: [["data", "training"], ["training", "model"]] },
+  { name: "generate_model from model and data ", edges: [["model", "training"], ["data", "training"], ["training", "model"]] },
+  { name: "generate_model from model and symbol ", edges: [["model", "training"], ["symbol", "training"], ["training", "model"]] },
+  { name: "generate_model from model and artifacts ", edges: [["model", "training"], ["artifacts", "training"], ["training", "model"]] },
+  
+  // Transform data with symbol/artifacts/data
+  { name: "transform to data (symbol)", edges: [["symbol", "transform"], ["transform", "data"]] },
+  { name: "transform to data (data)", edges: [["data", "transform"], ["transform", "data"]] },
+  { name: "transform to symbol (data)", edges: [["data", "transform"], ["transform", "symbol"]] },
+  { name: "transform to symbol (symbol)", edges: [["symbol", "transform"], ["transform", "symbol"]] },
+  { name: "transform_model (model)", edges: [["model", "transform"], ["transform", "model"]] },
+  
+  //engineer model from actor and artifacts
+  { name: "actor engineer model", edges: [["actor", "engineering"], ["engineering", "model"]] },
+  { name: "actor engineer data from data", edges: [["actor", "engineering"], ["data", "engineering"], ["engineering", "data"]] },
+  { name: "actor engineer symbol", edges: [["actor", "engineering"], ["engineering", "symbol"]] },
+  { name: "actor engineer data", edges: [["actor", "engineering"], ["engineering", "data"]] },
+  { name: "actor engineer symbol from symbol", edges: [["actor", "engineering"], ["symbol", "engineering"], ["engineering", "symbol"]] },
+  { name: "actor engineer model from model", edges: [["actor", "engineering"], ["model", "engineering"], ["engineering", "model"]] },
+  { name: "actor engineer data from model", edges: [["actor", "engineering"], ["model", "engineering"], ["engineering", "data"]] },
+  { name: "actor engineer symbol from model", edges: [["actor", "engineering"], ["model", "engineering"], ["engineering", "symbol"]] },
+  { name: "actor engineer model from symbol", edges: [["actor", "engineering"], ["symbol", "engineering"], ["engineering", "model"]] },
+  { name: "actor engineer model from data", edges: [["actor", "engineering"], ["data", "engineering"], ["engineering", "model"]] },
+  { name: "actor engineer data from symbol", edges: [["actor", "engineering"], ["symbol", "engineering"], ["engineering", "data"]] },
+  { name: "actor engineer symbol from data", edges: [["actor", "engineering"], ["data", "engineering"], ["engineering", "symbol"]] },
+
+  { name: "infer_symbol (symbol → model → symbol)", edges: [["model", "deduce"], ["symbol", "deduce"], ["deduce", "symbol"]] },
+  { name: "infer_symbol (data → model → symbol)", edges: [["model", "deduce"], ["data", "deduce"], ["deduce", "symbol"]] },
+  { name: "infer_model (symbol → model → model)", edges: [["model", "deduce"], ["symbol", "deduce"], ["deduce", "model"]] },
+  { name: "infer_model (data → model → model)", edges: [["model", "deduce"], ["data", "deduce"], ["deduce", "model"]] },
+  { name: "infer_data (data → model → data)", edges: [["model", "deduce"], ["data", "deduce"], ["deduce", "data"]] },
+  { name: "infer_data (symbol → model → data)", edges: [["model", "deduce"], ["symbol", "deduce"], ["deduce", "data"]] },
+  { name: "embed transform", edges: [["symbol", "embed"], ["data", "embed"], ["embed", "model"]] },
+
+  { name: "data-symbol transform", edges: [["symbol", "transform"], ["data", "transform"], ["transform", "data"]] },
+
+  { name: "infer symbol from more model", edges: [["model", "deduce"], ["data", "deduce"], ["deduce", "symbol"]] }
+];
+
+// --- UPDATED: next-step constraints per shape.ts semantics ---
     const validNext = {
-        "symbol": ["infer:deduce", "generate:train","generate","generate:engineer", "transform:embed", "transform", "symbol","symbol/data"],
-        "data": ["infer:deduce", "generate:train","generate","generate:engineer", "transform", "data","transform:embed","symbol/data"],
-        "symbol/data": ["infer:deduce", "transform:embed","generate", "transform", "symbol/data","generate","symbol","data", "generate:train", "generate:engineer"],
-        "infer:deduce": ["symbol", "model", "infer:deduce","data","symbol/data","model:semantic", "model:statistics"],
-        "model": ["infer:deduce", "model","generate","generate:train","generate:engineer", "model:statistics", "model:semantic","transform:embed","transform"],
-        "generate:train": ["model", "generate:train", "model:semantic", "model:statistics"],
-		"generate": ["model", "generate", "model:semantic", "model:statistics","data","symbol","symbol/data"],
-        "actor": ["generate:engineer", "actor"],
-        "generate:engineer": ["model", "generate:engineer","generate","data","symbol","symbol/data"],
-        "model:semantic": ["infer:deduce", "model","generate","generate:train","generate:engineer", "model:statistics", "model:semantic","transform:embed","transform"],
-        "model:statistics": ["infer:deduce", "model","generate","generate:train","generate:engineer", "model:statistics", "model:semantic","transform:embed","transform"],
-        "transform:embed": ["data", "transform:embed", "symbol", "transform", "model:semantic", "model:statistics", "symbol/data","model"],
-        "transform": ["data", "symbol", "symbol/data", "transform","transform:embed", "model", "model:semantic", "model:statistics"],
+        // Inputs can go to processing or inference
+        "symbol":     ["training", "engineering", "transform", "deduce", "symbol"],
+        "data":       ["training", "engineering", "transform", "deduce", "data"],
+
+        // Actor only engineers
+        "actor":      ["engineering", "actor"],
+
+        // Processing steps
+        "training":   ["model"],
+        "engineering":["model", "symbol"],
+
+        // Inference
+        "deduce":     ["symbol", "model", "deduce"],
+
+        // Transform can output normalized data/symbol or feed models
+        "transform":  ["data", "symbol", "model", "transform"],
+
+        // Models typically feed deduce or transform
+        "model":      ["deduce", "transform", "model"],
+
+        // Documentation free-form (no enforcement here)
+        "comment":    ["comment"],
     };
 
 //The function which check validation for each pattern seperatedly and support complex pattern
@@ -88,15 +102,6 @@ function validatePattern() {
     }
 
     const model = graph.getModel();
-
-    // Helper functions for consistent node data extraction - like GoJS version
-    function getNodeName(cell) {
-        return (cell.name || "").trim();
-    }
-
-    function getNodeLabel(cell) {
-        return (cell.value || "").trim();
-    }
 
     // Updated logic for ignoring non-graphical nodes
     function isIgnorable(cell) {
@@ -116,20 +121,19 @@ function validatePattern() {
     const edges = selectedCells.filter(cell => cell.edge && cell.source && cell.target);
 
     // Group nodes by their "name" attribute to treat duplicates as single logical nodes
-    // This handles duplication: multiple physical nodes with same name = one logical node
     const nodesByName = {};
-    nodes.forEach(node => {
-        const nodeName = getNodeName(node);
-        if (!nodesByName[nodeName]) {
-            nodesByName[nodeName] = [];
-        }
-        nodesByName[nodeName].push(node);
-    });
+nodes.forEach(node => {
+    const nodeName = node.name || "";
+    if (!nodesByName[nodeName]) {
+        nodesByName[nodeName] = [];
+    }
+    nodesByName[nodeName].push(node);
+});
 
-    // Extract edge names as [sourceName, targetName] - using "name" attribute only via helper function
+    // Extract edge names as [sourceName, targetName] - using "name" attribute only
     const edgeNameList = edges.map(edge => [
-        getNodeName(edge.source),
-        getNodeName(edge.target)
+        edge.source.name || "",
+        edge.target.name || ""
     ]);
 
     // Create a mapping from physical node ID to logical node name for tracking
@@ -265,22 +269,12 @@ function validatePattern() {
     }
 }
 
-//If two node has same label and user connect them together, consider as one node.
+//If two node has same name and user connect them toghether, consider as one node.
     function mergeIdenticalNodes(edge) {
         let source = edge.source;
         let target = edge.target;
         if (!source || !target || source === target) return;
-        
-        // Helper function for getting node label
-        function getNodeLabel(cell) {
-            return (cell.value || "").trim();
-        }
-        
-        let sourceLabel = getNodeLabel(source);
-        let targetLabel = getNodeLabel(target);
-        
-        // Only merge if labels are identical (like GoJS: sourceLabel === targetLabel)
-        if (sourceLabel === targetLabel) {
+        if (source.value === target.value) {
             let model = graph.getModel();
             let inEdges = model.getEdges(target, true, false);
             let outEdges = model.getEdges(target, false, true);
@@ -290,7 +284,6 @@ function validatePattern() {
                 outEdges.forEach(e => { if (e !== edge) e.source = source; });
                 model.remove(edge);
                 model.remove(target);
-                console.log(`✅ Merged identical nodes: label="${sourceLabel}"`);
             } finally {
                 model.endUpdate();
             }
@@ -301,32 +294,17 @@ function validatePattern() {
         let edge = evt.getProperty("edge");
         if (!edge || !edge.source || !edge.target) return;
 
-        // Helper functions for consistent node data extraction
-        function getNodeName(cell) {
-            return (cell.name || "").trim();
-        }
+        let source = edge.source.name;
+        let target = edge.target.name;
 
-        function getNodeLabel(cell) {
-            return (cell.value || "").trim();
-        }
-
-        let sourceName = getNodeName(edge.source);
-        let targetName = getNodeName(edge.target);
-
-        console.log(`🔗 Attempting connection: "${sourceName}" → "${targetName}"`);
-
-        if (!validNext[sourceName] || !validNext[sourceName].includes(targetName)) {
-            console.log(`❌ Invalid connection blocked: "${sourceName}" → "${targetName}"`);
+        if (!validNext[source] || !validNext[source].includes(target)) {
             alert("❌ Invalid connection! Edge will be removed.");
             graph.getModel().remove(edge);
             return;
         }
 
-        console.log(`✅ Valid connection allowed: "${sourceName}" → "${targetName}"`);
 
-        // If same name nodes are connected, merge them (using name for validation)
-        if (sourceName === targetName) {
-            console.log(`🔄 Merging identical nodes: name="${sourceName}"`);
+        if (edge.source.name === edge.target.name) {
             mergeIdenticalNodes(edge);
         }
     });
@@ -349,18 +327,12 @@ function validatePattern() {
     graph.removeCells = function(cells, includeEdges) {
         let model = this.getModel();
         model.beginUpdate();
-        
-        // Helper function for getting node name
-        function getNodeName(cell) {
-            return (cell.name || "").trim();
-        }
-        
         try {
             cells.forEach(cell => {
                 if (!cell.edge) {
                     let connectedEdges = model.getEdges(cell, true, true);
                     connectedEdges.forEach(edge => model.remove(edge));
-                    console.log(`🗑️ Deleted node "${getNodeName(cell)}" with its edges`);
+                    console.log(`🗑️ Deleted node "${cell.name}" with its edges`);
                 }
             });
             mxGraph.prototype.removeCells.call(this, cells, includeEdges);

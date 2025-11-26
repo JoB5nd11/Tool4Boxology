@@ -11,72 +11,86 @@ Draw.loadPlugin(function(ui) {
     graph.getTooltipForCell = function(cell) {
         return cell.tooltip || null;
     };
-	const shapes = [
-	 "symbol",
+// --- UPDATED: canonical shapes based on src/data/shape.ts ---
+    const shapes = [
+        "symbol",
         "data",
-        "symbol/data",
-        "model",
         "actor",
-        "generate",
-        "generate:train",
-        "generate:engineer",
-        "infer:deduce",
-        "model:semantic",
-        "model:statistics",
-        "infer",
-        "deduce",
+        "model",
         "transform",
-        "transform:embed",
-        "text",
-        "conditions",
-        "description",
-        "note",
-        "pre-conditions",
-        "post-condition",
-        "group",	
-	]
-//List of all pattern
-    const allPatterns = [
-        { name: "train_model (symbol)", edges: [["symbol", "generate:train"], ["generate:train", "model"]] },
-        { name: "train_model (data)", edges: [["data", "generate:train"], ["generate:train", "model"]] },
-        { name: "transform symbol", edges: [["symbol", "transform"], ["transform", "data"]] },
-        { name: "transform symbol/data", edges: [["symbol/data", "transform"], ["transform", "data"]] },
-        { name: "transform data", edges: [["data", "transform"], ["transform", "data"]] },
-        { name: "generate_model from actor", edges: [["actor", "generate:engineer"], ["generate:engineer", "model"]] },
-        { name: "infer_symbol (symbol → model → symbol)", edges: [["model", "infer:deduce"], ["symbol", "infer:deduce"], ["infer:deduce", "symbol"]] },
-        { name: "infer_symbol (symbol/data → model → symbol)", edges: [["model", "infer:deduce"], ["symbol/data", "infer:deduce"], ["infer:deduce", "symbol"]] },
-        { name: "infer_symbol (data → model → symbol)", edges: [["model", "infer:deduce"], ["data", "infer:deduce"], ["infer:deduce", "symbol"]] },
-        { name: "infer_model (symbol → model → model)", edges: [["model", "infer:deduce"], ["symbol", "infer:deduce"], ["infer:deduce", "model"]] },
-        { name: "infer_model (symbol/data → model → model)", edges: [["model", "infer:deduce"], ["symbol/data", "infer:deduce"], ["infer:deduce", "model"]] },
-        { name: "infer_model (data → model → model)", edges: [["model", "infer:deduce"], ["data", "infer:deduce"], ["infer:deduce", "model"]] },
-        { name: "embed transform", edges: [["symbol", "transform:embed"], ["data", "transform:embed"], ["transform:embed", "model:semantic"]] },
-	//New rules
-		{ name: "generate_model from model and data ", edges: [["model", "generate"], ["data", "generate"], ["generate", "model"]] },
-		{ name: "train_model (symbol)", edges: [["symbol", "generate"], ["generate", "model"]] },
-		{ name: "generate model (data → symbol → model)", edges: [["data", "generate"], ["symbol", "generate"], ["generate", "model"]] },
-		{ name: "generate_symbol from actor", edges: [["actor", "generate:engineer"], ["generate:engineer", "symbol"]] },
-		{ name: "data-symbol transform", edges: [["symbol", "transform"], ["data", "transform"], ["transform", "data"]] },
-		{ name: "actor generate model", edges: [["actor", "generate"], ["symbol", "generate"], ["generate", "model"]]},
-		{ name: "infer symbol from more model", edges: [["model", "infer:deduce"],["data", "infer:deduce"], ["infer:deduce", "symbol"]] },
-		
-		
+        "deduce",
+        "training",
+        "engineering",
+        "comment",
     ];
 
-//To limit user for connecting nodes, which logicaly can not be next step in flow
+// --- UPDATED: patterns aligned to GoJS Boxology and shape.ts ---
+const allPatterns = [
+    // Train model with artifacts
+  { name: "train_model (symbol)", edges: [["symbol", "training"], ["training", "model"]] },
+  { name: "train_model (data)", edges: [["data", "training"], ["training", "model"]] },
+  { name: "generate_model from model and data ", edges: [["model", "training"], ["data", "training"], ["training", "model"]] },
+  { name: "generate_model from model and symbol ", edges: [["model", "training"], ["symbol", "training"], ["training", "model"]] },
+  { name: "generate_model from model and artifacts ", edges: [["model", "training"], ["artifacts", "training"], ["training", "model"]] },
+  
+  // Transform data with symbol/artifacts/data
+  { name: "transform to data (symbol)", edges: [["symbol", "transform"], ["transform", "data"]] },
+  { name: "transform to data (data)", edges: [["data", "transform"], ["transform", "data"]] },
+  { name: "transform to symbol (data)", edges: [["data", "transform"], ["transform", "symbol"]] },
+  { name: "transform to symbol (symbol)", edges: [["symbol", "transform"], ["transform", "symbol"]] },
+  { name: "transform_model (model)", edges: [["model", "transform"], ["transform", "model"]] },
+  
+  //engineer model from actor and artifacts
+  { name: "actor engineer model", edges: [["actor", "engineering"], ["engineering", "model"]] },
+  { name: "actor engineer data from data", edges: [["actor", "engineering"], ["data", "engineering"], ["engineering", "data"]] },
+  { name: "actor engineer symbol", edges: [["actor", "engineering"], ["engineering", "symbol"]] },
+  { name: "actor engineer data", edges: [["actor", "engineering"], ["engineering", "data"]] },
+  { name: "actor engineer symbol from symbol", edges: [["actor", "engineering"], ["symbol", "engineering"], ["engineering", "symbol"]] },
+  { name: "actor engineer model from model", edges: [["actor", "engineering"], ["model", "engineering"], ["engineering", "model"]] },
+  { name: "actor engineer data from model", edges: [["actor", "engineering"], ["model", "engineering"], ["engineering", "data"]] },
+  { name: "actor engineer symbol from model", edges: [["actor", "engineering"], ["model", "engineering"], ["engineering", "symbol"]] },
+  { name: "actor engineer model from symbol", edges: [["actor", "engineering"], ["symbol", "engineering"], ["engineering", "model"]] },
+  { name: "actor engineer model from data", edges: [["actor", "engineering"], ["data", "engineering"], ["engineering", "model"]] },
+  { name: "actor engineer data from symbol", edges: [["actor", "engineering"], ["symbol", "engineering"], ["engineering", "data"]] },
+  { name: "actor engineer symbol from data", edges: [["actor", "engineering"], ["data", "engineering"], ["engineering", "symbol"]] },
+
+  { name: "infer_symbol (symbol → model → symbol)", edges: [["model", "deduce"], ["symbol", "deduce"], ["deduce", "symbol"]] },
+  { name: "infer_symbol (data → model → symbol)", edges: [["model", "deduce"], ["data", "deduce"], ["deduce", "symbol"]] },
+  { name: "infer_model (symbol → model → model)", edges: [["model", "deduce"], ["symbol", "deduce"], ["deduce", "model"]] },
+  { name: "infer_model (data → model → model)", edges: [["model", "deduce"], ["data", "deduce"], ["deduce", "model"]] },
+  { name: "infer_data (data → model → data)", edges: [["model", "deduce"], ["data", "deduce"], ["deduce", "data"]] },
+  { name: "infer_data (symbol → model → data)", edges: [["model", "deduce"], ["symbol", "deduce"], ["deduce", "data"]] },
+  { name: "embed transform", edges: [["symbol", "embed"], ["data", "embed"], ["embed", "model"]] },
+
+  { name: "data-symbol transform", edges: [["symbol", "transform"], ["data", "transform"], ["transform", "data"]] },
+
+  { name: "infer symbol from more model", edges: [["model", "deduce"], ["data", "deduce"], ["deduce", "symbol"]] }
+];
+
+// --- UPDATED: next-step constraints per shape.ts semantics ---
     const validNext = {
-        "symbol": ["infer:deduce", "generate:train","generate","generate:engineer", "transform:embed", "transform", "symbol","symbol/data"],
-        "data": ["infer:deduce", "generate:train","generate","generate:engineer", "transform", "data","transform:embed","symbol/data"],
-        "symbol/data": ["infer:deduce", "transform:embed","generate", "transform", "symbol/data","generate","symbol","data", "generate:train", "generate:engineer"],
-        "infer:deduce": ["symbol", "model", "infer:deduce","data","symbol/data","model:semantic", "model:statistics"],
-        "model": ["infer:deduce", "model","generate","generate:train","generate:engineer", "model:statistics", "model:semantic","transform:embed","transform"],
-        "generate:train": ["model", "generate:train", "model:semantic", "model:statistics"],
-		"generate": ["model", "generate", "model:semantic", "model:statistics","data","symbol","symbol/data"],
-        "actor": ["generate:engineer", "actor"],
-        "generate:engineer": ["model", "generate:engineer","generate","data","symbol","symbol/data"],
-        "model:semantic": ["infer:deduce", "model","generate","generate:train","generate:engineer", "model:statistics", "model:semantic","transform:embed","transform"],
-        "model:statistics": ["infer:deduce", "model","generate","generate:train","generate:engineer", "model:statistics", "model:semantic","transform:embed","transform"],
-        "transform:embed": ["data", "transform:embed", "symbol", "transform", "model:semantic", "model:statistics", "symbol/data","model"],
-        "transform": ["data", "symbol", "symbol/data", "transform","transform:embed", "model", "model:semantic", "model:statistics"],
+        // Inputs can go to processing or inference
+        "symbol":     ["training", "engineering", "transform", "deduce", "symbol"],
+        "data":       ["training", "engineering", "transform", "deduce", "data"],
+
+        // Actor only engineers
+        "actor":      ["engineering", "actor"],
+
+        // Processing steps
+        "training":   ["model"],
+        "engineering":["model", "symbol"],
+
+        // Inference
+        "deduce":     ["symbol", "model", "deduce"],
+
+        // Transform can output normalized data/symbol or feed models
+        "transform":  ["data", "symbol", "model", "transform"],
+
+        // Models typically feed deduce or transform
+        "model":      ["deduce", "transform", "model"],
+
+        // Documentation free-form (no enforcement here)
+        "comment":    ["comment"],
     };
 
 //The function which check validation for each pattern seperatedly and support complex pattern
