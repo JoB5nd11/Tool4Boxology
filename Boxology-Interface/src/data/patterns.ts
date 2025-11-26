@@ -26,8 +26,15 @@ export interface Pattern {
   thumbnail?: string;
 }
 
-// Helper function to find shape definition
-const findShape = (name: string) => shapes.find(s => s.name === name);
+// Helper function to find shape definition and get its colors
+const getShapeColors = (name: string) => {
+  const shape = shapes.find(s => s.name === name);
+  if (!shape) {
+    console.warn(`Shape ${name} not found, using defaults`);
+    return { color: '#FFFFFF', stroke: '#000000' };
+  }
+  return { color: shape.color, stroke: shape.stroke };
+};
 
 // Elementary patterns based on allPatterns from GoJSBoxologyValidation
 export const elementaryPatterns: Pattern[] = [
@@ -42,8 +49,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'symbol',
         label: 'id-symbol',
         shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
+        ...getShapeColors('symbol'),
         x: 0,
         y: 0
       },
@@ -52,8 +58,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'training',
         label: 'id-training',
         shape: 'RoundedRectangle',
-        color: '#FFA07A',
-        stroke: '#CD5C5C',
+        ...getShapeColors('training'),
         x: 150,
         y: 0
       },
@@ -62,8 +67,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 300,
         y: 0
       }
@@ -84,8 +88,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'data',
         label: 'id-data',
         shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
+        ...getShapeColors('data'),
         x: 0,
         y: 0
       },
@@ -94,8 +97,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'training',
         label: 'id-training',
         shape: 'RoundedRectangle',
-        color: '#FFA07A',
-        stroke: '#CD5C5C',
+        ...getShapeColors('training'),
         x: 150,
         y: 0
       },
@@ -104,8 +106,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 300,
         y: 0
       }
@@ -116,49 +117,7 @@ export const elementaryPatterns: Pattern[] = [
     ]
   },
 
-  {
-    id: 'train_model_artifacts',
-    name: 'Train Model (Artifacts)',
-    description: 'Train a model from artifacts',
-    nodes: [
-      {
-        id: '1',
-        name: 'artifact',
-        label: 'id-artifact',
-        shape: 'Rectangle',
-        color: '#99e5e1ff',
-        stroke: '#0D5F5C',
-        x: 0,
-        y: 0
-      },
-      {
-        id: '2',
-        name: 'training',
-        label: 'id-training',
-        shape: 'RoundedRectangle',
-        color: '#FFA07A',
-        stroke: '#CD5C5C',
-        x: 150,
-        y: 0
-      },
-      {
-        id: '3',
-        name: 'model',
-        label: 'id-model',
-        shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
-        x: 300,
-        y: 0
-      }
-    ],
-    links: [
-      { from: '1', to: '2' },
-      { from: '2', to: '3' }
-    ]
-  },
-
-  // Generate model patterns
+    // Generate model patterns
   {
     id: 'generate_model_data',
     name: 'Generate Model (Model + Data)',
@@ -169,8 +128,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 0,
         y: 0
       },
@@ -179,8 +137,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'data',
         label: 'id-data',
         shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
+        ...getShapeColors('data'),
         x: 0,
         y: 80
       },
@@ -189,8 +146,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'training',
         label: 'id-training',
         shape: 'RoundedRectangle',
-        color: '#FFA07A',
-        stroke: '#CD5C5C',
+        ...getShapeColors('training'),
         x: 150,
         y: 40
       },
@@ -199,8 +155,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 300,
         y: 40
       }
@@ -222,8 +177,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 0,
         y: 0
       },
@@ -232,8 +186,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'symbol',
         label: 'id-symbol',
         shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
+        ...getShapeColors('symbol'),
         x: 0,
         y: 80
       },
@@ -242,8 +195,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'training',
         label: 'id-training',
         shape: 'RoundedRectangle',
-        color: '#FFA07A',
-        stroke: '#CD5C5C',
+        ...getShapeColors('training'),
         x: 150,
         y: 40
       },
@@ -252,8 +204,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 300,
         y: 40
       }
@@ -265,58 +216,6 @@ export const elementaryPatterns: Pattern[] = [
     ]
   },
 
-  {
-    id: 'generate_model_artifacts',
-    name: 'Generate Model (Model + Artifacts)',
-    description: 'Generate model from existing model and artifacts',
-    nodes: [
-      {
-        id: '1',
-        name: 'model',
-        label: 'id-model',
-        shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
-        x: 0,
-        y: 0
-      },
-      {
-        id: '2',
-        name: 'artifact',
-        label: 'id-artifact',
-        shape: 'Rectangle',
-        color: '#99e5e1ff',
-        stroke: '#0D5F5C',
-        x: 0,
-        y: 80
-      },
-      {
-        id: '3',
-        name: 'training',
-        label: 'id-training',
-        shape: 'RoundedRectangle',
-        color: '#FFA07A',
-        stroke: '#CD5C5C',
-        x: 150,
-        y: 40
-      },
-      {
-        id: '4',
-        name: 'model',
-        label: 'id-model',
-        shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
-        x: 300,
-        y: 40
-      }
-    ],
-    links: [
-      { from: '1', to: '3' },
-      { from: '2', to: '3' },
-      { from: '3', to: '4' }
-    ]
-  },
 
   // Transform patterns
   {
@@ -329,8 +228,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'symbol',
         label: 'id-symbol',
         shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
+        ...getShapeColors('symbol'),
         x: 0,
         y: 0
       },
@@ -339,8 +237,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'transform',
         label: 'id-transform',
         shape: 'RoundedRectangle',
-        color: '#fbf2a2ff',
-        stroke: '#B8A600',
+        ...getShapeColors('transform'),
         x: 150,
         y: 0
       },
@@ -349,8 +246,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'data',
         label: 'id-data',
         shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
+        ...getShapeColors('data'),
         x: 300,
         y: 0
       }
@@ -360,49 +256,6 @@ export const elementaryPatterns: Pattern[] = [
       { from: '2', to: '3' }
     ]
   },
-
-  {
-    id: 'transform_artifacts_to_data',
-    name: 'Transform Artifacts → Data',
-    description: 'Transform artifacts to data',
-    nodes: [
-      {
-        id: '1',
-        name: 'artifact',
-        label: 'id-artifact',
-        shape: 'Rectangle',
-        color: '#99e5e1ff',
-        stroke: '#0D5F5C',
-        x: 0,
-        y: 0
-      },
-      {
-        id: '2',
-        name: 'transform',
-        label: 'id-transform',
-        shape: 'RoundedRectangle',
-        color: '#fbf2a2ff',
-        stroke: '#B8A600',
-        x: 150,
-        y: 0
-      },
-      {
-        id: '3',
-        name: 'data',
-        label: 'id-data',
-        shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
-        x: 300,
-        y: 0
-      }
-    ],
-    links: [
-      { from: '1', to: '2' },
-      { from: '2', to: '3' }
-    ]
-  },
-
   {
     id: 'transform_data_to_data',
     name: 'Transform Data → Data',
@@ -413,8 +266,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'data',
         label: 'id-data',
         shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
+        ...getShapeColors('data'),
         x: 0,
         y: 0
       },
@@ -423,8 +275,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'transform',
         label: 'id-transform',
         shape: 'RoundedRectangle',
-        color: '#fbf2a2ff',
-        stroke: '#B8A600',
+        ...getShapeColors('transform'),
         x: 150,
         y: 0
       },
@@ -433,8 +284,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'data',
         label: 'id-data',
         shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
+        ...getShapeColors('data'),
         x: 300,
         y: 0
       }
@@ -455,8 +305,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'data',
         label: 'id-data',
         shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
+        ...getShapeColors('data'),
         x: 0,
         y: 0
       },
@@ -465,8 +314,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'transform',
         label: 'id-transform',
         shape: 'RoundedRectangle',
-        color: '#fbf2a2ff',
-        stroke: '#B8A600',
+        ...getShapeColors('transform'),
         x: 150,
         y: 0
       },
@@ -475,8 +323,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'symbol',
         label: 'id-symbol',
         shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
+        ...getShapeColors('symbol'),
         x: 300,
         y: 0
       }
@@ -497,8 +344,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'symbol',
         label: 'id-symbol',
         shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
+        ...getShapeColors('symbol'),
         x: 0,
         y: 0
       },
@@ -507,8 +353,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'transform',
         label: 'id-transform',
         shape: 'RoundedRectangle',
-        color: '#fbf2a2ff',
-        stroke: '#B8A600',
+        ...getShapeColors('transform'),
         x: 150,
         y: 0
       },
@@ -517,8 +362,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'symbol',
         label: 'id-symbol',
         shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
+        ...getShapeColors('symbol'),
         x: 300,
         y: 0
       }
@@ -528,49 +372,6 @@ export const elementaryPatterns: Pattern[] = [
       { from: '2', to: '3' }
     ]
   },
-
-  {
-    id: 'transform_artifacts_to_symbol',
-    name: 'Transform Artifacts → Symbol',
-    description: 'Transform artifacts to symbol',
-    nodes: [
-      {
-        id: '1',
-        name: 'artifact',
-        label: 'id-artifact',
-        shape: 'Rectangle',
-        color: '#99e5e1ff',
-        stroke: '#0D5F5C',
-        x: 0,
-        y: 0
-      },
-      {
-        id: '2',
-        name: 'transform',
-        label: 'id-transform',
-        shape: 'RoundedRectangle',
-        color: '#fbf2a2ff',
-        stroke: '#B8A600',
-        x: 150,
-        y: 0
-      },
-      {
-        id: '3',
-        name: 'symbol',
-        label: 'id-symbol',
-        shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
-        x: 300,
-        y: 0
-      }
-    ],
-    links: [
-      { from: '1', to: '2' },
-      { from: '2', to: '3' }
-    ]
-  },
-
   {
     id: 'transform_model',
     name: 'Transform Model',
@@ -581,8 +382,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 0,
         y: 0
       },
@@ -591,8 +391,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'transform',
         label: 'id-transform',
         shape: 'RoundedRectangle',
-        color: '#fbf2a2ff',
-        stroke: '#B8A600',
+        ...getShapeColors('transform'),
         x: 150,
         y: 0
       },
@@ -601,8 +400,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 300,
         y: 0
       }
@@ -624,8 +422,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'actor',
         label: 'id-actor',
         shape: 'Triangle',
-        color: '#f8ce92ff',
-        stroke: '#000000ff',
+        ...getShapeColors('actor'),
         x: 0,
         y: 0
       },
@@ -634,8 +431,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'engineering',
         label: 'id-engineering',
         shape: 'RoundedRectangle',
-        color: '#f067acff',
-        stroke: '#C1307A',
+        ...getShapeColors('engineering'),
         x: 150,
         y: 0
       },
@@ -644,92 +440,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
-        x: 300,
-        y: 0
-      }
-    ],
-    links: [
-      { from: '1', to: '2' },
-      { from: '2', to: '3' }
-    ]
-  },
-
-  {
-    id: 'actor_engineer_semantic_model',
-    name: 'Actor Engineer Semantic Model',
-    description: 'Actor engineers a semantic model',
-    nodes: [
-      {
-        id: '1',
-        name: 'actor',
-        label: 'id-actor',
-        shape: 'Triangle',
-        color: '#f8ce92ff',
-        stroke: '#000000ff',
-        x: 0,
-        y: 0
-      },
-      {
-        id: '2',
-        name: 'engineering',
-        label: 'id-engineering',
-        shape: 'RoundedRectangle',
-        color: '#f067acff',
-        stroke: '#C1307A',
-        x: 150,
-        y: 0
-      },
-      {
-        id: '3',
-        name: 'SemanticModel',
-        label: 'id-SemanticModel',
-        shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
-        x: 300,
-        y: 0
-      }
-    ],
-    links: [
-      { from: '1', to: '2' },
-      { from: '2', to: '3' }
-    ]
-  },
-
-  {
-    id: 'actor_engineer_statistical_model',
-    name: 'Actor Engineer Statistical Model',
-    description: 'Actor engineers a statistical model',
-    nodes: [
-      {
-        id: '1',
-        name: 'actor',
-        label: 'id-actor',
-        shape: 'Triangle',
-        color: '#f8ce92ff',
-        stroke: '#000000ff',
-        x: 0,
-        y: 0
-      },
-      {
-        id: '2',
-        name: 'engineering',
-        label: 'id-engineering',
-        shape: 'RoundedRectangle',
-        color: '#f067acff',
-        stroke: '#C1307A',
-        x: 150,
-        y: 0
-      },
-      {
-        id: '3',
-        name: 'StatisticalModel',
-        label: 'id-StatisticalModel',
-        shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 300,
         y: 0
       }
@@ -750,8 +461,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'actor',
         label: 'id-actor',
         shape: 'Triangle',
-        color: '#f8ce92ff',
-        stroke: '#000000ff',
+        ...getShapeColors('actor'),
         x: 0,
         y: 0
       },
@@ -760,8 +470,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'engineering',
         label: 'id-engineering',
         shape: 'RoundedRectangle',
-        color: '#f067acff',
-        stroke: '#C1307A',
+        ...getShapeColors('engineering'),
         x: 150,
         y: 0
       },
@@ -770,8 +479,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'symbol',
         label: 'id-symbol',
         shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
+        ...getShapeColors('symbol'),
         x: 300,
         y: 0
       }
@@ -792,8 +500,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'actor',
         label: 'id-actor',
         shape: 'Triangle',
-        color: '#f8ce92ff',
-        stroke: '#000000ff',
+        ...getShapeColors('actor'),
         x: 0,
         y: 0
       },
@@ -802,8 +509,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'engineering',
         label: 'id-engineering',
         shape: 'RoundedRectangle',
-        color: '#f067acff',
-        stroke: '#C1307A',
+        ...getShapeColors('engineering'),
         x: 150,
         y: 0
       },
@@ -812,8 +518,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'data',
         label: 'id-data',
         shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
+        ...getShapeColors('data'),
         x: 300,
         y: 0
       }
@@ -835,8 +540,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'symbol',
         label: 'id-symbol',
         shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
+        ...getShapeColors('symbol'),
         x: 0,
         y: 0
       },
@@ -845,8 +549,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 0,
         y: 80
       },
@@ -855,8 +558,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'deduce',
         label: 'id-deduce',
         shape: 'RoundedRectangle',
-        color: '#ff81f7ff',
-        stroke: '#4c003bff',
+        ...getShapeColors('deduce'),
         x: 150,
         y: 40
       },
@@ -865,61 +567,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'symbol',
         label: 'id-symbol',
         shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
-        x: 300,
-        y: 40
-      }
-    ],
-    links: [
-      { from: '1', to: '3' },
-      { from: '2', to: '3' },
-      { from: '3', to: '4' }
-    ]
-  },
-
-  {
-    id: 'infer_symbol_from_artifacts',
-    name: 'Infer Symbol (Artifacts + Model)',
-    description: 'Infer symbol from model and artifacts input',
-    nodes: [
-      {
-        id: '1',
-        name: 'artifact',
-        label: 'id-artifact',
-        shape: 'Rectangle',
-        color: '#99e5e1ff',
-        stroke: '#0D5F5C',
-        x: 0,
-        y: 0
-      },
-      {
-        id: '2',
-        name: 'model',
-        label: 'id-model',
-        shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
-        x: 0,
-        y: 80
-      },
-      {
-        id: '3',
-        name: 'deduce',
-        label: 'id-deduce',
-        shape: 'RoundedRectangle',
-        color: '#ff81f7ff',
-        stroke: '#4c003bff',
-        x: 150,
-        y: 40
-      },
-      {
-        id: '4',
-        name: 'symbol',
-        label: 'id-symbol',
-        shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
+        ...getShapeColors('symbol'),
         x: 300,
         y: 40
       }
@@ -941,8 +589,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'data',
         label: 'id-data',
         shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
+        ...getShapeColors('data'),
         x: 0,
         y: 0
       },
@@ -951,8 +598,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 0,
         y: 80
       },
@@ -961,8 +607,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'deduce',
         label: 'id-deduce',
         shape: 'RoundedRectangle',
-        color: '#ff81f7ff',
-        stroke: '#4c003bff',
+        ...getShapeColors('deduce'),
         x: 150,
         y: 40
       },
@@ -971,8 +616,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'symbol',
         label: 'id-symbol',
         shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
+        ...getShapeColors('symbol'),
         x: 300,
         y: 40
       }
@@ -994,8 +638,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'symbol',
         label: 'id-symbol',
         shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
+        ...getShapeColors('symbol'),
         x: 0,
         y: 0
       },
@@ -1004,8 +647,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 0,
         y: 80
       },
@@ -1014,8 +656,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'deduce',
         label: 'id-deduce',
         shape: 'RoundedRectangle',
-        color: '#ff81f7ff',
-        stroke: '#4c003bff',
+        ...getShapeColors('deduce'),
         x: 150,
         y: 40
       },
@@ -1024,61 +665,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
-        x: 300,
-        y: 40
-      }
-    ],
-    links: [
-      { from: '1', to: '3' },
-      { from: '2', to: '3' },
-      { from: '3', to: '4' }
-    ]
-  },
-
-  {
-    id: 'infer_model_from_artifacts',
-    name: 'Infer Model (Artifacts + Model)',
-    description: 'Infer model from artifacts and model input',
-    nodes: [
-      {
-        id: '1',
-        name: 'artifact',
-        label: 'id-artifact',
-        shape: 'Rectangle',
-        color: '#99e5e1ff',
-        stroke: '#0D5F5C',
-        x: 0,
-        y: 0
-      },
-      {
-        id: '2',
-        name: 'model',
-        label: 'id-model',
-        shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
-        x: 0,
-        y: 80
-      },
-      {
-        id: '3',
-        name: 'deduce',
-        label: 'id-deduce',
-        shape: 'RoundedRectangle',
-        color: '#ff81f7ff',
-        stroke: '#4c003bff',
-        x: 150,
-        y: 40
-      },
-      {
-        id: '4',
-        name: 'model',
-        label: 'id-model',
-        shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 300,
         y: 40
       }
@@ -1100,8 +687,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'data',
         label: 'id-data',
         shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
+        ...getShapeColors('data'),
         x: 0,
         y: 0
       },
@@ -1110,8 +696,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 0,
         y: 80
       },
@@ -1120,8 +705,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'deduce',
         label: 'id-deduce',
         shape: 'RoundedRectangle',
-        color: '#ff81f7ff',
-        stroke: '#4c003bff',
+        ...getShapeColors('deduce'),
         x: 150,
         y: 40
       },
@@ -1130,8 +714,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 300,
         y: 40
       }
@@ -1153,8 +736,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'data',
         label: 'id-data',
         shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
+        ...getShapeColors('data'),
         x: 0,
         y: 0
       },
@@ -1163,8 +745,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 0,
         y: 80
       },
@@ -1173,8 +754,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'deduce',
         label: 'id-deduce',
         shape: 'RoundedRectangle',
-        color: '#ff81f7ff',
-        stroke: '#4c003bff',
+        ...getShapeColors('deduce'),
         x: 150,
         y: 40
       },
@@ -1183,8 +763,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'data',
         label: 'id-data',
         shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
+        ...getShapeColors('data'),
         x: 300,
         y: 40
       }
@@ -1206,8 +785,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'symbol',
         label: 'id-symbol',
         shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
+        ...getShapeColors('symbol'),
         x: 0,
         y: 0
       },
@@ -1216,8 +794,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'model',
         label: 'id-model',
         shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
+        ...getShapeColors('model'),
         x: 0,
         y: 80
       },
@@ -1226,8 +803,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'deduce',
         label: 'id-deduce',
         shape: 'RoundedRectangle',
-        color: '#ff81f7ff',
-        stroke: '#4c003bff',
+        ...getShapeColors('deduce'),
         x: 150,
         y: 40
       },
@@ -1236,8 +812,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'data',
         label: 'id-data',
         shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
+        ...getShapeColors('data'),
         x: 300,
         y: 40
       }
@@ -1248,61 +823,6 @@ export const elementaryPatterns: Pattern[] = [
       { from: '3', to: '4' }
     ]
   },
-
-  // Embedding patterns
-  {
-    id: 'embed_transform',
-    name: 'Embed Transform',
-    description: 'Embed symbol and data to semantic model',
-    nodes: [
-      {
-        id: '1',
-        name: 'symbol',
-        label: 'id-symbol',
-        shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
-        x: 0,
-        y: 0
-      },
-      {
-        id: '2',
-        name: 'data',
-        label: 'id-data',
-        shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
-        x: 0,
-        y: 80
-      },
-      {
-        id: '3',
-        name: 'transform',
-        label: 'id-transform',
-        shape: 'RoundedRectangle',
-        color: '#fbf2a2ff',
-        stroke: '#B8A600',
-        x: 150,
-        y: 40
-      },
-      {
-        id: '4',
-        name: 'SemanticModel',
-        label: 'id-SemanticModel',
-        shape: 'Hexagon',
-        color: '#f4ccf4ff',
-        stroke: '#8B4F8B',
-        x: 300,
-        y: 40
-      }
-    ],
-    links: [
-      { from: '1', to: '3' },
-      { from: '2', to: '3' },
-      { from: '3', to: '4' }
-    ]
-  },
-
   {
     id: 'data_symbol_transform',
     name: 'Data-Symbol Transform',
@@ -1313,8 +833,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'symbol',
         label: 'id-symbol',
         shape: 'Rectangle',
-        color: '#ccffccff',
-        stroke: '#218721ff',
+        ...getShapeColors('symbol'),
         x: 0,
         y: 0
       },
@@ -1323,8 +842,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'data',
         label: 'id-data',
         shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
+        ...getShapeColors('data'),
         x: 0,
         y: 80
       },
@@ -1333,8 +851,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'transform',
         label: 'id-transform',
         shape: 'RoundedRectangle',
-        color: '#fbf2a2ff',
-        stroke: '#B8A600',
+        ...getShapeColors('transform'),
         x: 150,
         y: 40
       },
@@ -1343,8 +860,7 @@ export const elementaryPatterns: Pattern[] = [
         name: 'data',
         label: 'id-data',
         shape: 'Rectangle',
-        color: '#b7eaffff',
-        stroke: '#1E5F8B',
+        ...getShapeColors('data'),
         x: 300,
         y: 40
       }
