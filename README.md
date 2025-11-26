@@ -3,7 +3,7 @@
 # 🧰 Tool4Boxology — Hybrid AI Design Toolkit
 
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 ![Docker](https://img.shields.io/badge/docker-image-blue)
 ![Status](https://img.shields.io/badge/status-beta-orange)
 ![Version](https://img.shields.io/badge/version-v0.2.0-blueviolet)
@@ -294,9 +294,10 @@ SPARQL Queries
 ---
 
 # 📜 License
+-CC BY 4.0 — diagrams, documentation, educational assets
 
-- Code — MIT  
-- Diagrams & Docs — CC BY 4.0  
+-Apache 2.0 — included third-party or extended modules
+
 
 ---
 
