@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -e
+set -e
 
 LETS_ENCRYPT_ENABLED=${LETS_ENCRYPT_ENABLED:-false}
 PUBLIC_DNS=${PUBLIC_DNS:-'draw.example.com'}
@@ -126,9 +126,6 @@ EOF
 
 # Then start Tomcat
 exec catalina.sh run
-
-
-
 
 
 # Update SSL port configuration if it does'nt exists
