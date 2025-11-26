@@ -7,6 +7,7 @@ import { shapeTypes } from './data/shape';
 interface ContextMenuPosition {
   x: number;
   y: number;
+
 }
 
 interface GoDiagramProps {
@@ -219,7 +220,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           const node = obj.part;
           if (node instanceof go.Node) {
             setSelectedData(node.data);
-            setContextMenu({ x: diagram.lastInput.viewPoint.x, y: diagram.lastInput.viewPoint.y });
+            const mouseEvent = e.event as MouseEvent;
+            setContextMenu({ x: mouseEvent.clientX, y: mouseEvent.clientY });
           }
         },
       },
