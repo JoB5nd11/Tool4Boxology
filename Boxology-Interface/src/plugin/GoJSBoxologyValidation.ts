@@ -1,4 +1,3 @@
-
 import * as go from "gojs";
 
 // --- Pattern and connection rules ---
@@ -133,15 +132,25 @@ export function setupDiagramValidation(diagram: go.Diagram) {
     const fromName = getNodeName(link.fromNode);
     const toName = getNodeName(link.toNode);
 
-    // Prevent invalid connection
+    // Prevent invalid connection by rule table
     if (!validNext[fromName] || !validNext[fromName].includes(toName)) {
-      // Remove the link immediately
       diagram.model.startTransaction("remove invalid link");
       (diagram.model as go.GraphLinksModel).removeLinkData(link.data);
       diagram.model.commitTransaction("remove invalid link");
-      // Optionally, show a warning (you can use a toast or alert)
-      alert("❌ Invalid connection! Edge will be removed.");
+      alert("Invalid connection. Edge removed.");
       return;
+    }
+
+    // Enforce process output cardinality: exactly one of symbol/model/data
+    if (PROCESS_NODES.has(fromName) && OUTPUT_TARGETS.has(toName)) {
+      const outCount = countProcessOutputs(link.fromNode);
+      if (outCount > 1) {
+        diagram.model.startTransaction("enforce process output cardinality");
+        (diagram.model as go.GraphLinksModel).removeLinkData(link.data);
+        diagram.model.commitTransaction("enforce process output cardinality");
+        alert("A process can have exactly one output (symbol, model, or data).");
+        return;
+      }
     }
 
     // 🎯 FIXED: Only merge nodes if they have SAME NAME AND SAME LABEL
@@ -169,6 +178,22 @@ export function validateGoJSDiagram(diagram: go.Diagram): string {
   selection.each(part => {
     if (part instanceof go.Node && !isIgnorable(part)) nodes.push(part);
     else if (part instanceof go.Link && part.fromNode && part.toNode) links.push(part);
+  });
+
+  // Cardinality issues within the selection
+  const tooManyOutputs: string[] = [];
+  const missingOutputs: string[] = [];
+
+  nodes.forEach(node => {
+    const name = getNodeName(node);
+    if (!PROCESS_NODES.has(name)) return;
+    const outSel = links.filter(l =>
+      l.fromNode === node &&
+      l.toNode &&
+      OUTPUT_TARGETS.has(getNodeName(l.toNode))
+    ).length;
+    if (outSel > 1) tooManyOutputs.push(name);
+    if (outSel === 0) missingOutputs.push(name);
   });
 
   // Group nodes by name (logical nodes)
@@ -255,10 +280,12 @@ export function validateGoJSDiagram(diagram: go.Diagram): string {
     matchedPatterns.length > 0 &&
     unmatchedLogicalNodes.length === 0 &&
     isolatedLogicalNodes.length === 0 &&
-    disconnectedNodes.length === 0
+    disconnectedNodes.length === 0 &&
+    tooManyOutputs.length === 0 &&
+    missingOutputs.length === 0
   ) {
     let summary = "✅ Valid pattern(s) detected:\n\n";
-    for (const [pattern, logicalNodeSet] of Object.entries(matchedNodesByPattern)) {
+    for (const [pattern] of Object.entries(matchedNodesByPattern)) {
       summary += `• ${pattern}\n`;
     }
     return summary;
@@ -266,9 +293,15 @@ export function validateGoJSDiagram(diagram: go.Diagram): string {
     let summary = "❌ Invalid pattern: Issues detected.\n\n";
     if (matchedPatterns.length > 0) {
       summary += "✅ Partial matches found:\n";
-      for (const [pattern, logicalNodeSet] of Object.entries(matchedNodesByPattern)) {
+      for (const [pattern] of Object.entries(matchedNodesByPattern)) {
         summary += `  • ${pattern}\n`;
       }
+    }
+    if (tooManyOutputs.length > 0) {
+      summary += `\n⚠️ Processes with more than one output (symbol/model/data): ${Array.from(new Set(tooManyOutputs)).join(", ")}`;
+    }
+    if (missingOutputs.length > 0) {
+      summary += `\n⚠️ Processes with no output (symbol/model/data): ${Array.from(new Set(missingOutputs)).join(", ")}`;
     }
     if (unmatchedLogicalNodes.length > 0) {
       summary += `\n⚠️ Unmatched logical nodes: ${unmatchedLogicalNodes.join(", ")}`;
@@ -339,8 +372,6 @@ export function validateEntireDiagram(diagram: go.Diagram): string {
     getNodeName(link.fromNode!),
     getNodeName(link.toNode!)
   ]);
-
-  console.log('🔗 Connections found:', edgeNameList);
 
   // Check for invalid connections first
   const invalidConnections: string[] = [];
@@ -420,6 +451,22 @@ export function validateEntireDiagram(diagram: go.Diagram): string {
     return node.findLinksConnected().count === 0;
   });
 
+  // Cardinality checks for whole diagram
+  const tooManyOutputs: string[] = [];
+  const missingOutputs: string[] = [];
+
+  nodes.forEach(node => {
+    const name = getNodeName(node);
+    if (!PROCESS_NODES.has(name)) return;
+    let out = 0;
+    node.findLinksOutOf().each(l => {
+      const t = l.toNode ? getNodeName(l.toNode) : '';
+      if (OUTPUT_TARGETS.has(t)) out++;
+    });
+    if (out > 1) tooManyOutputs.push(`${name} (key ${node.data.key})`);
+    if (out === 0) missingOutputs.push(`${name} (key ${node.data.key})`);
+  });
+
   console.log('📊 Validation Results:', {
     matchedPatterns: matchedPatterns.length,
     unmatchedLogicalNodes: unmatchedLogicalNodes.length,
@@ -496,6 +543,20 @@ export function validateEntireDiagram(diagram: go.Diagram): string {
     summary += "\n";
   }
 
+  // Cardinality issues
+  const hasCardinalityIssues = tooManyOutputs.length > 0 || missingOutputs.length > 0;
+
+  if (hasCardinalityIssues) {
+    summary += `⚠️ CARDINALITY ISSUES:\n`;
+    if (tooManyOutputs.length > 0) {
+      summary += `  • Processes with more than one output: ${tooManyOutputs.join(", ")}\n`;
+    }
+    if (missingOutputs.length > 0) {
+      summary += `  • Processes with no output: ${missingOutputs.join(", ")}\n`;
+    }
+    summary += "\n";
+  }
+
   // Recommendations
   summary += `💡 RECOMMENDATIONS:\n`;
   if (status === "VALID") {
@@ -515,4 +576,17 @@ export function validateEntireDiagram(diagram: go.Diagram): string {
 
   console.log(`🏁 Final status: ${status}`);
   return summary;
+}
+
+const PROCESS_NODES = new Set(['training', 'engineering', 'transform', 'deduce']);
+const OUTPUT_TARGETS = new Set(['symbol', 'model', 'data']);
+
+function countProcessOutputs(node: go.Node): number {
+  if (!node) return 0;
+  let n = 0;
+  node.findLinksOutOf().each(l => {
+    const tgt = l.toNode ? getNodeName(l.toNode) : '';
+    if (OUTPUT_TARGETS.has(tgt)) n++;
+  });
+  return n;
 }
