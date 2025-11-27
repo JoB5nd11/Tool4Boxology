@@ -261,24 +261,6 @@ docker-compose up
 | lib/ | XML libraries |
 | images/ | Sidebar icons |
 
----
-
-# 🧠 KG Pipeline Overview
-
-```
-Diagram (Interface or Draw.io)
-        ↓
-Export JSON / Styled JSON
-        ↓
-RML mappings + SDM-RDFizer
-        ↓
-RDF/Turtle output
-        ↓
-Virtuoso Upload
-        ↓
-SPARQL Queries
-```
-
 
 ---
 
