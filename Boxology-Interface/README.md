@@ -78,20 +78,14 @@ This module contains a custom **web-based interface** for designing hybrid AI sy
 
 #### 1. Start Virtuoso in Docker
 ```bash
-docker run -d \
-  --name virtuoso \
-  -p 8890:8890 \
-  -p 1111:1111 \
-  -e DBA_PASSWORD=dba \
-  -e SPARQL_UPDATE=true \
-  openlink/virtuoso-opensource-7
+docker run -d -p 8890:8890 --name virtuoso kemele/virtuoso:7-stable
+
 ```
 
 #### 2. Start Backend API
 ```bash
 cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir backend --reload-dir src  
 ```
 
 #### 3. Start Frontend Interface
