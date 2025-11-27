@@ -140,13 +140,8 @@ Open: http://localhost:5173
 
 ### 1. Virtuoso
 ```bash
-docker run -d \
-  --name virtuoso \
-  -p 8890:8890 \
-  -p 1111:1111 \
-  -e DBA_PASSWORD=dba \
-  -e SPARQL_UPDATE=true \
-  openlink/virtuoso-opensource-7
+docker run -d --name virtuoso -p 8890:8890 -p 1111:1111 -e DBA_PASSWORD=dba -e SPARQL_UPDATE=true -v virtuoso_data:/opt/virtuoso-opensource/database openlink/virtuoso-opensource-7:latest
+
 ```
 
 ### 2. Backend
