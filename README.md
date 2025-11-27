@@ -201,11 +201,12 @@ Boxology-Interface
 
 > _A sample hybrid AI pipeline using Tool4Boxology._
 
-![Example Diagram](images/DiagramExample.png)
+![Example Diagram](images/DiagramExample2.png)
 
 > ✅ Check for validation!
 
-![Example Diagram](images/ValidationExample.png)
+![Example Diagram](images/ValidationExample2.png)
+
 
 ---
 
@@ -260,24 +261,6 @@ docker-compose up
 | js/plugins/ | Plugin logic |
 | lib/ | XML libraries |
 | images/ | Sidebar icons |
-
----
-
-# 🧠 KG Pipeline Overview
-
-```
-Diagram (Interface or Draw.io)
-        ↓
-Export JSON / Styled JSON
-        ↓
-RML mappings + SDM-RDFizer
-        ↓
-RDF/Turtle output
-        ↓
-Virtuoso Upload
-        ↓
-SPARQL Queries
-```
 
 
 ---
