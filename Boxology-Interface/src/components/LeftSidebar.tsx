@@ -24,13 +24,6 @@ const categoryOrder = [
   'Documentation'
 ];
 
-const categoryIcons: { [key: string]: string } = {
-  'Data & Information': '📊',
-  'Actors & Entities': '👥',
-  'AI & Models': '🤖',
-  'Processes & Actions': '⚙️',
-  'Documentation': '📝'
-};
 
 export interface LeftSidebarProps {
   containers: string[];
@@ -41,11 +34,13 @@ export interface LeftSidebarProps {
 export default function LeftSidebar({ 
   containers, 
   onAddContainer, 
-  customContainerShapes
+  customContainerShapes,
 }: LeftSidebarProps) {
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
-
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(
+    new Set(categoryOrder) // All categories collapsed initially
+  );
+  const [patternsCollapsedState, setPatternsCollapsed] = useState(true);
   const toggleCategory = (category: string) => {
     const newCollapsed = new Set(collapsedCategories);
     if (newCollapsed.has(category)) {
@@ -155,7 +150,7 @@ export default function LeftSidebar({
       {/* Header */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: ' #393D7E',
           color: '#fff',
           padding: '12px 16px',
           display: 'flex',
@@ -228,7 +223,7 @@ export default function LeftSidebar({
           )}
           <div style={{
             position: 'absolute',
-            left: '4px',
+            left: '0px',
             top: '50%',
             transform: 'translateY(-50%)',
             pointerEvents: 'none',
@@ -273,13 +268,13 @@ export default function LeftSidebar({
               <div style={{ marginBottom: '8px' }}>
                 <div style={{
                   padding: '8px 12px',
-                  background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)',
+                  background: '#5459AC',
                   border: '1px solid #bbdefb',
                   borderRadius: '6px',
                   marginBottom: '8px',
                   fontSize: '12px',
                   fontWeight: '600',
-                  color: '#1976d2',
+                  color: '#eaf2faff',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px'
@@ -318,10 +313,6 @@ export default function LeftSidebar({
                   onClick={() => toggleCategory(category)}
                   style={{
                     padding: '10px 12px',
-                    background: collapsedCategories.has(category) 
-                      ? 'linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)'
-                      : 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)',
-                    border: `1px solid ${collapsedCategories.has(category) ? '#ccc' : '#bbdefb'}`,
                     borderRadius: '8px',
                     cursor: 'pointer',
                     display: 'flex',
@@ -329,24 +320,14 @@ export default function LeftSidebar({
                     alignItems: 'center',
                     fontSize: '13px',
                     fontWeight: '600',
-                    color: collapsedCategories.has(category) ? '#666' : '#1976d2',
                     transition: 'all 0.2s ease',
-                    userSelect: 'none'
-                  }}
-                  onMouseOver={(e) => {
-                    if (!collapsedCategories.has(category)) {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #bbdefb 0%, #e1bee7 100%)';
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (!collapsedCategories.has(category)) {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)';
-                    }
+                    userSelect: 'none',
+                    background: collapsedCategories.has(category) ? '#6c72d9' : '#5459AC',
+                    color: '#eaf2faff',
+                    border: '1px solid #bbdefb',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>                   <span style={{ fontSize: '16px' }}>
-                      {categoryIcons[category] || '📁'}
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span>{category}</span>
                     <span style={{
                       background: 'rgba(25, 118, 210, 0.1)',
@@ -356,7 +337,6 @@ export default function LeftSidebar({
                       fontSize: '10px',
                       fontWeight: 'bold'
                     }}>
-                      {grouped[category].length}
                     </span>
                   </div>
                   <span style={{
@@ -392,112 +372,96 @@ export default function LeftSidebar({
         {/* Elementary Patterns Section */}
         {patterns.length > 0 && (
           <div style={{ marginBottom: '16px' }}>
-            <div style={{
-              padding: '8px 12px',
-              border: '1px solid #4caf50',
-              borderRadius: '6px',
-              marginBottom: '8px',
-              fontSize: '12px',
-              fontWeight: '600',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <span>🧩</span>
-              Elementary Patterns
+            <div
+              onClick={() => setPatternsCollapsed((prev) => !prev)}
+              style={{
+                padding: '8px 12px',
+                border: '1px solid #000B58',
+                borderRadius: '6px',
+                marginBottom: '8px',
+                fontSize: '12px',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                userSelect: 'none',
+                color: '#eaf2faff',
+                background: patternsCollapsedState ? '#000B58' : '#637AB9',
+                transition: 'background 0.2s'
+              }}
+            >
+              <span>Elementary Patterns</span>
+              <span style={{
+                marginLeft: 'auto',
+                fontSize: '14px',
+                transform: patternsCollapsedState ? 'rotate(0deg)' : 'rotate(90deg)',
+                transition: 'transform 0.2s'
+              }}>
+                ▶
+              </span>
             </div>
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px',
-              padding: '12px',
-              background: '#fff',
-              border: '1px solid #e0e0e0',
-              borderRadius: '6px',
-              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
-            }}>
-              {patterns.map((pattern: Pattern) => (
-                <div
-                  key={pattern.id}
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('application/pattern', JSON.stringify(pattern));
-                  }}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    border: '1px solid #4caf50',
-                    borderRadius: '6px',
-                    padding: '8px',
-                    background: 'linear-gradient(135deg, #f1f8e9 0%, #e8f5e8 100%)',
-                    width: '80px',
-                    minHeight: '80px',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #e8f5e8 0%, #dcedc8 100%)';
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(76, 175, 80, 0.3)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #f1f8e9 0%, #e8f5e8 100%)';
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                  title={pattern.description || pattern.name}
-                >
-                  <div style={{
-                    width: '64px',
-                    height: '40px',
-                    backgroundSize: '6px 6px',
-                    backgroundPosition: '0 0, 0 3px, 3px -3px, -3px 0px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: '6px',
-                    border: '1px solid #81c784',
-                    borderRadius: '4px',
-                    position: 'relative'
-                  }}>
-                    <span style={{ 
-                      fontSize: '14px',
-                      color: '#000000ff',
-                      fontWeight: 'bold'
-                    }}>
-                      🧩
-                    </span>
+            {!patternsCollapsedState && (
+              <div style={{
+                display: 'grid',
+                gap: '8px',
+                padding: '12px',
+                background: '#fff',
+                border: '1px solid #e0e0e0',
+                borderRadius: '6px',
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
+              }}>
+                {patterns.map((pattern: Pattern) => (
+                  <div
+                    key={pattern.id}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('application/pattern', JSON.stringify(pattern));
+                    }}
+                    style={{
+                      display: 'relative',
+                      cursor: 'pointer',
+                      border: '1px solid #000B58',
+                      borderRadius: '6px',
+                      padding: '8px',
+                      background: '#C2E2FA',
+                      color: 'navyblue',
+                      fontWeight: '500',
+                      textAlign: 'center',
+                      width: '230px',
+                      minHeight: '30px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = '#AEDEFC';
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(20, 7, 74, 0.3)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = '#C2E2FA';
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                    title={pattern.description || pattern.name}
+                  >
                     <div style={{
-                      position: 'absolute',
-                      bottom: '2px',
-                      right: '2px',
-                      fontSize: '8px',
-                      background: '#034732ff',
-                      color: 'white',
-                      padding: '1px 3px',
-                      borderRadius: '2px'
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      textAlign: 'center',
+                      maxWidth: '100px',
+                      //overflow: 'hidden',
+                      textOverflow: 'hidden',
+                      whiteSpace: 'nowrap',
+                      color: '#000B58'
                     }}>
-                      {pattern.nodes?.length || 0}
+                      {pattern.name}
                     </div>
                   </div>
-                  <div style={{
-                    fontSize: '10px',
-                    fontWeight: '600',
-                    textAlign: 'center',
-                    maxWidth: '76px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    color: '#083b0aff'
-                  }}>
-                    {pattern.name}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

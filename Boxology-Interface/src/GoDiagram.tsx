@@ -677,8 +677,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         width: '100%',
         backgroundColor: '#fff',
         border: '1px solid #ccc',
-        overflowX: 'scroll',
-        overflowY: 'scroll',
+        overflowX: 'visible',
+        overflowY: 'visible',
       }}
     />
   );
