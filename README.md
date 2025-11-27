@@ -201,11 +201,11 @@ Boxology-Interface
 
 > _A sample hybrid AI pipeline using Tool4Boxology._
 
-![Example Diagram](images/DiagramExample.png)
+![Example Diagram](images/DiagramExample2.png)
 
 > ✅ Check for validation!
 
-![Example Diagram](images/ValidationExample.png)
+![Example Diagram](images/ValidationExample2.png)
 
 
 ---
