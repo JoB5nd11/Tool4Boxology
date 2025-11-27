@@ -247,7 +247,7 @@ GROUP BY ?BoxologyLabel`
               fontWeight: 600
             }}
           >
-            Send to Virtuoso
+            Run Query!
           </button>
         </div>
       </div>

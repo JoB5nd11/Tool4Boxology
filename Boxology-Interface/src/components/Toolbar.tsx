@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import * as go from 'gojs';
 // Add MUI imports for alignment buttons
 import AlignHorizontalLeftIcon from '@mui/icons-material/AlignHorizontalLeft';
@@ -55,6 +55,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
   const [showHelpMenu, setShowHelpMenu] = React.useState(false);  // <-- added
+  const [showAlignOrganize, setShowAlignOrganize] = useState(false);
   const exportMenuRef = React.useRef<HTMLDivElement>(null);
   const helpMenuRef = React.useRef<HTMLDivElement>(null);         // <-- added
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -92,11 +93,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const simpleButtonStyle: React.CSSProperties = {
     padding: '4px 8px',
     margin: '2px',
-    border: '1px solid #ccc',
+    border: '1px solid #110969ff',
     backgroundColor: '#f8f8f8',
     borderRadius: '3px',
     cursor: 'pointer',
-    fontSize: '11px',
+    fontSize: '13px',
     fontWeight: 'normal',
     color: '#333',
     height: '24px',
@@ -328,7 +329,7 @@ LIMIT 100`;
             backgroundColor: showHelpMenu ? '#e9ecef' : '#ffffff',
             borderRadius: '3px',
             cursor: 'pointer',
-            fontSize: '11px',
+            fontSize: '14px',
             display: 'flex',
             alignItems: 'center',
             gap: '4px'
@@ -371,7 +372,7 @@ LIMIT 100`;
               onMouseOver={hoverOn}
               onMouseOut={hoverOff}
             >
-              📘 Instructions
+              📘 How To Use?
             </button>
           </div>
         )}
@@ -503,10 +504,15 @@ LIMIT 100`;
       <button onClick={onRedo} style={simpleButtonStyle}>🔃 Redo</button>
       <button
         onClick={onValidate}
-        style={simpleButtonStyle}
+        style= {{
+          ...simpleButtonStyle,
+          backgroundColor: '#060771',
+          color: 'white',
+          borderColor: '#060771'
+        }}
         title="Validate selected pattern or entire diagram"
       >
-        ✅ Validate
+        Check Validation!
       </button>
       
       {onCreateKG && (
@@ -514,9 +520,9 @@ LIMIT 100`;
           onClick={onCreateKG}
           style={{
             ...simpleButtonStyle,
-            backgroundColor: '#2e7d32',
+            backgroundColor: '#BF124D',
             color: 'white',
-            borderColor: '#2e7d32'
+            borderColor: '#BF124D'
           }}
           title="Create Knowledge Graph in Virtuoso from current pages"
         >
@@ -541,7 +547,7 @@ LIMIT 100`;
           style={simpleButtonStyle}
           title="Upload JSON files to create Knowledge Graph"
         >
-          📤 JSONtoKG
+          📤 Upload File to KG
         </button>
       )}
 
@@ -553,191 +559,90 @@ LIMIT 100`;
       >
         🔍 SPARQL
       </button>
+      
 
       {/* Separator */}
       <div style={{ width: '1px', height: '20px', backgroundColor: '#ccc', margin: '0 4px' }} />
 
-      {/* Alignment Tools */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-        <span style={{ fontSize: '11px', color: '#666', marginRight: '4px' }}>Align:</span>
-        
-        {/* Row 1: Left, Center V, Right */}
-        <button 
-          onClick={() => alignNodes('left')} 
-          style={iconButtonStyle} 
-          title="Align Left"
-          onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
-          onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
-        >
-          <AlignHorizontalLeftIcon fontSize="small" />
-        </button>
-        
-        <button 
-          onClick={() => alignNodes('centerV')} 
-          style={iconButtonStyle} 
-          title="Align Center Vertically"
-          onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
-          onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
-        >
-          <AlignHorizontalCenterIcon fontSize="small" />
-        </button>
-        
-        <button 
-          onClick={() => alignNodes('right')} 
-          style={iconButtonStyle} 
-          title="Align Right"
-          onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
-          onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
-        >
-          <AlignHorizontalRightIcon fontSize="small" />
-        </button>
-      </div>
+      {/* Collapsible Alignment & Organization Section */}
+      <button
+        onClick={() => setShowAlignOrganize(prev => !prev)}
+        style={{
+          ...simpleButtonStyle,
+          backgroundColor: showAlignOrganize ? '#e3f2fd' : '#f8f8f8',
+          fontWeight: 'bold'
+        }}
+        title="Show/hide alignment and organization tools"
+      >
+        {showAlignOrganize ? '▼' : '▶'} Arrange Nodes
+      </button>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-        {/* Row 2: Top, Center H, Bottom */}
-        <button 
-          onClick={() => alignNodes('top')} 
-          style={iconButtonStyle} 
-          title="Align Top"
-          onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
-          onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
-        >
-          <AlignVerticalTopIcon fontSize="small" />
-        </button>
-        
-        <button 
-          onClick={() => alignNodes('centerH')} 
-          style={iconButtonStyle} 
-          title="Align Center Horizontally"
-          onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
-          onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
-        >
-          <AlignVerticalCenterIcon fontSize="small" />
-        </button>
-        
-        <button 
-          onClick={() => alignNodes('bottom')} 
-          style={iconButtonStyle} 
-          title="Align Bottom"
-          onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
-          onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
-        >
-          <AlignVerticalBottomIcon fontSize="small" />
-        </button>
-      </div>
+      {showAlignOrganize && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          background: '#f9f9f9',
+          borderRadius: '6px',
+          padding: '4px 8px',
+          border: '1px solid #e0e0e0',
+        }}>
+          {/* Alignment Tools */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <span style={{ fontSize: '11px', color: '#666', marginRight: '4px' }}>Align:</span>
+            <button onClick={() => alignNodes('left')} style={iconButtonStyle} title="Align Left"><AlignHorizontalLeftIcon fontSize="small" /></button>
+            <button onClick={() => alignNodes('centerV')} style={iconButtonStyle} title="Align Center Vertically"><AlignHorizontalCenterIcon fontSize="small" /></button>
+            <button onClick={() => alignNodes('right')} style={iconButtonStyle} title="Align Right"><AlignHorizontalRightIcon fontSize="small" /></button>
+            <button onClick={() => alignNodes('top')} style={iconButtonStyle} title="Align Top"><AlignVerticalTopIcon fontSize="small" /></button>
+            <button onClick={() => alignNodes('centerH')} style={iconButtonStyle} title="Align Center Horizontally"><AlignVerticalCenterIcon fontSize="small" /></button>
+            <button onClick={() => alignNodes('bottom')} style={iconButtonStyle} title="Align Bottom"><AlignVerticalBottomIcon fontSize="small" /></button>
+          </div>
+          {/* Distribution Tools */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <span style={{ fontSize: '11px', color: '#666', marginRight: '4px' }}>Distribute:</span>
+            <button onClick={() => distributeNodes('horizontal')} style={iconButtonStyle} title="Distribute Horizontal"><AlignHorizontalCenterIcon fontSize="small" /><span style={{ fontSize: '8px', marginLeft: '2px' }}>⟷</span></button>
+            <button onClick={() => distributeNodes('vertical')} style={iconButtonStyle} title="Distribute Vertical"><AlignVerticalCenterIcon fontSize="small" /><span style={{ fontSize: '8px', marginLeft: '2px' }}>⟱</span></button>
+          </div>
+          {/* Organize Tools */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <span style={{ fontSize: '11px', color: '#666', marginRight: '4px' }}>Organize:</span>
+            <button onClick={organizeHorizontally} style={{ ...iconButtonStyle, backgroundColor: '#e3f2fd', borderColor: '#1976d2', color: '#1976d2' }} title="Organize Horizontally"><ViewColumnIcon fontSize="small" /></button>
+            <button onClick={organizeVertically} style={{ ...iconButtonStyle, backgroundColor: '#e3f2fd', borderColor: '#1976d2', color: '#1976d2' }} title="Organize Vertically"><ViewStreamIcon fontSize="small" /></button>
+          </div>
+        </div>
+      )}
 
-      {/* Separator */}
-      <div style={{ width: '1px', height: '20px', backgroundColor: '#ccc', margin: '0 4px' }} />
-
-      {/* Distribution Tools */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-        <span style={{ fontSize: '11px', color: '#666', marginRight: '4px' }}>Distribute:</span>
-        
-        <button 
-          onClick={() => distributeNodes('horizontal')} 
-          style={iconButtonStyle} 
-          title="Distribute Horizontal"
-          onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
-          onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
-        >
-          <AlignHorizontalCenterIcon fontSize="small" />
-          <span style={{ fontSize: '8px', marginLeft: '2px' }}>⟷</span>
-        </button>
-        
-        <button 
-          onClick={() => distributeNodes('vertical')} 
-          style={iconButtonStyle} 
-          title="Distribute Vertical"
-          onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHoverStyle)}
-          onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
-        >
-          <AlignVerticalCenterIcon fontSize="small" />
-          <span style={{ fontSize: '8px', marginLeft: '2px' }}>⟱</span>
-        </button>
-      </div>
-
-      {/* Separator */}
-      <div style={{ width: '1px', height: '20px', backgroundColor: '#ccc', margin: '0 4px' }} />
-
-      {/* Organize Tools */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-        <span style={{ fontSize: '11px', color: '#666', marginRight: '4px' }}>Organize:</span>
-        
-        <button 
-          onClick={organizeHorizontally} 
-          style={{
-            ...iconButtonStyle,
-            backgroundColor: '#e3f2fd',
-            borderColor: '#1976d2',
-            color: '#1976d2'
-          }} 
-          title="Organize Horizontally (80px spacing)"
-          onMouseEnter={(e) => Object.assign(e.currentTarget.style, { backgroundColor: '#bbdefb', borderColor: '#1565c0' })}
-          onMouseLeave={(e) => Object.assign(e.currentTarget.style, { backgroundColor: '#e3f2fd', borderColor: '#1976d2' })}
-        >
-          <ViewColumnIcon fontSize="small" />
-        </button>
-        
-        <button 
-          onClick={organizeVertically} 
-          style={{
-            ...iconButtonStyle,
-            backgroundColor: '#e3f2fd',
-            borderColor: '#1976d2',
-            color: '#1976d2'
-          }} 
-          title="Organize Vertically (80px spacing)"
-          onMouseEnter={(e) => Object.assign(e.currentTarget.style, { backgroundColor: '#bbdefb', borderColor: '#1565c0' })}
-          onMouseLeave={(e) => Object.assign(e.currentTarget.style, { backgroundColor: '#e3f2fd', borderColor: '#1976d2' })}
-        >
-          <ViewStreamIcon fontSize="small" />
-        </button>
-      </div>
+      {/* ...other toolbar buttons... */}
     </div>
   );
 };
 
 // Shared styles
-const simpleButtonStyle: React.CSSProperties = {
-  padding: '4px 8px',
-  margin: '2px',
-  border: '1px solid #ccc',
-  backgroundColor: '#f8f8f8',
-  borderRadius: '3px',
-  cursor: 'pointer',
-  fontSize: '11px',
-  color: '#333',
-  height: '24px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center'
-};
 
 const exportItemStyle: React.CSSProperties = {
   width: '100%',
-  padding: '8px 12px',
+  padding: '6px 14px',
+  background: 'transparent',
   border: 'none',
-  background: 'none',
   textAlign: 'left',
-  cursor: 'pointer',
   fontSize: '13px',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '8px'
+  color: '#333',
+  cursor: 'pointer',
+  outline: 'none',
+  transition: 'background 0.2s',
 };
 
 const helpItemStyle: React.CSSProperties = {
   width: '100%',
-  padding: '10px 14px',
+  padding: '6px 14px',
+  background: 'transparent',
   border: 'none',
-  background: 'none',
   textAlign: 'left',
-  cursor: 'pointer',
   fontSize: '13px',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  fontWeight: 500
+  color: '#333',
+  cursor: 'pointer',
+  outline: 'none',
+  transition: 'background 0.2s',
 };
 
 const hoverOn = (e: React.MouseEvent<HTMLButtonElement>) => {

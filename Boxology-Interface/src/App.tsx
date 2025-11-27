@@ -1039,14 +1039,16 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             key={page.id}
             onClick={() => handlePageSwitch(page.id)}
             onDoubleClick={(e) => { e.stopPropagation(); handleRenamePage(page.id); }}
+            title='Double Click to Rename It'
             style={{
-              backgroundColor: page.id === currentPageId ? '#1976d2' : '#e0e0e0',
-              color: page.id === currentPageId ? '#fff' : '#000',
-              border: 'none',
+              backgroundColor: page.id === currentPageId ? '#E3E3E3' : '#e0e0e0',
+              color: page.id === currentPageId ? '#110969ff' : '#000',
+              border: '1px solid #b6b3b3ff',
+              boxShadow: page.id === currentPageId ? '0 2px 6px rgba(0,0,0,0.2)' : 'none',
               padding: '8px 16px',
               borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '14px',
+              fontSize: '16px',
               fontWeight: page.id === currentPageId ? '600' : '400',
               transition: 'all 0.2s ease',
               display: 'flex',
@@ -1092,22 +1094,23 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         <button
           onClick={handleAddNewPage}
           style={{
+            backgroundColor: '#E3E3E3',
+            color: '#000',
+            border: '1px solid #b6b3b3ff',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
             marginLeft: 'auto',
             padding: '8px 16px',
             borderRadius: '4px',
-            backgroundColor: '#4caf50',
-            color: '#fff',
-            border: 'none',
             cursor: 'pointer',
-            fontSize: '14px',
+            fontSize: '16px',
             fontWeight: '600',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
             transition: 'background-color 0.2s ease'
           }}
-          onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#45a049'}
-          onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = '#4caf50'}
+          onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#bedaeeff'}
+          onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = '#E3E3E3'}
           title="Add new page"
         >
           ➕ Add Page
@@ -1152,14 +1155,14 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
                   title="Click to expand"
                   onClick={() => setLeftCollapsed(false)}
                 >
-                  🔲
+                  <span role="img" aria-label="expand">🔲</span>
                 </div>
                 <div 
                   className="rail-icon" 
                   title="Click to expand"
                   onClick={() => setLeftCollapsed(false)}
                 >
-                  📁
+                  <span role="img" aria-label="expand">📁</span>
                 </div>
               </div>
             </div>
