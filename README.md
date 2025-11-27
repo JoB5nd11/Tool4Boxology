@@ -207,6 +207,7 @@ Boxology-Interface
 
 ![Example Diagram](images/ValidationExample.png)
 
+
 ---
 
 # 2️⃣ Using the Boxology-Docker (Draw.io with Plugin)
