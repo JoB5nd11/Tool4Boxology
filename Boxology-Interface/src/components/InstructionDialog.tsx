@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -32,6 +32,8 @@ interface InstructionDialogProps {
 }
 
 const InstructionDialog: React.FC<InstructionDialogProps> = ({ open, onClose }) => {
+  const [showInstruction, setShowInstruction] = useState(false);
+
   return (
     <Dialog
       open={open}

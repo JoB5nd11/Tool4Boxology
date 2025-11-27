@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import * as go from 'gojs';
+import ExCls from '../Examples/Pain-Cls-Example.json';
+import ExSeg from '../Examples/MRI-seg-Example.json';
+import InstructionDialog from './InstructionDialog';  
 
 interface RightSidebarProps {
   selectedData: {
@@ -33,6 +36,37 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
   const [localStroke, setLocalStroke] = useState('#000000');
   const [localShape, setLocalShape] = useState('Rectangle');
   const [selectedCount, setSelectedCount] = useState(0);
+  const [queryText, setQueryText] = useState('');
+  const [showInstruction, setShowInstruction] = useState(false); // New state for instruction dialog
+
+  const videoUrl = ''; // set video link here when available
+
+  const queryExamples = [
+    {
+      id: 'q1',
+      title: 'Find Output nodes',
+      query: `PREFIX t4b: <http://tool4boxology.org/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT * WHERE {
+  ?pattern t4b:hasOutput ?OutPut .
+  ?OutPut rdfs:label ?OutputLabel .
+}`
+    },
+    {
+      id: 'q2',
+      title: 'List Boxologies and Pattern Counts',
+      query: `PREFIX t4b: <http://tool4boxology.org/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT (COUNT(DISTINCT ?pattern) AS ?PatternCount) ?BoxologyLabel
+WHERE {
+  ?boxology a t4b:Boxology ;
+            rdfs:label ?BoxologyLabel ;
+            t4b:hasPattern ?pattern.
+}
+GROUP BY ?BoxologyLabel`
+    }
+  ];
 
   // Check how many objects are selected
   useEffect(() => {
@@ -61,6 +95,38 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
       setLocalShape(selectedData.shape || 'Rectangle');
     }
   }, [selectedData, selectedCount]);
+
+  // Helper: load example JSON into diagram
+  const loadExample = (example: any) => {
+    if (!diagramRef.current) return;
+    try {
+      const diagram = diagramRef.current;
+      // If example is an object, serialize to JSON string first
+      const json = typeof example === 'string' ? example : JSON.stringify(example);
+      diagram.model = go.Model.fromJson(json);
+    } catch (err) {
+      console.error('Failed to load example', err);
+    }
+  };
+
+  const openInstructionDialog = () => setShowInstruction(true);
+  const closeInstructionDialog = () => setShowInstruction(false);
+  const openVideoLink = () => {
+    if (videoUrl) window.open(videoUrl, '_blank');
+    else alert('No video link available yet.');
+  };
+
+  const sendToQuerySection = async (q: string) => {
+    setQueryText(q);
+  };
+
+  const sendQueryToVirtuoso = () => {
+    // Replace with your Virtuoso endpoint and query parameter
+    const endpoint = 'http://localhost:8890/sparql'; // Change to your Virtuoso endpoint
+    const encodedQuery = encodeURIComponent(queryText);
+    const url = `${endpoint}?query=${encodedQuery}&format=HTML`;
+    window.open(url, '_blank');
+  };
 
   const handleSidebarChange = (field: string, value: string) => {
     if (!selectedData || !diagramRef.current || selectedCount !== 1) return;
@@ -105,7 +171,7 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
   return (
     <div
       style={{
-        width: 260,
+        width: 300,
         background: '#f9f9f9',
         padding: 12,
         overflowY: 'auto',
@@ -115,7 +181,76 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
       }}
     >
       <h3 style={{ marginTop: 0, marginBottom: 16, color: '#333', fontSize: '16px' }}>Properties</h3>
+      <div style={{ marginBottom: 12, padding: 8, background: '#fff', borderRadius: 6, border: '1px solid #eee',minWidth: 260 }}>
+        <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px' }}>How to use Tool4Boxology</strong>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
+          <button onClick={openInstructionDialog} style={{ flex: 1, padding: '6px', background: '#E8F9FF', borderRadius: 6, border: '1px solid #eee'  }}>Open Instructions</button>
+          <button onClick={openVideoLink} style={{ flex: 1, padding: '6px', background: '#E8F9FF', borderRadius: 6, border: '1px solid #eee' }}>Video</button>
+        </div>
+        <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px' }}>Boxology example</strong>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+          <button onClick={() => loadExample(ExCls)} style={{ flex: 1, padding: '6px', background: '#E8F9FF', borderRadius: 6, border: '1px solid #eee' }}>Pain Classification</button>
+          <button onClick={() => loadExample(ExSeg)} style={{ flex: 1, padding: '6px', background: '#E8F9FF', borderRadius: 6, border: '1px solid #eee' }}>MRI Segmentation</button>
+        </div>
+        <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px' }}>Query example</strong>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {queryExamples.map(q => (
+            <button
+              key={q.id}
+              onClick={() => sendToQuerySection(q.query)}
+              style={{
+                padding: '8px',
+                background: '#E8F9FF',
+                borderRadius: 6,
+                border: '1px solid #eee',
+                fontWeight: 600,
+                marginBottom: 4,
+                textAlign: 'left'
+              }}
+            >
+              {q.title}
+            </button>
+          ))}
+        </div>
 
+        {/* New: SPARQL Query section */}
+        <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px' }}>SPARQL Query</strong>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <textarea
+            value={queryText}
+            onChange={e => setQueryText(e.target.value)}
+            placeholder="Write your SPARQL query here..."
+            style={{
+              width: '100%',
+              minHeight: 200,
+              fontSize: 13,
+              padding: 6,
+              border: '1px solid #ccc',
+              borderRadius: 4,
+              resize: 'vertical'
+            }}
+            onKeyDown={e => {
+              if (e.ctrlKey && e.key === 'a') {
+                e.preventDefault();
+                const target = e.target as HTMLTextAreaElement;
+                target.select();
+              }
+            }}
+          />
+          <button
+            onClick={sendQueryToVirtuoso}
+            style={{
+              padding: '6px',
+              background: '#E8F9FF',
+              borderRadius: 6,
+              border: '1px solid #eee',
+              fontWeight: 600
+            }}
+          >
+            Send to Virtuoso
+          </button>
+        </div>
+      </div>
       {!selectedData ? (
         <p style={{ color: '#666', fontSize: '13px' }}>Select an object to edit properties</p>
       ) : (
@@ -230,6 +365,7 @@ export default function RightSidebar({ selectedData, diagramRef }: RightSidebarP
           </div>
         </>
       )}
+      <InstructionDialog open={showInstruction} onClose={() => setShowInstruction(false)} />
     </div>
   );
 }
