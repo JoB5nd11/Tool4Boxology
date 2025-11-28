@@ -208,7 +208,6 @@ WHERE {
         fontSize: '13px'
       }}
     >
-      <h3 style={{ marginTop: 0, marginBottom: 16, color: '#333', fontSize: '16px' }}>Properties</h3>
       <div style={{ marginBottom: 12, padding: 8, background: '#fff', borderRadius: 6, border: '1px solid #eee',minWidth: 260 }}>
         <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px' }}>How to use Tool4Boxology</strong>
         <div style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
