@@ -2,6 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { shapes } from '../data/shape';
 import { patterns, type Pattern } from '../data/patterns';
 import type { ShapeDefinition } from '../types';
+import tibLogo from '../assets/TIB_Logo.png'; // adjust path if needed
+import vuLogo from '../assets/VU-Logo.png';   // add this line
+import { LineAxis, SpaOutlined } from '@mui/icons-material';
 
 interface ShapeGroupMap {
   [group: string]: ShapeDefinition[];
@@ -478,8 +481,39 @@ export default function LeftSidebar({
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <span>{shapes.length} total shapes</span>
-        <span>{Object.keys(grouped).length} categories</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            style={{
+              background: 'none',
+              border: 'none',
+              right: '10px',
+              padding: '5px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'left',
+              height: '32px'
+            }}
+            title="VU Amsterdam Website"
+            onClick={() => window.open('https://vu.nl/', '_blank')}
+          >
+            <img src={vuLogo} alt="VU Logo" style={{ height: '32px', width: 'auto' }} />
+          </button>
+          <button
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'right',
+              height: '35px'
+            }}
+            title="TIB Website"
+            onClick={() => window.open('https://www.tib.eu/', '_blank')}
+          >
+            <img src={tibLogo} alt="TIB Logo" style={{ height: '32px', width: 'auto' }} />
+          </button>
+        </div>
       </div>
     </div>
   );

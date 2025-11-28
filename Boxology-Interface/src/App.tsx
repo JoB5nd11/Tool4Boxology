@@ -18,6 +18,7 @@ import { openInGraphviz } from './utils/openInGraphviz';
 import { generateMultiPageRMLExport, generateStableIdFromData, normalizeModelData } from './utils/exportHelpers';
 import { API_BASE } from './config';
 import InstructionDialog from './components/InstructionDialog';
+import LoadingBox from './components/LoadingBox';
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
@@ -916,13 +917,26 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     diagram.commitTransaction('cluster group');
   };
 
+  const [isCreatingKG, setIsCreatingKG] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState<string>(''); // Add this state
+
   const handleCreateKG = async () => {
     const validation = validateNodeClustering();
     if (!validation.valid) {
-      alert(`Validation failed:\n\n${validation.errors.join('\n')}`);
+      setLoadingMessage(`Validation failed:\n\n${validation.errors.join('\n')}`);
+      setIsCreatingKG(true);
+      setTimeout(() => setIsCreatingKG(false), 2500);
       return;
     }
-    if (!diagramRef.current) { alert('Diagram not ready.'); return; }
+    if (!diagramRef.current) {
+      setLoadingMessage('Diagram not ready.');
+      setIsCreatingKG(true);
+      setTimeout(() => setIsCreatingKG(false), 2000);
+      return;
+    }
+
+    setLoadingMessage('Creating Knowledge Graph...');
+    setIsCreatingKG(true);
 
     // Snapshot current page
     const model = diagramRef.current.model as go.GraphLinksModel;
@@ -949,47 +963,48 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(exportData)
-        
       });
       if (!res.ok) throw new Error(`Backend error ${res.status}: ${await res.text()}`);
-      alert('KG created successfully.');
+      setLoadingMessage('KG created successfully.');
+      setTimeout(() => setIsCreatingKG(false), 2000);
     } catch (err: any) {
-      console.error(err);
-      alert(`Failed to create KG:\n${err?.message ?? err}`);
+      setLoadingMessage(`Failed to create KG:\n${err?.message ?? err}`);
+      setTimeout(() => setIsCreatingKG(false), 2500);
     }
   };
 
   const handleUploadKG = async (files: FileList) => {
+    setLoadingMessage('Uploading Knowledge Graph...');
+    setIsCreatingKG(true);
     try {
       const fileArray = Array.from(files);
-      
+
       for (const file of fileArray) {
         if (!file.name.endsWith('.json')) {
-          alert(`Skipping ${file.name}: only JSON files are supported`);
+          setLoadingMessage(`Skipping ${file.name}: only JSON files are supported`);
+          await new Promise(res => setTimeout(res, 1500));
           continue;
         }
 
         const text = await file.text();
         const data = JSON.parse(text);
 
-        // Send to backend
+        setLoadingMessage(`Uploading ${file.name}...`);
         const res = await fetch(`${API_BASE}/api/kg`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
-
-        if (!res.ok) {
-          throw new Error(`Backend error ${res.status}: ${await res.text()}`);
-        }
-
-        console.log(`✅ KG created from ${file.name}`);
+        if (!res.ok) throw new Error(`Backend error ${res.status}: ${await res.text()}`);
+        setLoadingMessage(`KG created from ${file.name}`);
+        await new Promise(res => setTimeout(res, 1200));
       }
 
-      alert(`Successfully created KG from ${fileArray.length} file(s)`);
+      setLoadingMessage(`Successfully created KG from ${fileArray.length} file(s)`);
+      setTimeout(() => setIsCreatingKG(false), 2000);
     } catch (err: any) {
-      console.error(err);
-      alert(`Failed to upload KG:\n${err?.message ?? err}`);
+      setLoadingMessage(`Failed to upload KG:\n${err?.message ?? err}`);
+      setTimeout(() => setIsCreatingKG(false), 2500);
     }
   };
 
@@ -1238,6 +1253,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             />
           )}
         </div>
+        
       </div>
 
       {/* About modal */}
@@ -1509,6 +1525,20 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         open={showInstructions}
         onClose={handleCloseInstructions}
       />
+
+      {isCreatingKG && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(255,255,255,0.7)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <LoadingBox message={loadingMessage} />
+        </div>
+      )}
     </div>
   );
 }
