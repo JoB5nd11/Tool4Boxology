@@ -58,13 +58,12 @@ SELECT * WHERE {
       query: `PREFIX t4b: <http://tool4boxology.org/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-SELECT (COUNT(DISTINCT ?pattern) AS ?PatternCount) ?BoxologyLabel
+SELECT (COUNT(DISTINCT ?pattern) AS ?PatternCount) ?boxology ?BoxologyLabel
 WHERE {
   ?boxology a t4b:Boxology ;
             rdfs:label ?BoxologyLabel ;
             t4b:hasPattern ?pattern.
-}
-GROUP BY ?BoxologyLabel`
+}`
     }
   ];
 
