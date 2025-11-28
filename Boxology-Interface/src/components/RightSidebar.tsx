@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import * as go from 'gojs';
 import ExCls from '../Examples/Pain-Cls-Example.json';
 import ExSeg from '../Examples/MRI-seg-Example.json';
@@ -15,6 +15,8 @@ interface RightSidebarProps {
     isSuperNode?: boolean;
   } | null;
   diagramRef: React.RefObject<go.Diagram | null>;
+  setPages: (pages: any[]) => void;
+  setCurrentPageId: (id: string) => void;
 }
 
 // Simplified color presets
@@ -30,7 +32,7 @@ const strokePresets = [
   '#A9A9A9', '#FF8C00', '#DC143C', '#228B22'
 ];
 
-export default function RightSidebar({ selectedData, diagramRef }: RightSidebarProps) {
+export default function RightSidebar({ selectedData, diagramRef, setPages, setCurrentPageId }: RightSidebarProps) {
   const [localLabel, setLocalLabel] = useState('');
   const [localColor, setLocalColor] = useState('#ffffff');
   const [localStroke, setLocalStroke] = useState('#000000');
@@ -99,10 +101,37 @@ WHERE {
   const loadExample = (example: any) => {
     if (!diagramRef.current) return;
     try {
+      const nodeDataArray = example.nodeDataArray || [];
+      const linkDataArray = example.linkDataArray || [];
+      const modelData = example.modelData || {};
+      const boxologyId = modelData.boxologyId || modelData.id || `boxology_${Math.random().toString(36).slice(2, 10)}`;
+      const boxologyLabel = modelData.boxologyLabel || modelData.label || 'Diagram';
+
+      const newPage = {
+        id: boxologyId,
+        name: boxologyLabel,
+        nodeDataArray,
+        linkDataArray,
+        boxologyId,
+        boxologyLabel,
+      };
+
+      setPages([newPage]);
+      setCurrentPageId(boxologyId);
+
       const diagram = diagramRef.current;
-      // If example is an object, serialize to JSON string first
-      const json = typeof example === 'string' ? example : JSON.stringify(example);
-      diagram.model = go.Model.fromJson(json);
+      diagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
+
+      try {
+        if (!diagram.model.modelData) (diagram.model as any).modelData = {};
+        diagram.model.setDataProperty(diagram.model.modelData, 'boxologyId', boxologyId);
+        diagram.model.setDataProperty(diagram.model.modelData, 'boxologyLabel', boxologyLabel);
+      } catch {
+        const m = diagram.model as any;
+        if (!m.modelData) m.modelData = {};
+        m.modelData.boxologyId = boxologyId;
+        m.modelData.boxologyLabel = boxologyLabel;
+      }
     } catch (err) {
       console.error('Failed to load example', err);
     }

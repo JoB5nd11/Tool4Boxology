@@ -146,6 +146,7 @@ docker run -d --name virtuoso -p 8890:8890 -p 1111:1111 -e DBA_PASSWORD=dba -e S
 
 ### 2. Backend
 ```bash
+cd Boxology-Interface
 cd backend
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```

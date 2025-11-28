@@ -1233,6 +1233,8 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             <RightSidebar
               selectedData={selectedData}
               diagramRef={diagramRef}
+              setPages={setPages}
+              setCurrentPageId={setCurrentPageId}
             />
           )}
         </div>
