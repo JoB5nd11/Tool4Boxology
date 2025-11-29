@@ -322,18 +322,7 @@ LIMIT 100`;
             setShowHelpMenu(!showHelpMenu);
             setShowExportMenu(false);
           }}
-          style={{
-            padding: '4px 8px',
-            margin: '2px',
-            border: '1px solid #ccc',
-            backgroundColor: showHelpMenu ? '#e9ecef' : '#ffffff',
-            borderRadius: '3px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
+          style={simpleButtonStyle}
           title="Help menu"
         >
           ❓ Help {showHelpMenu ? '▲' : '▼'}
@@ -345,7 +334,6 @@ LIMIT 100`;
             left: 0,
             zIndex: 1200,
             backgroundColor: '#fff',
-            border: '1px solid #ccc',
             borderRadius: '6px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             minWidth: '190px',
@@ -651,6 +639,38 @@ const hoverOn = (e: React.MouseEvent<HTMLButtonElement>) => {
 const hoverOff = (e: React.MouseEvent<HTMLButtonElement>) => {
   e.currentTarget.style.backgroundColor = 'transparent';
 };
+
+// Shared button style function for Toolbar
+export function getToolbarButtonStyle(options?: {
+  backgroundColor?: string;
+  color?: string;
+  borderColor?: string;
+  fontWeight?: number | string;
+  fontSize?: number | string;
+  padding?: string;
+  margin?: string;
+  borderRadius?: string | number;
+  height?: string | number;
+}): React.CSSProperties {
+  return {
+    padding: options?.padding ?? '4px 8px',
+    margin: options?.margin ?? '2px',
+    border: `1px solid ${options?.borderColor ?? '#110969ff'}`,
+    backgroundColor: options?.backgroundColor ?? '#f8f8f8',
+    borderRadius: options?.borderRadius ?? '3px',
+    cursor: 'pointer',
+    fontSize: options?.fontSize ?? '13px',
+    fontWeight: options?.fontWeight ?? 'normal',
+    color: options?.color ?? '#333',
+    height: options?.height ?? '24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+}
+
+// Example usage:
+// <button style={getToolbarButtonStyle({ backgroundColor: '#060771', color: 'white', borderColor: '#060771', fontWeight: 'bold' })}>Check Validation!</button>
 
 export default Toolbar;
 

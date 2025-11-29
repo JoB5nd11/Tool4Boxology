@@ -32,6 +32,28 @@ const strokePresets = [
   '#A9A9A9', '#FF8C00', '#DC143C', '#228B22'
 ];
 
+function getButtonStyle(options?: {
+  background?: string;
+  color?: string;
+  fontWeight?: number | string;
+  textAlign?: string;
+  marginBottom?: number;
+}): React.CSSProperties {
+  return {
+    padding: '6px',
+    background: options?.background ?? '#6c72d9',
+    color: options?.color ?? '#eaf2faff',
+    borderRadius: 6,
+    border: '1px solid #eee',
+    fontWeight: options?.fontWeight ?? 600,
+    textAlign: options?.textAlign ?? ('center' as any),
+    marginBottom: options?.marginBottom ?? 0,
+    fontFamily: 'Segoe UI, Arial, sans-serif',
+    fontSize: 14,
+    cursor: 'pointer'
+  };
+}
+
 export default function RightSidebar({ selectedData, diagramRef, setPages, setCurrentPageId }: RightSidebarProps) {
   const [localLabel, setLocalLabel] = useState('');
   const [localColor, setLocalColor] = useState('#ffffff');
@@ -209,31 +231,23 @@ WHERE {
       }}
     >
       <div style={{ marginBottom: 12, padding: 8, background: '#fff', borderRadius: 6, border: '1px solid #eee',minWidth: 260 }}>
-        <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px' }}>How to use Tool4Boxology</strong>
+        <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px',color: '#1b1b1bff' }}>How to use Tool4Boxology</strong>
         <div style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
-          <button onClick={openInstructionDialog} style={{ flex: 1, padding: '6px', background: '#E8F9FF', borderRadius: 6, border: '1px solid #eee'  }}>Open Instructions</button>
-          <button onClick={openVideoLink} style={{ flex: 1, padding: '6px', background: '#E8F9FF', borderRadius: 6, border: '1px solid #eee' }}>Video</button>
+          <button onClick={openInstructionDialog} style={getButtonStyle()}>Open Instructions</button>
+          <button onClick={openVideoLink} style={getButtonStyle()}>Video</button>
         </div>
-        <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px' }}>Boxology example</strong>
+        <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px',color: '#1b1b1bff' }}>Boxology example</strong>
         <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-          <button onClick={() => loadExample(ExCls)} style={{ flex: 1, padding: '6px', background: '#E8F9FF', borderRadius: 6, border: '1px solid #eee' }}>Pain Classification</button>
-          <button onClick={() => loadExample(ExSeg)} style={{ flex: 1, padding: '6px', background: '#E8F9FF', borderRadius: 6, border: '1px solid #eee' }}>MRI Segmentation</button>
+          <button onClick={() => loadExample(ExCls)} style={getButtonStyle()}>Pain Classification</button>
+          <button onClick={() => loadExample(ExSeg)} style={getButtonStyle()}>MRI Segmentation</button>
         </div>
-        <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px' }}>Query example</strong>
+        <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px',color: '#1b1b1bff' }}>Query example</strong>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {queryExamples.map(q => (
             <button
               key={q.id}
               onClick={() => sendToQuerySection(q.query)}
-              style={{
-                padding: '8px',
-                background: '#E8F9FF',
-                borderRadius: 6,
-                border: '1px solid #eee',
-                fontWeight: 600,
-                marginBottom: 4,
-                textAlign: 'left'
-              }}
+              style={getButtonStyle({ textAlign: 'left', marginBottom: 4 })}
             >
               {q.title}
             </button>
@@ -241,14 +255,14 @@ WHERE {
         </div>
 
         {/* New: SPARQL Query section */}
-        <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px' }}>SPARQL Query</strong>
+        <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px',color: '#1b1b1bff' }}>SPARQL Query</strong>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <textarea
             value={queryText}
             onChange={e => setQueryText(e.target.value)}
             placeholder="Write your SPARQL query here..."
             style={{
-              width: '100%',
+              width: '90%',
               minHeight: 200,
               fontSize: 13,
               padding: 6,
@@ -266,13 +280,7 @@ WHERE {
           />
           <button
             onClick={sendQueryToVirtuoso}
-            style={{
-              padding: '6px',
-              background: '#E8F9FF',
-              borderRadius: 6,
-              border: '1px solid #eee',
-              fontWeight: 600
-            }}
+            style={getButtonStyle()}
           >
             Run Query!
           </button>

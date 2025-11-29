@@ -4,6 +4,10 @@
   flex-direction: column;
   overflow: hidden;
 }
+html {
+  color-scheme: light;
+  forced-color-adjust: none;
+}
 
 .main {
   display: flex;
