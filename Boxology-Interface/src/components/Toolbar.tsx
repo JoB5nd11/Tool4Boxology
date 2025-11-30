@@ -21,12 +21,12 @@ type ToolbarProps = {
   onAbout: () => void;
   onShowInstructions: () => void;          // <-- added
   onValidate: () => void;
-  onExportSVG: () => void;
+  //onExportSVG: () => void;
   onExportPNG: () => void;
   onExportJPG: () => void;
-  onExportXML: () => void;
+  //onExportXML: () => void;
   onExportJSON: () => void;
-  onExportDrawio: () => void;
+  //onExportDrawio: () => void;
   onExportDOT: () => void;
   onOpenGraphviz: () => void;
   onCreateKG?: () => void;
@@ -42,12 +42,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onAbout,
   onShowInstructions,          // <-- added
   onValidate,
-  onExportSVG,
+  //onExportSVG,
   onExportPNG,
   onExportJPG,
-  onExportXML,
+  //onExportXML,
   onExportJSON,
-  onExportDrawio,
+  //onExportDrawio,
   onExportDOT,
   onOpenGraphviz,
   onCreateKG,

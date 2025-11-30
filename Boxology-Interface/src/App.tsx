@@ -207,10 +207,10 @@ function App() {
     } else {
       // Save entire diagram
       const model = diagram.model;
-      const json = JSON.parse(model.toJson());
+      const boxology = JSON.parse(model.toJson());
       dataToSave = {
         nodeDataArray: model.nodeDataArray.map(node => model.copyNodeData(node)),
-        linkDataArray: json.linkDataArray || [],
+        linkDataArray: boxology.linkDataArray || [],
         name: shapeName,
         type: 'diagram',
         thumbnail: null as string | null
@@ -314,15 +314,15 @@ function App() {
           : pg
       ));
 
-      const modelJson = updatedModel.toJson();
+      const modelBoxology = updatedModel.toJson();
 
       const pageName = pages.find(p => p.id === currentPageId)?.name || 'diagram';
       const safe = sanitizeFilename(pageName) || 'diagram';
       const date = new Date().toISOString().slice(0, 10);
-      const filename = `${safe}_${date}.json`;
+      const filename = `${safe}_${date}.boxology`;
 
-      const blob = new Blob([modelJson], { type: 'application/json' });
-      const saved = await saveOrDownload(blob, filename, 'application/json');
+      const blob = new Blob([modelBoxology], { type: 'application/boxology' });
+      const saved = await saveOrDownload(blob, filename, 'application/boxology');
       if (saved) alert('Diagram saved!');
       return;
     }
@@ -330,7 +330,7 @@ function App() {
     // OPEN
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json,.dot,.gv,.graphviz,.xml';
+    input.accept = '.boxology';
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
@@ -340,12 +340,11 @@ function App() {
       // 1) Parse to our canonical hierarchical model
       let model: any | null = null;
       try {
-        if (name.endsWith('.json')) {
+        if (name.endsWith('.boxology')) {
           model = JSON.parse(text);
-        } else if (name.endsWith('.dot') || name.endsWith('.gv') || name.endsWith('.graphviz')) {
-          model = parseDOTToModel(text);
+
         } else {
-          alert('Unsupported format. Use JSON or DOT.');
+          alert('Unsupported format. Use .boxology.');
           return;
         }
       } catch (e) {
@@ -438,7 +437,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
   };
 };
 
-  const handleExport = async (kind: 'svg' | 'png' | 'jpg' | 'xml' | 'json' | 'drawio' | 'dot') => {
+  const handleExport = async (kind: 'png' | 'jpg' | 'json' | 'dot') => {
     // Validate clustering before export
     const validation = validateNodeClustering();
     if (!validation.valid) {
@@ -459,17 +458,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 
     switch (kind) {
-      case 'svg': {
-        const svg = diagram.makeSvg({ scale: 1, background: 'white' });
-        if (!svg) {
-          alert('Failed to generate SVG');
-          return;
-        }
-        const svgStr = new XMLSerializer().serializeToString(svg);
-        const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
-        await saveOrDownload(blob, `diagram_${timestamp}.svg`, 'image/svg+xml');
-        break;
-      }
 
       case 'png':
       case 'jpg': {
@@ -478,16 +466,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         break;
       }
 
-      case 'xml': {
-        const data = {
-          nodeDataArray: diagram.model.nodeDataArray,
-          linkDataArray: (diagram.model as go.GraphLinksModel).linkDataArray || [],
-        };
-        const xml = modelToXML(data);
-        const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
-        await saveOrDownload(blob, `diagram_${timestamp}.xml`, 'application/xml');
-        break;
-      }
 
       case 'json': {
         if (!diagramRef.current) { alert('No diagram available'); return; }
@@ -530,17 +508,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         const json = JSON.stringify(exportData, null, 2);
         const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
         await saveOrDownload(blob, `boxology_${userId}_${timestamp}_${exportUUID}.json`, 'application/json');
-        break;
-      }
-
-      case 'drawio': {
-        const data = {
-          nodeDataArray: diagram.model.nodeDataArray,
-          linkDataArray: (diagram.model as go.GraphLinksModel).linkDataArray || [],
-        };
-        const drawioXml = convertToDrawioXML(data);
-        const blob = new Blob([drawioXml], { type: 'application/xml' });
-        await saveOrDownload(blob, `diagram_${timestamp}.drawio`, 'application/xml');
         break;
       }
 
@@ -1040,13 +1007,11 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         onAbout={handleAbout}
         onShowInstructions={handleShowInstructions}
         onValidate={() => handleDiagramOperation('validate')}
-        onExportSVG={() => handleExport('svg')}
         onExportPNG={() => handleExport('png')}
         onExportJPG={() => handleExport('jpg')}
-        onExportXML={() => handleExport('xml')}
         onExportJSON={() => handleExport('json')}
-        onExportDrawio={() => handleExport('drawio')}
         onExportDOT={() => handleExport('dot')}
+
         onOpenGraphviz={() => {
           const dot = (() => {
             if (!diagramRef.current) return '';
