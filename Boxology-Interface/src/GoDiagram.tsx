@@ -60,6 +60,7 @@ function showTypeSelector(e: go.InputEvent, node: go.Node) {
     option.style.padding = "8px 12px";
     option.style.cursor = "pointer";
     option.style.fontSize = "12px";
+    option.style.color = "black";
     option.style.transition = "background-color 0.15s ease";
     option.style.borderBottom = index < availableTypes.length - 1 ? "1px solid #f3f4f6" : "none";
     

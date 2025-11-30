@@ -232,6 +232,7 @@ export default function ShapeGroup({ title, shapes, onSelect, isSelected }: Prop
           flexWrap: 'wrap', 
           gap: 5,
           justifyContent: 'flex-start',
+          color: 'black',
           alignItems: 'flex-start'
         }}>
           {shapes.map((shape) => renderShape(shape))}
