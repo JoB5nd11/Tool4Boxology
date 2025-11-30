@@ -876,6 +876,20 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     }
   }, [leftCollapsed, rightCollapsed]);
 
+  const processNodeNames = [
+    "training", "engineering", "deduce", "induction", "transform", "embed"
+  ];
+
+  // Validate process nodes in a selection
+  function hasMultipleProcessNodes(selectedNodes: go.Node[]) {
+    const processNodes = selectedNodes.filter(
+      n =>
+        processNodeNames.includes(n.data.name) ||
+        processNodeNames.includes(n.data.type)
+    );
+    return processNodes.length > 1;
+  }
+
   // Cluster currently selected nodes into a gray labeled group
   const handleClusterSelectedNodes = () => {
     if (!diagramRef.current) {
@@ -892,6 +906,12 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
 
     if (selectedNodes.length === 0) {
       alert('Select one or more nodes to cluster.');
+      return;
+    }
+
+    // 🚨 ADD VALIDATION HERE
+    if (hasMultipleProcessNodes(selectedNodes)) {
+      alert('❌ Error: A cluster cannot contain more than one process node.');
       return;
     }
 

@@ -41,7 +41,7 @@ export const elementaryPatterns: Pattern[] = [
   // Train model patterns
   {
     id: 'train_model_symbol',
-    name: 'Train Model (Symbol)',
+    name: 'Use Symbol to Train a Model',
     description: 'Train a model from symbol data',
     nodes: [
       {
@@ -80,7 +80,7 @@ export const elementaryPatterns: Pattern[] = [
   
   {
     id: 'train_model_data',
-    name: 'Train Model (Data)',
+    name: 'Use Data to Train a Model',
     description: 'Train a model from data',
     nodes: [
       {
@@ -120,7 +120,7 @@ export const elementaryPatterns: Pattern[] = [
     // Generate model patterns
   {
     id: 'generate_model_data',
-    name: 'Generate Model (Model + Data)',
+    name: 'Generate Model from Model and Data',
     description: 'Generate model from existing model and data',
     nodes: [
       {
@@ -169,7 +169,7 @@ export const elementaryPatterns: Pattern[] = [
 
   {
     id: 'generate_model_symbol',
-    name: 'Generate Model (Model + Symbol)',
+    name: 'Generate Model from Model and Symbol',
     description: 'Generate model from existing model and symbol',
     nodes: [
       {
@@ -220,7 +220,7 @@ export const elementaryPatterns: Pattern[] = [
   // Transform patterns
   {
     id: 'transform_symbol_to_data',
-    name: 'Transform Symbol → Data',
+    name: 'Transform Symbol to Data',
     description: 'Transform symbol to data',
     nodes: [
       {
@@ -258,7 +258,7 @@ export const elementaryPatterns: Pattern[] = [
   },
   {
     id: 'transform_data_to_data',
-    name: 'Transform Data → Data',
+    name: 'Transform Data to Data',
     description: 'Transform data to data',
     nodes: [
       {
@@ -297,7 +297,7 @@ export const elementaryPatterns: Pattern[] = [
 
   {
     id: 'transform_data_to_symbol',
-    name: 'Transform Data → Symbol',
+    name: 'Transform Data to Symbol',
     description: 'Transform data to symbol',
     nodes: [
       {
@@ -336,7 +336,7 @@ export const elementaryPatterns: Pattern[] = [
 
   {
     id: 'transform_symbol_to_symbol',
-    name: 'Transform Symbol → Symbol',
+    name: 'Transform Symbol to Symbol',
     description: 'Transform symbol to symbol',
     nodes: [
       {
@@ -414,7 +414,7 @@ export const elementaryPatterns: Pattern[] = [
   // Engineering patterns
   {
     id: 'actor_engineer_model',
-    name: 'Actor Engineer Model',
+    name: 'Actor Engineer a Model',
     description: 'Actor engineers a model',
     nodes: [
       {
@@ -453,7 +453,7 @@ export const elementaryPatterns: Pattern[] = [
 
   {
     id: 'actor_engineer_symbol',
-    name: 'Actor Engineer Symbol',
+    name: 'Actor Engineer a Symbol',
     description: 'Actor engineers a symbol',
     nodes: [
       {
@@ -492,7 +492,7 @@ export const elementaryPatterns: Pattern[] = [
 
   {
     id: 'actor_engineer_data',
-    name: 'Actor Engineer Data',
+    name: 'Actor Engineer a Data',
     description: 'Actor engineers data',
     nodes: [
       {
