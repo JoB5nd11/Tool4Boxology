@@ -183,10 +183,12 @@ export function validateGoJSDiagram(diagram: go.Diagram): string {
   // Cardinality issues within the selection
   const tooManyOutputs: string[] = [];
   const missingOutputs: string[] = [];
+  const missingInputs: string[] = []; // <-- Add this line
 
   nodes.forEach(node => {
     const name = getNodeName(node);
     if (!PROCESS_NODES.has(name)) return;
+    // Outputs
     const outSel = links.filter(l =>
       l.fromNode === node &&
       l.toNode &&
@@ -194,6 +196,12 @@ export function validateGoJSDiagram(diagram: go.Diagram): string {
     ).length;
     if (outSel > 1) tooManyOutputs.push(name);
     if (outSel === 0) missingOutputs.push(name);
+
+    // Inputs
+    const inSel = links.filter(l =>
+      l.toNode === node
+    ).length;
+    if (inSel === 0) missingInputs.push(name); // <-- Add this check
   });
 
   // Group nodes by name (logical nodes)
@@ -282,7 +290,8 @@ export function validateGoJSDiagram(diagram: go.Diagram): string {
     isolatedLogicalNodes.length === 0 &&
     disconnectedNodes.length === 0 &&
     tooManyOutputs.length === 0 &&
-    missingOutputs.length === 0
+    missingOutputs.length === 0 &&
+    missingInputs.length === 0 // <-- Add this line!
   ) {
     let summary = "✅ Valid pattern(s) detected:\n\n";
     for (const [pattern] of Object.entries(matchedNodesByPattern)) {
@@ -302,6 +311,9 @@ export function validateGoJSDiagram(diagram: go.Diagram): string {
     }
     if (missingOutputs.length > 0) {
       summary += `\n⚠️ Processes with no output (symbol/model/data): ${Array.from(new Set(missingOutputs)).join(", ")}`;
+    }
+    if (missingInputs.length > 0) {
+      summary += `\n⚠️ Processes with no input: ${Array.from(new Set(missingInputs)).join(", ")}`;
     }
     if (unmatchedLogicalNodes.length > 0) {
       summary += `\n⚠️ Unmatched logical nodes: ${unmatchedLogicalNodes.join(", ")}`;
@@ -454,10 +466,12 @@ export function validateEntireDiagram(diagram: go.Diagram): string {
   // Cardinality checks for whole diagram
   const tooManyOutputs: string[] = [];
   const missingOutputs: string[] = [];
+  const missingInputs: string[] = []; // <-- Add this line
 
   nodes.forEach(node => {
     const name = getNodeName(node);
     if (!PROCESS_NODES.has(name)) return;
+    // Outputs
     let out = 0;
     node.findLinksOutOf().each(l => {
       const t = l.toNode ? getNodeName(l.toNode) : '';
@@ -465,6 +479,12 @@ export function validateEntireDiagram(diagram: go.Diagram): string {
     });
     if (out > 1) tooManyOutputs.push(`${name} (key ${node.data.key})`);
     if (out === 0) missingOutputs.push(`${name} (key ${node.data.key})`);
+
+    // Inputs
+    const inSel = links.filter(l =>
+      l.toNode === node
+    ).length;
+    if (inSel === 0) missingInputs.push(`${name} (key ${node.data.key})`); // <-- Add this check
   });
 
   console.log('📊 Validation Results:', {
@@ -553,6 +573,9 @@ export function validateEntireDiagram(diagram: go.Diagram): string {
     }
     if (missingOutputs.length > 0) {
       summary += `  • Processes with no output: ${missingOutputs.join(", ")}\n`;
+    }
+    if (missingInputs.length > 0) {
+      summary += `  • Processes with no input: ${missingInputs.join(", ")}\n`;
     }
     summary += "\n";
   }

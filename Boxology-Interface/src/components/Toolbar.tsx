@@ -426,30 +426,6 @@ LIMIT 100`;
 
             <button
               onClick={() => {
-                onExportDrawio();
-                setShowExportMenu(false);
-              }}
-              style={exportItemStyle}
-              onMouseOver={hoverOn}
-              onMouseOut={hoverOff}
-            >
-              🎨 Draw.io XML
-            </button>
-            
-            <button
-              onClick={() => {
-                onExportSVG();
-                setShowExportMenu(false);
-              }}
-              style={exportItemStyle}
-              onMouseOver={hoverOn}
-              onMouseOut={hoverOff}
-            >
-              🖼️ SVG
-            </button>
-            
-            <button
-              onClick={() => {
                 onExportPNG();
                 setShowExportMenu(false);
               }}
@@ -461,18 +437,6 @@ LIMIT 100`;
             </button>
             
             <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
-            
-            <button
-              onClick={() => {
-                onExportXML();
-                setShowExportMenu(false);
-              }}
-              style={{ ...exportItemStyle, color: '#666' }}
-              onMouseOver={hoverOn}
-              onMouseOut={hoverOff}
-            >
-              📋 XML (Legacy)
-            </button>
           </div>
         )}
       </div>
