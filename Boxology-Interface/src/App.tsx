@@ -330,7 +330,7 @@ function App() {
     // OPEN
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.boxology';
+    input.accept = '.boxology,application/boxology,application/json,text/json';
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
@@ -340,7 +340,7 @@ function App() {
       // 1) Parse to our canonical hierarchical model
       let model: any | null = null;
       try {
-        if (name.endsWith('.boxology')) {
+        if (name.endsWith('.boxology') || name.endsWith('.json')) {
           model = JSON.parse(text);
 
         } else {
@@ -352,6 +352,19 @@ function App() {
         alert('Failed to parse file.');
         return;
       }
+
+      // Normalize node names/types to capitalized form
+const capitalize = (str: string) =>
+  str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
+
+// Normalize node names/types to capitalized form
+if (model && model.nodeDataArray) {
+  model.nodeDataArray = model.nodeDataArray.map((node: any) => ({
+    ...node,
+    name: capitalize(node.name),
+    type: capitalize(node.type),
+  }));
+}
 
       // Build pages
       try {
