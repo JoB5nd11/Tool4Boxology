@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { shapes } from '../data/shape';
 import { patterns, type Pattern } from '../data/patterns';
 import type { ShapeDefinition } from '../types';
-import tibLogo from '../assets/TIB_Logo.png'; // adjust path if needed
+import tibLogo from '../assets/TIB_Logo_EN.webp'; // adjust path if needed
 import vuLogo from '../assets/VU-Logo.png';   // add this line
 import { LineAxis, SpaOutlined } from '@mui/icons-material';
 
@@ -481,24 +481,7 @@ export default function LeftSidebar({
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            style={{
-              background: 'none',
-              border: 'none',
-              right: '10px',
-              padding: '5px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'left',
-              height: '32px'
-            }}
-            title="VU Amsterdam Website"
-            onClick={() => window.open('https://vu.nl/', '_blank')}
-          >
-            <img src={vuLogo} alt="VU Logo" style={{ height: '32px', width: 'auto' }} />
-          </button>
-          <button
+      <button
             style={{
               background: 'none',
               border: 'none',
@@ -511,8 +494,26 @@ export default function LeftSidebar({
             title="TIB Website"
             onClick={() => window.open('https://www.tib.eu/', '_blank')}
           >
-            <img src={tibLogo} alt="TIB Logo" style={{ height: '32px', width: 'auto' }} />
+            <img src={tibLogo} alt="TIB Logo" style={{ height: 'auto', width: 'auto' }} />
           </button>
+        <div style={{ display: 'flex' }}>
+          <button
+            style={{
+              background: 'none',
+              border: 'none',
+              right: '10px',
+              //padding: '5px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              height: '32px'
+            }}
+            title="VU Amsterdam Website"
+            onClick={() => window.open('https://vu.nl/', '_blank')}
+          >
+            <img src={vuLogo} alt="VU Logo" style={{ height: '32px', width: 'auto' }} />
+          </button>
+
         </div>
       </div>
     </div>
