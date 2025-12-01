@@ -2,7 +2,7 @@ import React, { useEffect, useRef, type Dispatch, type SetStateAction } from 're
 import * as go from 'gojs';
 import { setupDiagramValidation, validateGoJSDiagram } from './plugin/GoJSBoxologyValidation';
 import { mapShapeToGoJSFigure } from './utils/shapeMapping';
-import { shapeTypesTree } from './data/shape';
+import { shapeTypesTree , shapes } from './data/shape';
 
 interface ContextMenuPosition {
   x: number;
