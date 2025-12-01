@@ -1,3 +1,8 @@
+import * as go from "gojs";
+
+// Usually at the top of your file
+const $ = go.GraphObject.make;
+
 // Add this to your node template
 
 $(go.Node, "Auto",
@@ -51,6 +56,13 @@ $(go.Node, "Auto",
     )
   )
 )
+
+// Example shapeTypes mapping node names to available types
+const shapeTypes: { [key: string]: string[] } = {
+  "Rectangle": ["Type A", "Type B", "Type C"],
+  "Circle": ["Type X", "Type Y"],
+  // Add more node names and types as needed
+};
 
 // Type selector function
 function showTypeSelector(e: go.InputEvent, node: go.Node) {

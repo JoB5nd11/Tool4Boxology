@@ -2,7 +2,7 @@ import React, { useEffect, useRef, type Dispatch, type SetStateAction } from 're
 import * as go from 'gojs';
 import { setupDiagramValidation, validateGoJSDiagram } from './plugin/GoJSBoxologyValidation';
 import { mapShapeToGoJSFigure } from './utils/shapeMapping';
-import { shapeTypes } from './data/shape';
+import { shapeTypesTree } from './data/shape';
 
 interface ContextMenuPosition {
   x: number;
@@ -18,28 +18,92 @@ interface GoDiagramProps {
   customGroups: Record<string, any[]>;
 }
 
-// UPDATED: Type selector function with correct positioning
+// Helper: Recursively build menu
+function buildTypeMenu(
+  diagram: go.Diagram,
+  node: go.Node,
+  typeTree: Record<string, any> | null,
+  container: HTMLElement,
+  level: number = 0
+) {
+  if (!typeTree) return;
+  Object.entries(typeTree).forEach(([type, subTree]) => {
+    const option = document.createElement("div");
+    option.textContent = type;
+    option.style.padding = "8px 12px";
+    option.style.cursor = "pointer";
+    option.style.fontSize = "12px";
+    option.style.color = "black";
+    option.style.marginLeft = `${level * 16}px`;
+    option.style.position = "relative";
+    option.style.background = type === node.data.type ? "#e0f2fe" : "white";
+    option.style.fontWeight = type === node.data.type ? "600" : "normal";
+
+    // If has subtypes, show arrow and submenu
+    if (subTree && Object.keys(subTree).length > 0) {
+      const arrow = document.createElement("span");
+      arrow.textContent = "▶";
+      arrow.style.float = "right";
+      arrow.style.fontSize = "10px";
+      option.appendChild(arrow);
+
+      let submenu: HTMLElement | null = null;
+      option.onmouseenter = () => {
+        if (!submenu) {
+          submenu = document.createElement("div");
+          submenu.style.position = "absolute";
+          submenu.style.left = "100%";
+          submenu.style.top = "0";
+          submenu.style.background = "white";
+          submenu.style.border = "1px solid #d1d5db";
+          submenu.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+          submenu.style.minWidth = "120px";
+          submenu.style.zIndex = "10001";
+          buildTypeMenu(diagram, node, subTree, submenu, level + 1);
+          option.appendChild(submenu);
+        }
+        if (submenu) submenu.style.display = "block";
+      };
+      option.onmouseleave = () => {
+        if (submenu) submenu.style.display = "none";
+      };
+    }
+
+    // Click: set type and close all menus
+    option.onclick = (event) => {
+      event.stopPropagation();
+      diagram.model.startTransaction("change type");
+      diagram.model.set(node.data, "type", type);
+      diagram.model.commitTransaction("change type");
+      let el: HTMLElement | null = container;
+      while (el && el.parentElement) {
+        el.remove();
+        el = el.parentElement;
+      }
+    };
+
+    container.appendChild(option);
+  });
+}
+
 function showTypeSelector(e: go.InputEvent, node: go.Node) {
   const diagram = node.diagram;
   if (!diagram) return;
 
-  const nodeName = node.data.name;
-  const availableTypes = shapeTypes[nodeName] || ["No Type"];
-  
-  // Get the diagram div position
+  // Use node.data.type or node.data.name to get the correct subtree
+  const rootType = node.data.name; // or whatever property is your root type, e.g. "model"
+  let typeTree: Record<string, any> | null = shapeTypesTree[rootType] || null;
+  if (!typeTree) return; // fallback to full tree if not found
+
+  // Positioning
   const diagramDiv = diagram.div;
   if (!diagramDiv) return;
-  
   const diagramRect = diagramDiv.getBoundingClientRect();
-  
-  // Convert diagram coordinates to screen coordinates
   const viewPoint = diagram.transformDocToView(node.location);
-  
-  // Calculate absolute position on the page
   const screenX = diagramRect.left + viewPoint.x + window.scrollX;
-  const screenY = diagramRect.top + viewPoint.y + window.scrollY - 40; // Position above the node
-  
-  // Create custom styled dropdown
+  const screenY = diagramRect.top + viewPoint.y + window.scrollY - 40;
+
+  // Main container
   const dropdownContainer = document.createElement("div");
   dropdownContainer.style.position = "absolute";
   dropdownContainer.style.left = screenX + "px";
@@ -50,62 +114,35 @@ function showTypeSelector(e: go.InputEvent, node: go.Node) {
   dropdownContainer.style.borderRadius = "4px";
   dropdownContainer.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.15)";
   dropdownContainer.style.minWidth = "120px";
-  dropdownContainer.style.overflow = "hidden";
+  dropdownContainer.style.overflow = "visible";
   dropdownContainer.style.fontFamily = "system-ui, -apple-system, sans-serif";
-  
-  // Add options as custom buttons
-  availableTypes.forEach((type, index) => {
-    const option = document.createElement("div");
-    option.textContent = type;
-    option.style.padding = "8px 12px";
-    option.style.cursor = "pointer";
-    option.style.fontSize = "12px";
-    option.style.color = "black";
-    option.style.transition = "background-color 0.15s ease";
-    option.style.borderBottom = index < availableTypes.length - 1 ? "1px solid #f3f4f6" : "none";
-    
-    // Highlight current selection
-    if (type === (node.data.type || "No Type")) {
-      option.style.backgroundColor = "#e0f2fe";
-      option.style.color = "#0369a1";
-      option.style.fontWeight = "600";
-    }
-    
-    // Hover effect
-    option.onmouseenter = () => {
-      if (type !== (node.data.type || "No Type")) {
-        option.style.backgroundColor = "#f9fafb";
-      }
-    };
-    option.onmouseleave = () => {
-      if (type !== (node.data.type || "No Type")) {
-        option.style.backgroundColor = "white";
-      }
-    };
-    
-    // Click handler
-    option.onclick = () => {
-      diagram.model.startTransaction("change type");
-      diagram.model.set(node.data, "type", type);
-      diagram.model.commitTransaction("change type");
-      dropdownContainer.remove();
-    };
-    
-    dropdownContainer.appendChild(option);
-  });
-  
-  // Close on click outside
-  const closeHandler = (event: MouseEvent) => {
-    if (!dropdownContainer.contains(event.target as Node)) {
+
+  buildTypeMenu(diagram, node, typeTree, dropdownContainer);
+
+  // Close on click outside or escape
+  const closeHandler = (event: MouseEvent | KeyboardEvent) => {
+    if (
+      event instanceof MouseEvent &&
+      !dropdownContainer.contains(event.target as Node)
+    ) {
       dropdownContainer.remove();
       document.removeEventListener("click", closeHandler);
+      document.removeEventListener("keydown", closeHandler);
+    }
+    if (
+      event instanceof KeyboardEvent &&
+      event.key === "Escape"
+    ) {
+      dropdownContainer.remove();
+      document.removeEventListener("click", closeHandler);
+      document.removeEventListener("keydown", closeHandler);
     }
   };
-  
   setTimeout(() => {
     document.addEventListener("click", closeHandler);
+    document.addEventListener("keydown", closeHandler);
   }, 0);
-  
+
   document.body.appendChild(dropdownContainer);
 }
 
