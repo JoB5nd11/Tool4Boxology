@@ -1103,9 +1103,9 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           </button>
         ))}
         
-        {/* Add New Page Button */}
+        {/* Replace the Add Page button with a Home Page button */}
         <button
-          onClick={handleAddNewPage}
+          onClick={() => { window.location.href = '/home/index.html'; }}
           style={{
             backgroundColor: '#E3E3E3',
             color: '#000',
@@ -1124,9 +1124,9 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           }}
           onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#bedaeeff'}
           onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = '#E3E3E3'}
-          title="Add new page"
+          title="Go to Home Page"
         >
-          ➕ Add Page
+          Home Page
         </button>
       </div>
 
