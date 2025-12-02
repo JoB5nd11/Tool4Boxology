@@ -857,7 +857,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
   }, [leftCollapsed, rightCollapsed]);
 
   const processNodeNames = [
-    "training", "engineering", "deduce", "induction", "transform", "embed"
+    "Train", "Engineer", "Deduce", "Induce", "Transform", "Embed"
   ];
 
   // Validate process nodes in a selection

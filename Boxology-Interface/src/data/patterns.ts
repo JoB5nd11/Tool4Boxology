@@ -57,7 +57,7 @@ export const elementaryPatterns: Pattern[] = [
   {
     id: 'train_model_symbol',
     name: 'Use Symbol to Train a Model',
-    description: 'Train a model from symbol data',
+    description: 'Train a model from symbol Data',
     nodes: normalizePatternNodes([
       {
         id: '1',
@@ -88,14 +88,14 @@ export const elementaryPatterns: Pattern[] = [
   },
   
   {
-    id: 'train_model_data',
+    id: 'train_model_Data',
     name: 'Use Data to Train a Model',
-    description: 'Train a model from data',
+    description: 'Train a model from Data',
     nodes: normalizePatternNodes([
       {
         id: '1',
         name: 'Data',
-        label: 'id-data',
+        label: 'id-Data',
         shape: 'Rectangle',
         color: '', stroke: '', x: 0, y: 0
       },
@@ -122,9 +122,9 @@ export const elementaryPatterns: Pattern[] = [
 
     // Generate model patterns
   {
-    id: 'generate_model_data',
+    id: 'generate_model_Data',
     name: 'Generate Model from Model and Data',
-    description: 'Generate model from existing model and data',
+    description: 'Generate model from existing model and Data',
     nodes: normalizePatternNodes([
       {
         id: '1',
@@ -135,8 +135,8 @@ export const elementaryPatterns: Pattern[] = [
       },
       {
         id: '2',
-        name: 'data',
-        label: 'id-data',
+        name: 'Data',
+        label: 'id-Data',
         shape: 'Rectangle',
         color: '', stroke: '', x: 0, y: 80
       },
@@ -206,9 +206,9 @@ export const elementaryPatterns: Pattern[] = [
 
   // Transform patterns
   {
-    id: 'transform_symbol_to_data',
+    id: 'transform_symbol_to_Data',
     name: 'Transform Symbol to Data',
-    description: 'Transform symbol to data',
+    description: 'Transform symbol to Data',
     nodes: normalizePatternNodes([
       {
         id: '1',
@@ -226,8 +226,8 @@ export const elementaryPatterns: Pattern[] = [
       },
       {
         id: '3',
-        name: 'data',
-        label: 'id-data',
+        name: 'Data',
+        label: 'id-Data',
         shape: 'Rectangle',
         color: '', stroke: '', x: 300, y: 0
       }
@@ -238,14 +238,14 @@ export const elementaryPatterns: Pattern[] = [
     ]
   },
   {
-    id: 'transform_data_to_data',
+    id: 'transform_Data_to_Data',
     name: 'Transform Data to Data',
-    description: 'Transform data to data',
+    description: 'Transform Data to Data',
     nodes: normalizePatternNodes([
       {
         id: '1',
-        name: 'data',
-        label: 'id-data',
+        name: 'Data',
+        label: 'id-Data',
         shape: 'Rectangle',
         color: '', stroke: '', x: 0, y: 0
       },
@@ -258,8 +258,8 @@ export const elementaryPatterns: Pattern[] = [
       },
       {
         id: '3',
-        name: 'data',
-        label: 'id-data',
+        name: 'Data',
+        label: 'id-Data',
         shape: 'Rectangle',
         color: '', stroke: '', x: 300, y: 0
       }
@@ -271,14 +271,14 @@ export const elementaryPatterns: Pattern[] = [
   },
 
   {
-    id: 'transform_data_to_symbol',
+    id: 'transform_Data_to_symbol',
     name: 'Transform Data to Symbol',
-    description: 'Transform data to symbol',
+    description: 'Transform Data to symbol',
     nodes: normalizePatternNodes([
       {
         id: '1',
-        name: 'data',
-        label: 'id-data',
+        name: 'Data',
+        label: 'id-Data',
         shape: 'Rectangle',
         color: '', stroke: '', x: 0, y: 0
       },
@@ -370,9 +370,9 @@ export const elementaryPatterns: Pattern[] = [
 
   // Engineer patterns
   {
-    id: 'actor_engineer_model',
+    id: 'actor_Engineer_model',
     name: 'Actor Engineer a Model',
-    description: 'Actor engineers a model',
+    description: 'Actor Engineers a model',
     nodes: normalizePatternNodes([
       {
         id: '1',
@@ -403,9 +403,9 @@ export const elementaryPatterns: Pattern[] = [
   },
 
   {
-    id: 'actor_engineer_symbol',
+    id: 'actor_Engineer_symbol',
     name: 'Actor Engineer a Symbol',
-    description: 'Actor engineers a symbol',
+    description: 'Actor Engineers a symbol',
     nodes: normalizePatternNodes([
       {
         id: '1',
@@ -436,9 +436,9 @@ export const elementaryPatterns: Pattern[] = [
   },
 
   {
-    id: 'actor_engineer_data',
+    id: 'actor_Engineer_Data',
     name: 'Actor Engineer a Data',
-    description: 'Actor engineers data',
+    description: 'Actor Engineers Data',
     nodes: normalizePatternNodes([
       {
         id: '1',
@@ -456,8 +456,8 @@ export const elementaryPatterns: Pattern[] = [
       },
       {
         id: '3',
-        name: 'data',
-        label: 'id-data',
+        name: 'Data',
+        label: 'id-Data',
         shape: 'Rectangle',
         color: '', stroke: '', x: 300, y: 0
       }
@@ -511,14 +511,14 @@ export const elementaryPatterns: Pattern[] = [
   },
 
   {
-    id: 'infer_symbol_from_data',
+    id: 'infer_symbol_from_Data',
     name: 'Infer Symbol (Data + Model)',
-    description: 'Infer symbol from model and data input',
+    description: 'Infer symbol from model and Data input',
     nodes: normalizePatternNodes([
       {
         id: '1',
-        name: 'data',
-        label: 'id-data',
+        name: 'Data',
+        label: 'id-Data',
         shape: 'Rectangle',
         color: '', stroke: '', x: 0, y: 0
       },
@@ -593,14 +593,14 @@ export const elementaryPatterns: Pattern[] = [
   },
 
   {
-    id: 'infer_model_from_data',
+    id: 'infer_model_from_Data',
     name: 'Infer Model (Data + Model)',
-    description: 'Infer model from data and model input',
+    description: 'Infer model from Data and model input',
     nodes: normalizePatternNodes([
       {
         id: '1',
-        name: 'data',
-        label: 'id-data',
+        name: 'Data',
+        label: 'id-Data',
         shape: 'Rectangle',
         color: '', stroke: '', x: 0, y: 0
       },
@@ -634,14 +634,14 @@ export const elementaryPatterns: Pattern[] = [
   },
 
   {
-    id: 'infer_data_from_data',
+    id: 'infer_Data_from_Data',
     name: 'Infer Data (Data + Model)',
-    description: 'Infer data from data and model input',
+    description: 'Infer Data from Data and model input',
     nodes: normalizePatternNodes([
       {
         id: '1',
-        name: 'data',
-        label: 'id-data',
+        name: 'Data',
+        label: 'id-Data',
         shape: 'Rectangle',
         color: '', stroke: '', x: 0, y: 0
       },
@@ -661,8 +661,8 @@ export const elementaryPatterns: Pattern[] = [
       },
       {
         id: '4',
-        name: 'data',
-        label: 'id-data',
+        name: 'Data',
+        label: 'id-Data',
         shape: 'Rectangle',
         color: '', stroke: '', x: 300, y: 40
       }
@@ -675,9 +675,9 @@ export const elementaryPatterns: Pattern[] = [
   },
 
   {
-    id: 'infer_data_from_symbol',
+    id: 'infer_Data_from_symbol',
     name: 'Infer Data (Symbol + Model)',
-    description: 'Infer data from symbol and model input',
+    description: 'Infer Data from symbol and model input',
     nodes: normalizePatternNodes([
       {
         id: '1',
@@ -702,8 +702,8 @@ export const elementaryPatterns: Pattern[] = [
       },
       {
         id: '4',
-        name: 'data',
-        label: 'id-data',
+        name: 'Data',
+        label: 'id-Data',
         shape: 'Rectangle',
         color: '', stroke: '', x: 300, y: 40
       }
@@ -715,9 +715,9 @@ export const elementaryPatterns: Pattern[] = [
     ]
   },
   {
-    id: 'data_symbol_transform',
+    id: 'Data_symbol_transform',
     name: 'Data-Symbol Transform',
-    description: 'Transform symbol and data to data',
+    description: 'Transform symbol and Data to Data',
     nodes: normalizePatternNodes([
       {
         id: '1',
@@ -728,8 +728,8 @@ export const elementaryPatterns: Pattern[] = [
       },
       {
         id: '2',
-        name: 'data',
-        label: 'id-data',
+        name: 'Data',
+        label: 'id-Data',
         shape: 'Rectangle',
         color: '', stroke: '', x: 0, y: 80
       },
@@ -742,8 +742,8 @@ export const elementaryPatterns: Pattern[] = [
       },
       {
         id: '4',
-        name: 'data',
-        label: 'id-data',
+        name: 'Data',
+        label: 'id-Data',
         shape: 'Rectangle',
         color: '', stroke: '', x: 300, y: 40
       }

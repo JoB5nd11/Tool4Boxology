@@ -3,8 +3,8 @@ import * as go from "gojs";
 // --- Pattern and connection rules ---
 
 const validNext: Record<string, string[]> = {
-	"Actor": ["engineering", "Actor", "transform","deduce"],
-	//"artifacts": ["artifacts","symbol", "data","deduce","engineering", "transform:embed", "generate", "transform", "generate", "training"],
+	"Actor": ["Engineer", "Actor", "Transform","Deduce"],
+	//"artifacts": ["artifacts","symbol", "data","Deduce","Engineer", "Transform:embed", "generate", "Transform", "generate", "Train"],
   "Symbol": ["Deduce", "Train", "Generate","Engineer", "Transform", "Symbol", "artifacts"],
   "Data": ["Deduce", "Train", "Generate","Engineer", "Transform", "Data", "embed", "artifacts"],
   "Deduce": ["Symbol", "Model", "Deduce", "Data", "artifacts", "SemanticModel", "StatisticalModel"],
@@ -14,7 +14,7 @@ const validNext: Record<string, string[]> = {
   "Engineer": ["Model","StatisticalModel","SemanticModel", "Engineer", "Generate", "Data", "Symbol", "artifacts"],
   "SemanticModel": ["Deduce", "Model", "Generate", "Train", "StatisticalModel", "SemanticModel", "embed", "Transform"],
   "StatisticalModel": ["Deduce", "Model", "Generate", "Train", "StatisticalModel", "SemanticModel", "embed", "Transform"],
-  //"embed": ["Data", "embed", "Symbol", "transform", "SemanticModel", "StatisticalModel", "artifacts", "Model"],
+  //"embed": ["Data", "embed", "Symbol", "Transform", "SemanticModel", "StatisticalModel", "artifacts", "Model"],
   "Transform": ["Data", "Symbol", "artifacts", "Transform", "embed", "Model", "SemanticModel", "StatisticalModel"],
   "Infer": ["Symbol", "Model", "Data", "artifacts"],
   "Induce": ["Symbol", "Model", "Data", "artifacts"],
@@ -29,25 +29,25 @@ const allPatterns: { name: string; edges: [string, string][] }[] = [
   { name: "generate_model from model and artifacts ", edges: [["Model", "Train"], ["artifacts", "Train"], ["Train", "Model"]] },
   
   // Transform data with symbol/artifacts/data
-  { name: "transform to data (symbol)", edges: [["Symbol", "Transform"], ["Transform", "Data"]] },
-  { name: "transform to data (data)", edges: [["Data", "Transform"], ["Transform", "Data"]] },
-  { name: "transform to symbol (data)", edges: [["Data", "Transform"], ["Transform", "Symbol"]] },
-  { name: "transform to symbol (symbol)", edges: [["Symbol", "Transform"], ["Transform", "Symbol"]] },
-  { name: "transform_model (model)", edges: [["Model", "Transform"], ["Transform", "Model"]] },
+  { name: "Transform to data (symbol)", edges: [["Symbol", "Transform"], ["Transform", "Data"]] },
+  { name: "Transform to data (data)", edges: [["Data", "Transform"], ["Transform", "Data"]] },
+  { name: "Transform to symbol (data)", edges: [["Data", "Transform"], ["Transform", "Symbol"]] },
+  { name: "Transform to symbol (symbol)", edges: [["Symbol", "Transform"], ["Transform", "Symbol"]] },
+  { name: "Transform_model (model)", edges: [["Model", "Transform"], ["Transform", "Model"]] },
   
-  //engineer model from actor and artifacts
-  { name: "actor engineer model", edges: [["Actor", "Engineering"], ["Engineering", "Model"]] },
-  { name: "actor engineer data from data", edges: [["Actor", "Engineering"], ["Data", "Engineering"], ["Engineering", "Data"]] },
-  { name: "actor engineer symbol", edges: [["Actor", "Engineering"], ["Engineering", "Symbol"]] },
-  { name: "actor engineer data", edges: [["Actor", "Engineering"], ["Engineering", "Data"]] },
-  { name: "actor engineer symbol from symbol", edges: [["Actor", "Engineering"], ["Symbol", "Engineering"], ["Engineering", "Symbol"]] },
-  { name: "actor engineer model from model", edges: [["Actor", "Engineering"], ["Model", "Engineering"], ["Engineering", "Model"]] },
-  { name: "actor engineer data from model", edges: [["Actor", "Engineering"], ["Model", "Engineering"], ["Engineering", "Data"]] },
-  { name: "actor engineer symbol from model", edges: [["Actor", "Engineering"], ["Model", "Engineering"], ["Engineering", "Symbol"]] },
-  { name: "actor engineer model from symbol", edges: [["Actor", "Engineering"], ["Symbol", "Engineering"], ["Engineering", "Model"]] },
-  { name: "actor engineer model from data", edges: [["Actor", "Engineering"], ["Data", "Engineering"], ["Engineering", "Model"]] },
-  { name: "actor engineer data from symbol", edges: [["Actor", "Engineering"], ["Symbol", "Engineering"], ["Engineering", "Data"]] },
-  { name: "actor engineer symbol from data", edges: [["Actor", "Engineering"], ["Data", "Engineering"], ["Engineering", "Symbol"]] },
+  //Engineer model from actor and artifacts
+  { name: "actor Engineer model", edges: [["Actor", "Engineer"], ["Engineer", "Model"]] },
+  { name: "actor Engineer data from data", edges: [["Actor", "Engineer"], ["Data", "Engineer"], ["Engineer", "Data"]] },
+  { name: "actor Engineer symbol", edges: [["Actor", "Engineer"], ["Engineer", "Symbol"]] },
+  { name: "actor Engineer data", edges: [["Actor", "Engineer"], ["Engineer", "Data"]] },
+  { name: "actor Engineer symbol from symbol", edges: [["Actor", "Engineer"], ["Symbol", "Engineer"], ["Engineer", "Symbol"]] },
+  { name: "actor Engineer model from model", edges: [["Actor", "Engineer"], ["Model", "Engineer"], ["Engineer", "Model"]] },
+  { name: "actor Engineer data from model", edges: [["Actor", "Engineer"], ["Model", "Engineer"], ["Engineer", "Data"]] },
+  { name: "actor Engineer symbol from model", edges: [["Actor", "Engineer"], ["Model", "Engineer"], ["Engineer", "Symbol"]] },
+  { name: "actor Engineer model from symbol", edges: [["Actor", "Engineer"], ["Symbol", "Engineer"], ["Engineer", "Model"]] },
+  { name: "actor Engineer model from data", edges: [["Actor", "Engineer"], ["Data", "Engineer"], ["Engineer", "Model"]] },
+  { name: "actor Engineer data from symbol", edges: [["Actor", "Engineer"], ["Symbol", "Engineer"], ["Engineer", "Data"]] },
+  { name: "actor Engineer symbol from data", edges: [["Actor", "Engineer"], ["Data", "Engineer"], ["Engineer", "Symbol"]] },
 
   { name: "infer_symbol (symbol → model → symbol)", edges: [["Model", "Deduce"], ["Symbol", "Deduce"], ["Deduce", "Symbol"]] },
   { name: "infer_symbol (data → model → symbol)", edges: [["Model", "Deduce"], ["Data", "Deduce"], ["Deduce", "Symbol"]] },
@@ -55,9 +55,9 @@ const allPatterns: { name: string; edges: [string, string][] }[] = [
   { name: "infer_model (data → model → model)", edges: [["Model", "Deduce"], ["Data", "Deduce"], ["Deduce", "Model"]] },
   { name: "infer_data (data → model → data)", edges: [["Model", "Deduce"], ["Data", "Deduce"], ["Deduce", "Data"]] },
   { name: "infer_data (symbol → model → data)", edges: [["Model", "Deduce"], ["Symbol", "Deduce"], ["Deduce", "Data"]] },
-  { name: "embed transform", edges: [["Symbol", "Embed"], ["Data", "Embed"], ["Embed", "Model"]] },
+  { name: "embed Transform", edges: [["Symbol", "Embed"], ["Data", "Embed"], ["Embed", "Model"]] },
 
-  { name: "data-symbol transform", edges: [["Symbol", "Transform"], ["Data", "Transform"], ["Transform", "Data"]] },
+  { name: "data-symbol Transform", edges: [["Symbol", "Transform"], ["Data", "Transform"], ["Transform", "Data"]] },
 
   { name: "infer symbol from more model", edges: [["Model", "Deduce"], ["Data", "Deduce"], ["Deduce", "Symbol"]] }
 ];
@@ -601,7 +601,7 @@ export function validateEntireDiagram(diagram: go.Diagram): string {
   return summary;
 }
 
-const PROCESS_NODES = new Set(['training', 'engineering', 'transform', 'deduce']);
+const PROCESS_NODES = new Set(['Train', 'Engineer', 'Transform', 'Deduce']);
 const OUTPUT_TARGETS = new Set(['symbol', 'model', 'data']);
 
 function countProcessOutputs(node: go.Node): number {
