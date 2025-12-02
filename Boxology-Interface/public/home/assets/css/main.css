@@ -3924,9 +3924,8 @@ input, select, textarea {
 
 body {
     color: rgb(30, 30, 30)3e3 !important;
-	background: url('/home/images/background.png')  no-repeat center center fixed 	!important;
+	background: url('/home/images/background.png')  no-repeat center center fixed !important;
 	background-size: cover !important;
-
 }
 
 #sidebar {
@@ -3947,12 +3946,22 @@ body {
 
 .wrapper {
     background-color: #f6f0ff !important;
-	background: url('home/images/white-bg.png')  no-repeat center center fixed 	!important;
+	background: url('home/images/background.png')  no-repeat center center fixed transparent !important;
 	background-size: cover !important;
 	color: rgb(16, 0, 96) !important;
 	font-family: sans-serif !important;
 	font-size: 21px !important;
 
+
+}
+.bg-image::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: url('/home/images/background.png') no-repeat center center / cover;
+    opacity: 0.5; /* Only background image is transparent */
+    z-index: -1; /* Keep it behind the text */
+    pointer-events: none;
 }
 .wrapper.style4 {
 	background-color:  #fefeff !important;
