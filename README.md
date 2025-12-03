@@ -279,9 +279,25 @@ docker-compose up
 
 
 ---
+## 📖 Related Course Paper & Authors
 
-# 👤 Author
+Tool4Boxology is based on the research and methodology described in the course paper:
 
-**Mahsa Forghani Tehrani**  
-Leibniz University Hannover  
+**Tool4Boxology:  
+A Semantic Toolbox for Constructing and Analyzing Neuro-Symbolic Architectures**
+
+**Authors:**  
+Johannes E. Bendler<sup>1</sup>, Yashrajsinh Chudasama<sup>2,3</sup>, Mahsa Forghani<sup>2,3</sup>, Enrique Iglesias<sup>2,4</sup>, Disha Purohit<sup>2,3</sup>, Jacquiline Roney<sup>1</sup>, Annette ten Teije<sup>1</sup>, Frank van Harmelen<sup>1</sup>, Maria-Esther Vidal<sup>2,3</sup>
+
+<sup>1</sup> Department of Computer Science, Vrije Universiteit Amsterdam, The Netherlands  
+<sup>2</sup> TIB-Leibniz Information Centre for Science and Technology, Hannover, Germany  
+<sup>3</sup> Leibniz University Hannover, Hannover, Germany  
+<sup>4</sup> L3S Research Center Germany, Hannover, Germany  
+
+**Supervision:**  
+This work is supervised by the above authors and institutions.
+
+**Corresponding author:**  
 📧 mahsa.forghani.tehrani@stud.uni-hannover.de
+Leibniz University Hannover 
+
