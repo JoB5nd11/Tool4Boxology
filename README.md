@@ -279,9 +279,9 @@ docker-compose up
 
 
 ---
-## 📖 Related Course Paper & Authors
+## 📖 Related Source Paper & Authors
 
-Tool4Boxology is based on the research and methodology described in the course paper:
+Tool4Boxology is based on the research and methodology described in the source paper (submitted):
 
 **Tool4Boxology:  
 A Semantic Toolbox for Constructing and Analyzing Neuro-Symbolic Architectures**
