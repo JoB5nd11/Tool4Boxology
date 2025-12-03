@@ -162,7 +162,7 @@ input, select, textarea {
 		}
 
 	strong, b {
-		color: #ffffff;
+		color: #10001a;
 		font-weight: bold;
 	}
 
@@ -2244,6 +2244,7 @@ input, select, textarea {
 			flex-wrap: wrap;
 			width: calc(100% + 3em);
 			margin: -1.5em 0 2em -1.5em;
+			
 		}
 
 			form > .fields > .field {
@@ -2285,6 +2286,7 @@ input, select, textarea {
 
 					form > .fields > .field.half {
 						width: calc(100% - 1.5em);
+
 					}
 
 					form > .fields > .field.third {
@@ -2298,7 +2300,7 @@ input, select, textarea {
 		}
 
 	label {
-		color: #ffffff;
+		color: #2a006d;
 		font-weight: bold;
 		line-height: 1.5;
 		margin: 0 0 0.7em 0;
@@ -2316,11 +2318,11 @@ input, select, textarea {
 		-webkit-appearance: none;
 		-ms-appearance: none;
 		appearance: none;
-		background: rgba(255, 255, 255, 0.05);
+		background: rgb(232, 237, 255);
 		border-radius: 0.25em;
 		border: none;
-		border: solid 1px rgba(255, 255, 255, 0.15);
-		color: inherit;
+		border: solid 1px rgba(74, 26, 161, 0.664);
+		color: #312450;
 		display: block;
 		outline: 0;
 		padding: 0 1em;
@@ -3924,7 +3926,7 @@ input, select, textarea {
 
 body {
     color: rgb(30, 30, 30)3e3 !important;
-	background: url('/home/images/background.png')  no-repeat center center fixed !important;
+	background: url('/home/images/Background-Cover.png')  no-repeat center center fixed !important;
 	background-size: cover !important;
 }
 
@@ -3946,7 +3948,7 @@ body {
 
 .wrapper {
     background-color: #f6f0ff !important;
-	background: url('home/images/background.png')  no-repeat center center fixed transparent !important;
+	background: url('home/images/Background-Cover.png')  no-repeat center center fixed transparent !important;
 	background-size: cover !important;
 	color: rgb(16, 0, 96) !important;
 	font-family: sans-serif !important;
@@ -3989,3 +3991,8 @@ h3, h4, h5, h6 {
 
 }
 
+#get-in-touch, .get-in-touch, #three, section#get-in-touch, section#three {
+    color: #222 !important;
+    font-weight: 600;
+    text-shadow: 0 1px 4px #fff8;
+}
