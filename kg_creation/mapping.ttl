@@ -11,12 +11,12 @@
 @base <http://tib.de/SDM-RDFizer/mapping#> .
 
 <BoxologyMap>	
-	rml:logicalSource [ rml:source "/home/enrique/Documents/NeuroSymbolic/new_boxology.json";
+	rml:logicalSource [ rml:source "boxology.json";
 						rml:referenceFormulation ql:JSONPath;
 						rml:iterator "$.boxologies[*]"
 						];
 	rr:subjectMap [
-		rr:template "http://tool4boxology.org/Boxology/{id}";
+		rr:template "http://tool4boxology.org/{id}";
 		rr:class t4b:Boxology
 	];
 	rr:predicateObjectMap [
@@ -28,18 +28,18 @@
 	rr:predicateObjectMap [
 		rr:predicate t4b:hasPattern;
 		rr:objectMap [ 
-			rr:template "http://tool4boxology.org/DesignPattern/{DesignPattern[*].id}";
+			rr:template "http://tool4boxology.org/{DesignPattern[*].id}";
 		]
 	].
 
 
 <PatternMap>
-	rml:logicalSource [ rml:source "/home/enrique/Documents/NeuroSymbolic/new_boxology.json";
+	rml:logicalSource [ rml:source "boxology.json";
 						rml:referenceFormulation ql:JSONPath;
 						rml:iterator "$.boxologies[*].DesignPattern[*]"
 						];
 	rr:subjectMap [
-		rr:template "http://tool4boxology.org/DesignPattern/{id}";
+		rr:template "http://tool4boxology.org/{id}";
 		rr:class t4b:DesignPattern
 	];
 	rr:predicateObjectMap [
@@ -51,31 +51,30 @@
 	rr:predicateObjectMap [
 		rr:predicate t4b:hasInput;
 		rr:objectMap [
-			rr:template "http://tool4boxology.org/Component/{input[*].id}";
+			rr:template "http://tool4boxology.org/{input[*].id}";
 		]
 	];	
 	rr:predicateObjectMap [
 		rr:predicate t4b:hasOutput;
 		rr:objectMap [
-			rr:template "http://tool4boxology.org/Component/{output[*].id}";
+			rr:template "http://tool4boxology.org/{output[*].id}";
 		]
 	];		
 	rr:predicateObjectMap [
 		rr:predicate t4b:hasProcess;
 		rr:objectMap [ 
-			rr:template "http://tool4boxology.org/Component/{process.id}";
+			rr:template "http://tool4boxology.org/{process.id}";
 		]
 	].
 
 
 <InputComponentMap>
-	rml:logicalSource [ rml:source "/home/enrique/Documents/NeuroSymbolic/new_boxology.json";
+	rml:logicalSource [ rml:source "boxology.json";
 						rml:referenceFormulation ql:JSONPath;
 						rml:iterator "$.boxologies[*].DesignPattern[*].input[*]"
 						];
 	rr:subjectMap [
-		rr:template "http://tool4boxology.org/Component/{id}";
-		rr:class t4b:Component
+		rr:template "http://tool4boxology.org/{id}";
 	];
 	rr:predicateObjectMap [
 		rr:predicate rdfs:label;
@@ -91,13 +90,12 @@
 	].
 
 <OutputComponentMap>
-	rml:logicalSource [ rml:source "/home/enrique/Documents/NeuroSymbolic/new_boxology.json";
+	rml:logicalSource [ rml:source "boxology.json";
 						rml:referenceFormulation ql:JSONPath;
 						rml:iterator "$.boxologies[*].DesignPattern[*].output[*]"
 						];
 	rr:subjectMap [
-		rr:template "http://tool4boxology.org/Component/{id}";
-		rr:class t4b:Component
+		rr:template "http://tool4boxology.org/{id}";
 	];
 	rr:predicateObjectMap [
 		rr:predicate rdfs:label;
@@ -113,13 +111,12 @@
 	].
 
 <ProcessComponentMap>
-	rml:logicalSource [ rml:source "/home/enrique/Documents/NeuroSymbolic/new_boxology.json";
+	rml:logicalSource [ rml:source "boxology.json";
 						rml:referenceFormulation ql:JSONPath;
 						rml:iterator "$.boxologies[*].DesignPattern[*].process"
 						];
 	rr:subjectMap [
-		rr:template "http://tool4boxology.org/Component/{id}";
-		rr:class t4b:Component
+		rr:template "http://tool4boxology.org/{id}";
 	];
 	rr:predicateObjectMap [
 		rr:predicate rdfs:label;
@@ -135,33 +132,31 @@
 	].
 
 <InputRoleMap>
-	rml:logicalSource [ rml:source "/home/enrique/Documents/NeuroSymbolic/new_boxology.json";
+	rml:logicalSource [ rml:source "boxology.json";
 						rml:referenceFormulation ql:JSONPath;
 						rml:iterator "$.boxologies[*].DesignPattern[*]"
 						];
 	rr:subjectMap [
-		rr:template "http://tool4boxology.org/Component/{input[*].id}";
-		rr:class t4b:Component
+		rr:template "http://tool4boxology.org/{input[*].id}";
 	];
 	rr:predicateObjectMap [
 		rr:predicate t4b:inputRoleParticipatesInProcess;
 		rr:objectMap [
-			rr:template "http://tool4boxology.org/Component/{process.id}";
+			rr:template "http://tool4boxology.org/{process.id}";
 		]
 	].
 
 <OutputRoleMap>
-	rml:logicalSource [ rml:source "/home/enrique/Documents/NeuroSymbolic/new_boxology.json";
+	rml:logicalSource [ rml:source "boxology.json";
 						rml:referenceFormulation ql:JSONPath;
 						rml:iterator "$.boxologies[*].DesignPattern[*]"
 						];
 	rr:subjectMap [
-		rr:template "http://tool4boxology.org/Component/{process.id}";
-		rr:class t4b:Component
+		rr:template "http://tool4boxology.org/{process.id}";
 	];
 	rr:predicateObjectMap [
 		rr:predicate t4b:outputRoleParticipatesInProcess;
 		rr:objectMap [
-			rr:template "http://tool4boxology.org/Component/{output[*].id}";
+			rr:template "http://tool4boxology.org/{output[*].id}";
 		]
 	].								
