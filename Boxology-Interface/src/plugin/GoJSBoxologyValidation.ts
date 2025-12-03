@@ -602,7 +602,7 @@ export function validateEntireDiagram(diagram: go.Diagram): string {
 }
 
 const PROCESS_NODES = new Set(['Train', 'Engineer', 'Transform', 'Deduce']);
-const OUTPUT_TARGETS = new Set(['symbol', 'model', 'data']);
+const OUTPUT_TARGETS = new Set(['Symbol', 'Model', 'Data']);
 
 function countProcessOutputs(node: go.Node): number {
   if (!node) return 0;

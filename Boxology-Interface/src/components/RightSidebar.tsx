@@ -3,6 +3,7 @@ import * as go from 'gojs';
 import ExCls from '../Examples/Pain-Cls-Example.json';
 import ExSeg from '../Examples/MRI-seg-Example.json';
 import InstructionDialog from './InstructionDialog';  
+import WorkflowImg from '../assets/WorkFlow.png';
 
 interface RightSidebarProps {
   selectedData: {
@@ -63,7 +64,7 @@ export default function RightSidebar({ selectedData, diagramRef, setPages, setCu
   const [queryText, setQueryText] = useState('');
   const [showInstruction, setShowInstruction] = useState(false); // New state for instruction dialog
 
-  const videoUrl = ''; // set video link here when available
+  const videoUrl = 'https://www.youtube.com/watch?v=yr8KNgPh-Vw'; 
 
   const queryExamples = [
     {
@@ -159,11 +160,12 @@ WHERE {
     }
   };
 
-  const openInstructionDialog = () => setShowInstruction(true);
+  const openInstructionDialog = () => {
+    window.open(WorkflowImg, '_blank');
+  };
   const closeInstructionDialog = () => setShowInstruction(false);
   const openVideoLink = () => {
-    if (videoUrl) window.open(videoUrl, '_blank');
-    else alert('No video link available yet.');
+    window.open(videoUrl, '_blank');
   };
 
   const sendToQuerySection = async (q: string) => {
@@ -233,8 +235,8 @@ WHERE {
       <div style={{ marginBottom: 12, padding: 8, background: '#fff', borderRadius: 6, border: '1px solid #eee',minWidth: 260 }}>
         <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px',color: '#1b1b1bff' }}>How to use Tool4Boxology</strong>
         <div style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
-          <button onClick={openInstructionDialog} style={getButtonStyle()}>Open Instructions</button>
-          <button onClick={openVideoLink} style={getButtonStyle()}>Video</button>
+          <button onClick={openInstructionDialog} style={getButtonStyle()}>Diagraming</button>
+          <button onClick={openVideoLink} style={getButtonStyle()}>Tutorial Video</button>
         </div>
         <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px',color: '#1b1b1bff' }}>Boxology example</strong>
         <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
