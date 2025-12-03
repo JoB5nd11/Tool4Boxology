@@ -24,7 +24,7 @@ const categoryOrder = [
   'Actors & Entities', 
   'AI & Models',
   'Processes & Actions',
-  'Documentation'
+  //'Documentation'
 ];
 
 
