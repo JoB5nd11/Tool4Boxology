@@ -1,12 +1,10 @@
 ![Logo](images/Logo-tool4boxology.png)
 
 # 🧰 Tool4Boxology — Hybrid AI Design Toolkit
-
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17711495.svg)](https://doi.org/10.5281/zenodo.17711495)
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-![Docker](https://img.shields.io/badge/docker-image-blue)
-![Status](https://img.shields.io/badge/status-beta-orange)
-![Version](https://img.shields.io/badge/version-v0.2.0-blueviolet)
+![Version](https://img.shields.io/badge/version-v1.0.0-blueviolet)
 ![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11-blue)
 ![React](https://img.shields.io/badge/library-react-61DAFB)
 ![GoJS](https://img.shields.io/badge/built%20with-GoJS-blue)
@@ -279,9 +277,9 @@ docker-compose up
 
 
 ---
-## 📖 Related Course Paper & Authors
+## 📖 Related Source Paper & Authors
 
-Tool4Boxology is based on the research and methodology described in the course paper:
+Tool4Boxology is based on the research and methodology described in the source paper (submitted):
 
 **Tool4Boxology:  
 A Semantic Toolbox for Constructing and Analyzing Neuro-Symbolic Architectures**

@@ -9,18 +9,11 @@
 @base <http://tool4boxology.org/Tool4BoxologyOntology> .
 
 <http://tool4boxology.org/Tool4BoxologyOntology> rdf:type owl:Ontology ;
-                                                  rdfs:comment "Ontology for representing Boxology diagrams, components, patterns, and their machine-readable structure." .
+                                                  rdfs:comment "Ontology for representing Boxology diagrams, patterns, and their machine-readable structure." .
 
 #################################################################
 #    Object Properties
 #################################################################
-
-###  http://tool4boxology.org/hasComponent
-<http://tool4boxology.org/hasComponent> rdf:type owl:ObjectProperty ;
-                                        rdfs:domain <http://tool4boxology.org/Boxology> ;
-                                        rdfs:range <http://tool4boxology.org/Artifact> ;
-                                        rdfs:comment "Artifacts included in the Boxology diagram." .
-
 
 ###  http://tool4boxology.org/hasPattern
 <http://tool4boxology.org/hasPattern> rdf:type owl:ObjectProperty ;
@@ -65,7 +58,6 @@
                                                          rdfs:subPropertyOf owl:topObjectProperty ;
                                                          rdfs:domain <http://tool4boxology.org/Artifact> ;
                                                          rdfs:range <http://tool4boxology.org/Artifact> ;
-                                                         owl:equivalentProperty easyai:performsOutputRole ;
                                                          rdfs:label "outputRoleParticipatesInProcess"@en .
 
 
@@ -74,7 +66,6 @@
                                                          rdfs:subPropertyOf owl:topObjectProperty ;
                                                          rdfs:domain <http://tool4boxology.org/Artifact> ;
                                                          rdfs:range <http://tool4boxology.org/Artifact> ;
-                                                         owl:equivalentProperty easyai:performsIntputRole ;
                                                          rdfs:label "inputRoleParticipatesInProcess"@en .
 
 
@@ -85,13 +76,11 @@
 ###  http://tool4boxology.org/Actor
 <http://tool4boxology.org/Actor> rdf:type owl:Class ;
                                  rdfs:subClassOf <http://tool4boxology.org/Artifact> ;
-                                 owl:equivalentClass easyai:Actor ;
                                  rdfs:comment "Human or software agent participating in a system." .
 
 
 ###  http://tool4boxology.org/Artifact
 <http://tool4boxology.org/Artifact> rdf:type owl:Class ;
-                                    owl:equivalentClass easyai:Artifact ;
                                     rdfs:comment "Any entity represented as a node in Boxology (data, symbols, models, processes, actors)." .
 
 
@@ -130,7 +119,6 @@
 ###  http://tool4boxology.org/Data
 <http://tool4boxology.org/Data> rdf:type owl:Class ;
                                 rdfs:subClassOf <http://tool4boxology.org/Artifact> ;
-                                owl:equivalentClass easyai:Data, mls:Data ;
                                 rdfs:comment "Data instance (text, image, vector, traces, etc.)." .
 
 
@@ -142,7 +130,6 @@
 ###  http://tool4boxology.org/Deduce
 <http://tool4boxology.org/Deduce> rdf:type owl:Class ;
                                   rdfs:subClassOf <http://tool4boxology.org/Infer> ;
-                                  owl:equivalentClass easyai:Deduction ;
                                   rdfs:comment "Symbolic deduction (rule-based, ontology reasoning)." .
 
 
@@ -189,7 +176,6 @@
 
 ###  http://tool4boxology.org/Generate
 <http://tool4boxology.org/Generate> rdf:type owl:Class ;
-                                    owl:equivalentClass easyai:Generate ;
                                     rdfs:subClassOf <http://tool4boxology.org/Process> .
 
 
@@ -201,7 +187,6 @@
 ###  http://tool4boxology.org/Infer
 <http://tool4boxology.org/Infer> rdf:type owl:Class ;
                                  rdfs:subClassOf <http://tool4boxology.org/Process> ;
-                                 owl:equivalentClass easyai:Infer ;
                                  rdfs:comment "Inference process, symbolic or statistical." .
 
 
@@ -224,7 +209,6 @@
 ###  http://tool4boxology.org/Model
 <http://tool4boxology.org/Model> rdf:type owl:Class ;
                                  rdfs:subClassOf <http://tool4boxology.org/Artifact> ;
-                                 owl:equivalentClass easyai:Model, mls:Model ;
                                  rdfs:comment "A model used in a system (semantic, neural, inductive, etc.)." .
 
 
@@ -245,7 +229,6 @@
 
 ###  http://tool4boxology.org/OWLOntology
 <http://tool4boxology.org/OWLOntology> rdf:type owl:Class ;
-                                       owl:equivalentClass easyai:SemanticModel ;
                                        rdfs:subClassOf <http://tool4boxology.org/SemanticModel> .
 
 
@@ -257,7 +240,6 @@
 ###  http://tool4boxology.org/Process
 <http://tool4boxology.org/Process> rdf:type owl:Class ;
                                    rdfs:subClassOf <http://tool4boxology.org/Artifact> ;
-                                   owl:equivalentClass easyai:Process ;
                                    rdfs:comment "Operations such as generate, transform, or infer." .
 
 
@@ -316,7 +298,6 @@
 ###  http://tool4boxology.org/Symbol
 <http://tool4boxology.org/Symbol> rdf:type owl:Class ;
                                   rdfs:subClassOf <http://tool4boxology.org/Artifact> ;
-                                  owl:equivalentClass easyai:Symbol ;
                                   rdfs:comment "Symbolic structures (labels, triples, relations, KG entities)." .
 
 
@@ -328,15 +309,17 @@
 ###  http://tool4boxology.org/Train
 <http://tool4boxology.org/Train> rdf:type owl:Class ;
                                  rdfs:subClassOf <http://tool4boxology.org/Generate> ;
-                                 owl:equivalentClass easyai:Train ;
                                  rdfs:comment "Process that trains a model." .
 
 
 ###  http://tool4boxology.org/Transform
 <http://tool4boxology.org/Transform> rdf:type owl:Class ;
                                      rdfs:subClassOf <http://tool4boxology.org/Process> ;
-                                     owl:equivalentClass easyai:Engineer ;
                                      rdfs:comment "Process that transforms data or symbols (embedding, augmentation, cleaning)." .
+###  http://tool4boxology.org/Embed
+<http://tool4boxology.org/Embed> rdf:type owl:Class ;
+                                     rdfs:subClassOf <http://tool4boxology.org/Transform> ;
+                                     rdfs:comment "Process that transforms data or symbols into embedding vectors." .
 
 
 ###  http://tool4boxology.org/Transformer
@@ -423,7 +406,6 @@
 ###  http://tool4boxology.org/Engineer
 <http://tool4boxology.org/Engineer> rdf:type owl:Class ;
                                                          rdfs:subClassOf <http://tool4boxology.org/Generate> ;
-                                                         owl:equivalentClass easyai:Engineer ;
                                                          rdfs:label "Engineer"@en .
 
 
@@ -444,6 +426,14 @@
                                                         rdfs:subClassOf <http://tool4boxology.org/Actor> ;
                                                         rdfs:label "Human"@en .
 
+###  http://tool4boxology.org/Expert
+<http://tool4boxology.org/Expert> rdf:type owl:Class ;
+                                                        rdfs:subClassOf <http://tool4boxology.org/Human> ;
+                                                        rdfs:label "Expert"@en .
+###  http://tool4boxology.org/MedicalProfessional
+<http://tool4boxology.org/MedicalProfessional> rdf:type owl:Class ;
+                                                        rdfs:subClassOf <http://tool4boxology.org/Expert> ;
+                                                        rdfs:label "MedicalProfessional"@en .
 
 ###  http://tool4boxology.org/Dataset
 <http://tool4boxology.org/Dataset> rdf:type owl:Class ;
