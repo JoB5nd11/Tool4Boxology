@@ -7,9 +7,98 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @base <http://tool4boxology.org/Tool4BoxologyOntology> .
+@prefix t4b: <http://tool4boxology.org/> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix terms: <http://purl.org/dc/terms/> .
+@prefix schema: <http://schema.org/> .
+@prefix resource: <http://semanticscience.org/resource/> .
+@prefix cpannotationschema: <http://www.ontologydesignpatterns.org/schemas/cpannotationschema.owl#> .
+@prefix AnnotationVocabulary: <http://www.omg.org/spec/EDMC-FIBO/FND/Utilities/AnnotationVocabulary/> .
 
 <http://tool4boxology.org/Tool4BoxologyOntology> rdf:type owl:Ontology ;
-                                                  rdfs:comment "Ontology for representing Boxology diagrams, patterns, and their machine-readable structure." .
+                                     owl:imports <http://www.w3.org/2004/02/skos/core> ;
+                                     dc:contributor "Enrique Iglesias" ,
+                                                    "Yashrajsinh Chudasama" ,
+                                                    "Disha Purohti" ,
+                                                     "Mahsa Forghani" ,
+                                                    "Johannes Bendler" ,
+                                                    "Jacquiline Roney",
+                                                    "Annette Ten Teije" ,
+                                                    "Frank van Harmelen" ,
+                                                    "Maria-Esther Vidal" ;
+                                     dc:creator "Yashrajsinh Chudasama"@en ,
+                                                      "Tool4Boxology" ;
+                                     dc:description "This ontology extends the ontology of EASY-AI to 
+                                                             represent the boxology of design patterns over 
+                                                             neuro-symbolic AI systems on knowledge graphs"@en ;
+                                     dc:title "Tool4Boxology Ontology"@en ;
+                                     terms:created "" ;
+                                     terms:language "en" ;
+                                     terms:license <http://creativecommons.org/licenses/by/4.0/> ,
+                                                   "Apache License v2.0"@en ;
+                                     terms:publisher "TIB – Leibniz Information Centre for Science and Technology, Hannover, Germany" ;
+                                     owl:versionInfo "1.0.0"@en ,
+                                                     "2025-12-02"^^xsd:string .
+
+#################################################################
+#    Annotation properties
+#################################################################
+
+###  http://purl.org/dc/elements/1.1/citation
+dc:citation rdf:type owl:AnnotationProperty ;
+            dc:identifier "citation"@en .
+
+
+###  http://purl.org/dc/elements/1.1/contributor
+dc:contributor rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/creator
+dc:creator rdf:type owl:AnnotationProperty ;
+           rdfs:comment "Mayra Russo"@en .
+
+
+###  http://purl.org/dc/elements/1.1/description
+dc:description rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/identifier
+dc:identifier rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/source
+dc:source rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/title
+dc:title rdf:type owl:AnnotationProperty ;
+         rdfs:label "dc:title"@en ;
+         rdfs:range rdfs:Literal .
+
+
+###  http://purl.org/dc/terms/bibliographicCitation
+terms:bibliographicCitation rdf:type owl:AnnotationProperty ;
+                            rdfs:range rdfs:Literal .
+
+###  http://purl.org/dc/terms/created
+terms:created rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/terms/language
+terms:language rdf:type owl:AnnotationProperty ;
+               rdfs:range terms:LinguisticSystem .
+
+
+###  http://purl.org/dc/terms/license
+terms:license rdf:type owl:AnnotationProperty .
 
 #################################################################
 #    Object Properties
