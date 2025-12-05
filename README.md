@@ -11,6 +11,10 @@
 ![TypeScript](https://img.shields.io/badge/language-typescript-3178c6)
 ![Docker Compose](https://img.shields.io/badge/DevOps-docker--compose-2496ED)
 
+## 🔗 Live Interface
+
+[![Live Demo](https://img.shields.io/badge/Live-Demo-green)](https://tool4boxology.service.tib.eu/)
+
 **Tool4Boxology** is a toolkit for designing, validating, and exporting **hybrid AI system architectures** using the Boxology methodology.
 
 It provides:
