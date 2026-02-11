@@ -412,7 +412,7 @@ if (model && model.nodeDataArray) {
     input.click();
   };
 
-  // Add validation function to check if all nodes belong to exactly one cluster
+// Add validation function to check if all nodes belong to exactly one cluster
 const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
   if (!diagramRef.current) return { valid: false, errors: ['No diagram available'] };
   
@@ -429,18 +429,33 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
   for (const node of nodes) {
     if (node.isGroup) continue; // Skip cluster nodes themselves
     
-    // Check if node has a group assignment
-    if (!node.group) {
+    const isShared = node.isShared && node.sharedGroups && node.sharedGroups.length > 0;
+    
+    // Check if node has a group assignment OR is shared
+    if (!node.group && !isShared) {
       const nodeLabel = node.label || node.text || node.name || node.key;
       errors.push(`Node "${nodeLabel}" does not belong to any cluster.`);
       continue;
     }
     
-    // Verify the group exists
-    const groupExists = groups.some((g: any) => g.key === node.group);
-    if (!groupExists) {
-      const nodeLabel = node.label || node.text || node.name || node.key;
-      errors.push(`Node "${nodeLabel}" belongs to a non-existent cluster.`);
+    // If node has regular group, verify it exists
+    if (node.group) {
+      const groupExists = groups.some((g: any) => g.key === node.group);
+      if (!groupExists) {
+        const nodeLabel = node.label || node.text || node.name || node.key;
+        errors.push(`Node "${nodeLabel}" belongs to a non-existent cluster.`);
+      }
+    }
+    
+    // If node is shared, verify all sharedGroups exist
+    if (isShared) {
+      for (const sharedGroupKey of node.sharedGroups) {
+        const groupExists = groups.some((g: any) => g.key === sharedGroupKey);
+        if (!groupExists) {
+          const nodeLabel = node.label || node.text || node.name || node.key;
+          errors.push(`Node "${nodeLabel}" references non-existent cluster: ${sharedGroupKey}`);
+        }
+      }
     }
   }
   
@@ -740,6 +755,9 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
       case 'cluster_group':
         handleClusterSelectedNodes();
         break;
+      case 'uncluster_group':
+        handleUnclusterGroup();
+        break;
       default:
         if (target) {
           console.log('Adding to group:', target);
@@ -870,6 +888,65 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     return processNodes.length > 1;
   }
 
+  // Detect which nodes should be shared based on cluster connectivity
+  const detectAndUpdateSharedNodes = () => {
+    if (!diagramRef.current) return;
+    
+    const diagram = diagramRef.current;
+    const model = diagram.model as go.GraphLinksModel;
+    const nodes = model.nodeDataArray;
+    const links = model.linkDataArray;
+
+    diagram.startTransaction('update shared nodes');
+
+    // For each non-process, non-group node
+    for (const node of nodes) {
+      if (node.isGroup) continue; // Skip groups
+      
+      const isProcessNode = processNodeNames.includes(node.name) || processNodeNames.includes(node.type);
+      if (isProcessNode) continue; // Process nodes cannot be shared
+      
+      // Find all incoming and outgoing links
+      const connectedLinks = links.filter((l: any) => l.from === node.key || l.to === node.key);
+      if (connectedLinks.length === 0) continue;
+
+      // Get clusters of connected nodes
+      const connectedClusters = new Set<string>();
+      for (const link of connectedLinks) {
+        const otherKey = link.from === node.key ? link.to : link.from;
+        const otherNode = nodes.find((n: any) => n.key === otherKey);
+        if (otherNode && otherNode.group && !otherNode.isGroup) {
+          connectedClusters.add(otherNode.group);
+        }
+      }
+
+      // If node connects multiple clusters OR belongs to a cluster but has external connections
+      const nodeCluster = node.group;
+      const isShared = connectedClusters.size > 1 || (nodeCluster && connectedClusters.size > 0 && !connectedClusters.has(nodeCluster));
+
+      if (isShared) {
+        // Mark as shared and extract from cluster
+        model.setDataProperty(node, 'isShared', true);
+        
+        // Collect all clusters this node belongs to
+        const allClusters = new Set<string>();
+        if (nodeCluster) allClusters.add(nodeCluster);
+        connectedClusters.forEach(c => allClusters.add(c));
+        
+        model.setDataProperty(node, 'sharedGroups', Array.from(allClusters));
+        
+        // Extract from primary group visually by setting to null
+        model.setDataProperty(node, 'group', null);
+      } else {
+        // Remove shared status
+        model.setDataProperty(node, 'isShared', false);
+        model.setDataProperty(node, 'sharedGroups', []);
+      }
+    }
+
+    diagram.commitTransaction('update shared nodes');
+  };
+
   // Cluster currently selected nodes into a gray labeled group
   const handleClusterSelectedNodes = () => {
     if (!diagramRef.current) {
@@ -915,6 +992,47 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     });
 
     diagram.commitTransaction('cluster group');
+    
+    // Auto-detect and update shared nodes
+    setTimeout(() => detectAndUpdateSharedNodes(), 100);
+  };
+
+  const handleUnclusterGroup = () => {
+    if (!diagramRef.current) {
+      alert('No diagram available');
+      return;
+    }
+
+    const diagram = diagramRef.current;
+    const selectedPart = diagram.selection.first();
+
+    if (!(selectedPart instanceof go.Group)) {
+      alert('Please select a cluster group to uncluster.');
+      return;
+    }
+
+    diagram.startTransaction('uncluster_group');
+
+    const members: go.Node[] = [];
+    selectedPart.memberParts.each(part => {
+      if (part instanceof go.Node) {
+        members.push(part);
+      }
+    });
+
+    const model = diagram.model as go.GraphLinksModel;
+    members.forEach(member => {
+      model.setDataProperty(member.data, 'group', undefined);
+    });
+
+    model.removeNodeData(selectedPart.data);
+
+    diagram.commitTransaction('uncluster_group');
+    
+    // Auto-detect and update shared nodes
+    setTimeout(() => detectAndUpdateSharedNodes(), 100);
+
+    alert(`✅ Cluster unclustered! ${members.length} node(s) released.`);
   };
 
   const [isCreatingKG, setIsCreatingKG] = useState(false);

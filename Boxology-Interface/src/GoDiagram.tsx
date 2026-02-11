@@ -219,6 +219,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       allowDrop: true,
       padding: new go.Margin(40),               // << -- add space around content
       initialContentAlignment: go.Spot.TopLeft, // keep content origin at top-left
+      'animationManager.isEnabled': false,  // 🔧 ADD: Disable animations
       grid: $(
         go.Panel,
         'Grid',
@@ -239,11 +240,17 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       parameter1: 6
     };
 
-    diagram.toolManager.draggingTool.isGridSnapEnabled = true;
+    // 🔧 ADD: Configure tools with custom cursors
+    diagram.toolManager.draggingTool.isGridSnapEnabled = false;
+    diagram.toolManager.draggingTool.delay = 0;
+    
+    // 🔧 ADD: Custom cursor for linking tool
     diagram.toolManager.linkingTool.isEnabled = true;
+    // Removed invalid property: portTargetingTool.cursorHot
+    
     diagram.toolManager.relinkingTool.isEnabled = true;
 
-    // UPDATED: Node template with named type badge panel
+    // UPDATED: Node template - shape as port with cursor differentiation
     diagram.nodeTemplate = $(
       go.Node,
       'Spot',
@@ -253,7 +260,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         movable: true,
         resizable: true,
         resizeObjectName: 'SHAPE',
-        cursor: 'move',
+        // 🔧 REMOVED: cursor from node level - let shape handle it
         contextClick: (e, obj) => {
           const node = obj.part;
           if (node instanceof go.Node) {
@@ -262,26 +269,72 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
             setContextMenu({ x: mouseEvent.clientX, y: mouseEvent.clientY });
           }
         },
+        // 🔧 ADD: Dynamic cursor based on mouse position
+        mouseEnter: (e, obj) => {
+          const node = obj as go.Node;
+          node.cursor = 'move';  // Default to move
+        },
+        mouseDragEnter: (e, obj) => {
+          const node = obj as go.Node;
+          // Check if we're dragging from a port (starting a link)
+          if (e.diagram?.currentTool.name === 'Linking') {
+            node.cursor = 'pointer';
+          } else {
+            node.cursor = 'move';
+          }
+        }
       },
       new go.Binding('location', 'loc', go.Point.parse).makeTwoWay(go.Point.stringify),
       
-      // Main shape
+      // 🔧 UPDATED: Main shape IS the port - no separate port areas needed
       $(
         go.Shape,
         {
           name: 'SHAPE',
           strokeWidth: 1,
           stroke: '#999',
-          portId: '',
+          portId: '',  // Empty string = default port
           fromLinkable: true,
           toLinkable: true,
+          fromSpot: go.Spot.AllSides,  // Links connect at actual shape boundary
+          toSpot: go.Spot.AllSides,
+          cursor: 'move',  // Default cursor
           width: 100,
           height: 60,
           minSize: new go.Size(30, 30),
           maxSize: new go.Size(300, 300),
+          // 🔧 ADD: Mouse handlers to change cursor dynamically
+          mouseEnter: (e, shape) => {
+            const sh = shape as go.Shape;
+            const diagram = sh.part?.diagram;
+            if (!diagram) return;
+            
+            // Get mouse position relative to shape
+            const shapeCenter = sh.getDocumentPoint(go.Spot.Center);
+            const mousePoint = diagram.lastInput.documentPoint;
+            const bounds = sh.actualBounds;
+            
+            // Calculate if mouse is near edge (within 15px of boundary)
+            const distFromCenterX = Math.abs(mousePoint.x - shapeCenter.x);
+            const distFromCenterY = Math.abs(mousePoint.y - shapeCenter.y);
+            const isNearHorizontalEdge = distFromCenterX > (bounds.width / 2) - 15;
+            const isNearVerticalEdge = distFromCenterY > (bounds.height / 2) - 15;
+            
+            if (isNearHorizontalEdge || isNearVerticalEdge) {
+              sh.cursor = 'pointer';  // Near edge = link cursor
+            } else {
+              sh.cursor = 'move';     // Center = move cursor
+            }
+          },
+          mouseLeave: (e, shape) => {
+            (shape as go.Shape).cursor = 'move';
+          }
         },
         new go.Binding('fill', 'color'),
         new go.Binding('stroke', 'stroke'),
+        new go.Binding('strokeDashArray', 'isShared', (isShared) =>
+          isShared ? [4, 3] : null
+        ),
         new go.Binding('figure', 'shape', (shapeType) => {
           const figure = mapShapeToGoJSFigure(shapeType);
           return figure;
@@ -291,6 +344,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         new go.Binding('strokeWidth', 'strokeWidth'),
         new go.Binding('parameter1', 'parameter1')
       ),
+      
+      // 🔧 REMOVED: All separate port lines (TOP_PORT, BOTTOM_PORT, LEFT_PORT, RIGHT_PORT)
       
       // Label (centered) - UPDATED: Make editable
       $(
@@ -302,8 +357,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           stroke: '#333',
           maxLines: 2,
           overflow: go.TextBlock.OverflowEllipsis,
-          editable: true,  // ADD THIS LINE
-          textEditor: null  // Use default text editor
+          editable: true,
+          textEditor: null
         },
         new go.Binding('text', 'label').makeTwoWay()
       ),
@@ -374,8 +429,16 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     );
 
     diagram.linkTemplate = $(
+      
       go.Link,
-      { routing: go.Link.AvoidsNodes, corner: 5, selectable: true },
+      // 🔧 CHANGED: Use Orthogonal instead of AvoidsNodes (much faster)
+      {routing: go.Routing.AvoidsNodes,
+          curve: go.Curve.JumpOver,
+          corner: 5,
+          toShortLength: 4,
+          reshapable: true,
+          resegmentable: true},
+      { routing: go.Link.Orthogonal, corner: 5, selectable: true },
       $(go.Shape, { strokeWidth: 2, stroke: "#555" }),
       $(go.Shape, { toArrow: "Triangle", fill: "#555", stroke: null })
     );
@@ -387,6 +450,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           layerName: 'Background',
           selectable: true,
           movable: true,
+          cursor: 'move',
           handlesDragDropForMembers: true,
           computesBoundsAfterDrag: true,
           computesBoundsIncludingLinks: true,
@@ -394,6 +458,20 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           toLinkable: false,
           minSize: new go.Size(120, 60),
           resizable: true,
+          // 🔧 ADD: Prevent default context menu for clusters
+          contextClick: (e, obj) => {
+            const group = obj.part;
+            if (group instanceof go.Group) {
+              setSelectedData({
+                key: group.data.key,
+                label: group.data.label || '',
+                isCluster: true
+              });
+              const mouseEvent = e.event as MouseEvent;
+              setContextMenu({ x: mouseEvent.clientX, y: mouseEvent.clientY });
+            }
+            e.handled = true;  // Prevent browser context menu
+          }
         },
         // The Shape that will resize to fit the inner Panel (label + placeholder)
         $(go.Shape, 'RoundedRectangle', {
@@ -433,7 +511,14 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
 
     diagram.addDiagramListener('ChangedSelection', () => {
       const node = diagram.selection.first();
-      if (node instanceof go.Node) {
+      if (node instanceof go.Group) {
+        const data = node.data;
+        setSelectedData({
+          key: data.key,
+          label: data.label || '',
+          isCluster: true
+        });
+      } else if (node instanceof go.Node) {
         const data = node.data;
         setSelectedData({
           key: data.key,
@@ -441,6 +526,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           color: data.color || '#ffffff',
           stroke: data.stroke || '#999999',
           shape: data.shape || 'Rectangle',
+          isCluster: false
         });
       } else {
         setSelectedData(null);
@@ -449,7 +535,14 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
 
     diagram.addDiagramListener('ObjectDoubleClicked', (e) => {
       const node = e.subject.part;
-      if (node instanceof go.Node) {
+      if (node instanceof go.Group) {
+        const data = node.data;
+        setSelectedData({
+          key: data.key,
+          label: data.label || '',
+          isCluster: true
+        });
+      } else if (node instanceof go.Node) {
         const data = node.data;
         setSelectedData({
           key: data.key,
@@ -457,6 +550,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           color: data.color || '#ffffff',
           stroke: data.stroke || '#999999',
           shape: data.shape || 'Rectangle',
+          isCluster: false
         });
       }
     });
@@ -581,6 +675,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
 
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
+      e.stopPropagation();  // 🔧 ADD: Stop propagation
       return false;
     };
 

@@ -63,24 +63,47 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         overflowY: 'auto',
       }}
     >
-      {/* Cluster selected nodes */}
-      <div
-        style={{
-          padding: '8px 16px',
-          cursor: 'pointer',
-          color: '#495057',
-          fontWeight: 500,
-          display: 'flex',
-          alignItems: 'center',
-          transition: 'background-color 0.2s ease',
-        }}
-        onClick={() => onAction('cluster_group')}
-        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-      >
-        <span style={{ marginRight: 8 }}>🗂️</span>
-        Cluster Group
-      </div>
+      {/* Cluster selected nodes - only show if NOT already a cluster */}
+      {!selectedData?.isCluster && (
+        <div
+          style={{
+            padding: '8px 16px',
+            cursor: 'pointer',
+            color: '#495057',
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            transition: 'background-color 0.2s ease',
+          }}
+          onClick={() => onAction('cluster_group')}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+        >
+          <span style={{ marginRight: 8 }}>🗂️</span>
+          Cluster Group
+        </div>
+      )}
+
+      {/* Uncluster group - only show if a cluster IS selected */}
+      {selectedData?.isCluster && (
+        <div
+          style={{
+            padding: '8px 16px',
+            cursor: 'pointer',
+            color: '#495057',
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            transition: 'background-color 0.2s ease',
+          }}
+          onClick={() => onAction('uncluster_group')}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+        >
+          <span style={{ marginRight: 8 }}>🔓</span>
+          Uncluster
+        </div>
+      )}
 
       {/* Cancel Option */}
       <div
