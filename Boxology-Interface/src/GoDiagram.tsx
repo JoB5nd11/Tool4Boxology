@@ -224,8 +224,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         go.Panel,
         'Grid',
         { gridCellSize: new go.Size(20, 20) },
-        $(go.Shape, 'LineH', { stroke: '#eee' }),
-        $(go.Shape, 'LineV', { stroke: '#eee' })
+        $(go.Shape, 'LineH', { stroke: '#f5f5f5' }),
+        $(go.Shape, 'LineV', { stroke: '#f5f5f5' })
       ),
     });
 
@@ -241,8 +241,9 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     };
 
     // 🔧 ADD: Configure tools with custom cursors
-    diagram.toolManager.draggingTool.isGridSnapEnabled = false;
+    diagram.toolManager.draggingTool.isGridSnapEnabled = true;
     diagram.toolManager.draggingTool.delay = 0;
+    diagram.toolManager.resizingTool.isGridSnapEnabled = true;
     
     // 🔧 ADD: Custom cursor for linking tool
     diagram.toolManager.linkingTool.isEnabled = true;
@@ -255,7 +256,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       go.Node,
       'Spot',
       {
-        locationSpot: go.Spot.Center,
+        locationSpot: go.Spot.TopLeft,
         selectable: true,
         movable: true,
         resizable: true,
