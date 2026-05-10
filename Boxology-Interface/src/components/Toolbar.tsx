@@ -9,6 +9,7 @@ import AlignVerticalTopIcon from '@mui/icons-material/AlignVerticalTop';
 import AlignHorizontalCenterIcon from '@mui/icons-material/AlignHorizontalCenter';
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import ViewStreamIcon from '@mui/icons-material/ViewStream';
+import Grid3x3Icon from '@mui/icons-material/Grid3x3';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 // Define ToolbarProps type
@@ -126,6 +127,28 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const iconButtonHoverStyle = {
     backgroundColor: '#f0f0f0',
     borderColor: '#999',
+  };
+
+  // Grid Snap functions
+  const toggleGridLock = () => {
+    if (!diagram) return;
+
+    const isEnabled = diagram.toolManager.draggingTool.isGridSnapEnabled;
+    diagram.toolManager.draggingTool.isGridSnapEnabled = !isEnabled;
+    diagram.toolManager.resizingTool.isGridSnapEnabled = !isEnabled;
+
+    const toggleBtn = document.getElementById('gridToggle');
+    if (toggleBtn) {
+      if (isEnabled) {
+        toggleBtn.style.backgroundColor = '#fff';
+        toggleBtn.style.borderColor = '#555';
+        toggleBtn.style.color = '#555';
+      } else {
+        toggleBtn.style.backgroundColor = '#e3f2fd';
+        toggleBtn.style.borderColor = '#1976d2';
+        toggleBtn.style.color = '#1976d2';
+      }
+    }
   };
 
   // Alignment functions
@@ -515,6 +538,9 @@ LIMIT 100`;
 
       {/* Separator */}
       <div style={{ width: '1px', height: '20px', backgroundColor: '#ccc', margin: '0 4px' }} />
+      
+      {/* Grid Snap */}
+      <button id="gridToggle" onClick={() => toggleGridLock()} style={{ ...iconButtonStyle, backgroundColor: '#e3f2fd', borderColor: '#1976d2', color: '#1976d2' }} title="Toggle Grid"><Grid3x3Icon fontSize="small" /></button>
 
       {/* Collapsible Alignment & Organization Section */}
       <button
