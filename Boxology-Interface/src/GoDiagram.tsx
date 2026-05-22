@@ -284,7 +284,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
 }
 
 function showSmallPorts(node: any, show: any) {
-  node.ports.each((port: go.GraphObject) => {
+  node.ports.each((port: go.Shape) => {
     if (port.portId !== '') {
       port.fill = show ? 'rgba(0,0,0,.3)' : null;
     }
