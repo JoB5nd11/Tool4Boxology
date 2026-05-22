@@ -267,31 +267,29 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       stroke: 'tomato'
     });
 
-    function makePort(name, spot, output, input) {
-      // the port is basically just a small transparent circle
-      return new go.Shape('Circle', {
-        fill: null, // not seen, by default; set to a translucent gray by showSmallPorts, defined below
-        stroke: null,
-        desiredSize: new go.Size(7, 7),
-        alignment: spot, // align the port on the main Shape
-        alignmentFocus: spot, // just inside the Shape
-        portId: name, // declare this object to be a "port"
-        fromSpot: spot,
-        toSpot: spot, // declare where links may connect at this port
-        fromLinkable: output,
-        toLinkable: input, // declare whether the user may draw links to/from here
-        cursor: 'pointer' // show a different cursor to indicate potential link point
-      });
-    }
+ function makePort(name: string, spot: go.Spot, output: boolean, input: boolean) {
+  return new go.Shape('Circle', {
+    fill: null,
+    stroke: null,
+    desiredSize: new go.Size(7, 7),
+    alignment: spot,
+    alignmentFocus: spot,
+    portId: name,
+    fromSpot: spot,
+    toSpot: spot,
+    fromLinkable: output,
+    toLinkable: input,
+    cursor: 'pointer'
+  });
+}
 
-    function showSmallPorts(node: any, show: any) {
-      node.ports.each(port => {
-        if (port.portId !== '') {
-          // don't change the default port, which is the big shape
-          port.fill = show ? 'rgba(0,0,0,.3)' : null;
-        }
-      });
+function showSmallPorts(node: any, show: any) {
+  node.ports.each((port: go.GraphObject) => {
+    if (port.portId !== '') {
+      port.fill = show ? 'rgba(0,0,0,.3)' : null;
     }
+  });
+}
 
     // UPDATED: Node template - shape as port with cursor differentiation
     diagram.nodeTemplate = $(
