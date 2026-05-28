@@ -10,6 +10,7 @@ import AlignHorizontalCenterIcon from '@mui/icons-material/AlignHorizontalCenter
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import ViewStreamIcon from '@mui/icons-material/ViewStream';
 import Grid3x3Icon from '@mui/icons-material/Grid3x3';
+import PreviewIcon from '@mui/icons-material/Preview';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 // Define ToolbarProps type
@@ -29,6 +30,7 @@ type ToolbarProps = {
   onExportJSON: () => void;
   //onExportDrawio: () => void;
   onExportDOT: () => void;
+  onExportSVG: () => void;
   onOpenGraphviz: () => void;
   onCreateKG?: () => void;
   onUploadKG?: (files: FileList) => void;
@@ -50,6 +52,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onExportJSON,
   //onExportDrawio,
   onExportDOT,
+  onExportSVG,
   onOpenGraphviz,
   onCreateKG,
   onUploadKG
@@ -149,6 +152,18 @@ const Toolbar: React.FC<ToolbarProps> = ({
         toggleBtn.style.color = '#1976d2';
       }
     }
+  };
+
+  // Hide Type Selector
+  const toggleTypeBadges = () => {
+    if (!diagram) return;
+
+    diagram.startTransaction('toggleTypeBadges');
+    diagram.nodes.each(node => {
+      const badge = node.findObject('TYPE_BADGE');
+      if (badge) badge.visible = !badge.visible;
+    });
+    diagram.commitTransaction('toggleTypeBadges');
   };
 
   // Alignment functions
@@ -458,6 +473,18 @@ LIMIT 100`;
             >
               🗂️ PNG
             </button>
+
+            <button
+              onClick={() => {
+                onExportSVG();
+                setShowExportMenu(false);
+              }}
+              style={exportItemStyle}
+              onMouseOver={hoverOn}
+              onMouseOut={hoverOff}
+            >
+              🖊️ SVG
+            </button>
             
             <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
           </div>
@@ -541,6 +568,7 @@ LIMIT 100`;
       
       {/* Grid Snap */}
       <button id="gridToggle" onClick={() => toggleGridLock()} style={{ ...iconButtonStyle, backgroundColor: '#e3f2fd', borderColor: '#1976d2', color: '#1976d2' }} title="Toggle Grid"><Grid3x3Icon fontSize="small" /></button>
+      <button id="typeToggle" onClick={() => toggleTypeBadges()} style={{ ...iconButtonStyle, backgroundColor: '#e3f2fd', borderColor: '#1976d2', color: '#1976d2' }} title="Toggle Type"><PreviewIcon fontSize="small" /></button>
 
       {/* Collapsible Alignment & Organization Section */}
       <button

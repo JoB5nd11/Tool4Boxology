@@ -465,17 +465,17 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
   };
 };
 
-  const handleExport = async (kind: 'png' | 'jpg' | 'json' | 'dot') => {
+  const handleExport = async (kind: 'png' | 'jpg' | 'json' | 'dot' | 'svg') => {
     // Validate clustering before export
     const validation = validateNodeClustering();
-    if (!validation.valid) {
-      alert(
-        'Cannot export: All nodes must belong to exactly one cluster.\n\n' +
-        'Issues found:\n' +
-        validation.errors.join('\n')
-      );
-      return;
-    }
+    // if (!validation.valid) {
+    //   alert(
+    //     'Cannot export: All nodes must belong to exactly one cluster.\n\n' +
+    //     'Issues found:\n' +
+    //     validation.errors.join('\n')
+    //   );
+    //   return;
+    // }
 
     if (!diagramRef.current) {
       alert('No diagram to export');
@@ -547,6 +547,23 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         const dot = modelToDOT(data, { graphLabel: 'Boxology' });
         const blob = new Blob([dot], { type: 'text/vnd.graphviz;charset=utf-8' });
         await saveOrDownload(blob, `diagram_${timestamp}.dot`, 'text/vnd.graphviz');
+        break;
+      }
+
+      case 'svg': {
+        const svgDocument = diagram.makeSvg({
+          scale: 1,
+          background: 'transparent',
+          padding: new go.Margin(20), 
+        });
+
+        if (!svgDocument) { alert('SVG export failed'); return; }
+
+        const serializer = new XMLSerializer();
+        const svgString = serializer.serializeToString(svgDocument);
+
+        const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        await saveOrDownload(blob, `diagram_${timestamp}.svg`, 'image/svg+xml');
         break;
       }
     }
@@ -1142,6 +1159,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         onExportJPG={() => handleExport('jpg')}
         onExportJSON={() => handleExport('json')}
         onExportDOT={() => handleExport('dot')}
+        onExportSVG={() => handleExport('svg')}
 
         onOpenGraphviz={() => {
           const dot = (() => {
