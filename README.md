@@ -276,7 +276,6 @@ Johannes E. Bendler, Yashrajsinh Chudasama, Mahsa Forghani, Enrique Iglesias, Di
 *ESWC 2026* — Springer-Verlag, pp. 191–211.  
 🔗 [https://doi.org/10.1007/978-3-032-25159-6_11](https://doi.org/10.1007/978-3-032-25159-6_11)
 
-<details>
 <summary>BibTeX</summary>
 
 ```bibtex
@@ -289,11 +288,7 @@ Johannes E. Bendler, Yashrajsinh Chudasama, Mahsa Forghani, Enrique Iglesias, Di
   address   = {Berlin, Heidelberg},
   pages     = {191--211},
   doi       = {10.1007/978-3-032-25159-6_11}
-}
-` ` `
-
-</details>
-```
+}` ` `
 
 ---
 # 📜 License
