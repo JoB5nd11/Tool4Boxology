@@ -292,7 +292,7 @@ Johannes E. Bendler, Yashrajsinh Chudasama, Mahsa Forghani, Enrique Iglesias, Di
 }
 ` ` `
 </details>
-
+```
 ---
 # 📜 License
 -CC BY 4.0 — diagrams, documentation, educational assets
