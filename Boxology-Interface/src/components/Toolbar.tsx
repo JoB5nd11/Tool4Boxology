@@ -32,6 +32,8 @@ type ToolbarProps = {
   onOpenGraphviz: () => void;
   onCreateKG?: () => void;
   onUploadKG?: (files: FileList) => void;
+  beamViewActive: boolean;
+  onBeamViewToggle: (active: boolean) => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -52,7 +54,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onExportDOT,
   onOpenGraphviz,
   onCreateKG,
-  onUploadKG
+  onUploadKG,
+  beamViewActive,
+  onBeamViewToggle
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
   const [showHelpMenu, setShowHelpMenu] = React.useState(false);  // <-- added
@@ -534,7 +538,21 @@ LIMIT 100`;
       >
         🔍 SPARQL
       </button>
-      
+
+      {/* BEAM View Toggle */}
+      <button
+        onClick={() => onBeamViewToggle(!beamViewActive)}
+        style={{
+          ...simpleButtonStyle,
+          backgroundColor: beamViewActive ? '#89dceb' : '#f8f8f8',
+          color: beamViewActive ? '#1e1e2e' : '#333',
+          fontWeight: beamViewActive ? 'bold' : 'normal',
+          borderColor: beamViewActive ? '#89dceb' : '#110969ff',
+        }}
+        title="Toggle BEAM notation view — re-skins nodes to BEAM visual style"
+      >
+        ⬡ BEAM View
+      </button>
 
       {/* Separator */}
       <div style={{ width: '1px', height: '20px', backgroundColor: '#ccc', margin: '0 4px' }} />
