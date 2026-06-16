@@ -27,6 +27,7 @@ function App() {
   const [selectedData, setSelectedData] = useState<any>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [customGroups, setCustomGroups] = useState<{ [key: string]: any[] }>({});
+  const [beamViewActive, setBeamViewActive] = useState(false);
 
   // Page management for GoJS diagrams
     type PageData = {
@@ -1154,6 +1155,8 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         }}
         onCreateKG={handleCreateKG}
         onUploadKG={handleUploadKG}
+        beamViewActive={beamViewActive}
+        onBeamViewToggle={setBeamViewActive}
       />
 
       {/* Tab Bar */}
@@ -1314,6 +1317,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             setContextMenu={setContextMenu}
             containers={containers}
             customGroups={customGroups}
+            beamViewActive={beamViewActive}
           />
           <ContextMenu 
             contextMenu={contextMenu}
