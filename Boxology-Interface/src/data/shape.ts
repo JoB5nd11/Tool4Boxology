@@ -24,6 +24,17 @@ export const shapes: ShapeDefinition[] = [
 
   // Documentation
   { name: 'comment', label: 'id-comment', shape: 'Rectangle', color: '#F5F5DC', stroke: '#A9A9A9', group: 'Documentation' },
+
+  // BEAM Concepts — visual notation from the BEAM ontology
+  { name: 'Data',             label: 'Data',              shape: 'Rectangle',        color: '#90ee90', stroke: '#2d7a2d', group: 'BEAM Concepts' },
+  { name: 'Symbol',           label: 'Symbol',            shape: 'Rectangle',        color: '#d0d0d0', stroke: '#808080', group: 'BEAM Concepts' },
+  { name: 'StatisticalModel', label: 'Statistical Model', shape: 'Hexagon',          color: '#add8e6', stroke: '#1c6ea4', group: 'BEAM Concepts' },
+  { name: 'SemanticModel',    label: 'Semantic Model',    shape: 'Hexagon',          color: '#00ced1', stroke: '#008b8b', group: 'BEAM Concepts' },
+  { name: 'Train',            label: 'Training',          shape: 'RoundedRectangle', borderRadius: '45px', color: '#dda0dd', stroke: '#8b008b', group: 'BEAM Concepts' },
+  { name: 'Engineer',         label: 'Engineering',       shape: 'RoundedRectangle', borderRadius: '45px', color: '#ffb6c1', stroke: '#c1307a', group: 'BEAM Concepts' },
+  { name: 'Infer',            label: 'Inference',         shape: 'RoundedRectangle', borderRadius: '45px', color: '#fffacd', stroke: '#b8860b', group: 'BEAM Concepts' },
+  { name: 'Transform',        label: 'Transformation',    shape: 'RoundedRectangle', borderRadius: '45px', color: '#ffb6c1', stroke: '#cd5c5c', group: 'BEAM Concepts' },
+  { name: 'Actor',            label: 'Actor',             shape: 'Triangle',          color: '#ffd700', stroke: '#b8860b', group: 'BEAM Concepts' },
 ];
 
 // ADD: Type definitions for each shape

@@ -21,10 +21,11 @@ function groupShapesByCategory(shapes: ShapeDefinition[]): ShapeGroupMap {
 // Define category order and icons for existing shapes
 const categoryOrder = [
   'Data & Information',
-  'Actors & Entities', 
+  'Actors & Entities',
   'AI & Models',
   'Processes & Actions',
-  //'Documentation'
+  //'Documentation',
+  'BEAM Concepts',
 ];
 
 
