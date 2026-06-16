@@ -3,6 +3,7 @@ import * as go from 'gojs';
 import { setupDiagramValidation, validateGoJSDiagram } from './plugin/GoJSBoxologyValidation';
 import { mapShapeToGoJSFigure } from './utils/shapeMapping';
 import { shapeTypesTree , shapes } from './data/shape';
+import { beamStyleMap } from './data/beamStyles';
 
 interface ContextMenuPosition {
   x: number;
@@ -16,6 +17,7 @@ interface GoDiagramProps {
   setContextMenu: Dispatch<SetStateAction<ContextMenuPosition | null>>;
   containers: string[];
   customGroups: Record<string, any[]>;
+  beamViewActive: boolean;
 }
 
 // Helper: Recursively build menu
@@ -152,6 +154,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
   setContextMenu,
   containers,
   customGroups,
+  beamViewActive,
 }) => {
   const diagramDivRef = useRef<HTMLDivElement>(null);
 
@@ -777,6 +780,30 @@ function showSmallPorts(node: any, show: any) {
       validateGoJSDiagram(diagram);
     }
   };
+
+  // BEAM view re-skin effect
+  useEffect(() => {
+    const diagram = diagramRef.current;
+    if (!diagram) return;
+    diagram.model.commit((m: go.Model) => {
+      (m.nodeDataArray as any[]).forEach((nodeData) => {
+        if (beamViewActive) {
+          const style = beamStyleMap[nodeData.type as string] ?? beamStyleMap[nodeData.name as string];
+          if (!style) return;
+          m.setDataProperty(nodeData, '_t4bStyle', { color: nodeData.color, stroke: nodeData.stroke, shape: nodeData.shape });
+          m.setDataProperty(nodeData, 'color', style.color);
+          m.setDataProperty(nodeData, 'stroke', style.stroke);
+          m.setDataProperty(nodeData, 'shape', style.shape);
+        } else {
+          if (!nodeData._t4bStyle) return;
+          m.setDataProperty(nodeData, 'color', (nodeData._t4bStyle as any).color);
+          m.setDataProperty(nodeData, 'stroke', (nodeData._t4bStyle as any).stroke);
+          m.setDataProperty(nodeData, 'shape', (nodeData._t4bStyle as any).shape);
+          m.setDataProperty(nodeData, '_t4bStyle', undefined);
+        }
+      });
+    }, beamViewActive ? 'apply beam view' : 'restore t4b view');
+  }, [beamViewActive]);
 
   // ADD: Handle custom group drops
   useEffect(() => {
