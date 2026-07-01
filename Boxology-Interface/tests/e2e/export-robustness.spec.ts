@@ -122,7 +122,7 @@ test.describe('DOT export robustness', () => {
     expect(alertMessage).not.toContain('TypeError');
   });
 
-  test('DOT export with GraphRAG example: clustering validation blocks it', async ({ page }) => {
+  test('DOT export with GraphRAG example: no longer blocked by clustering validation', async ({ page }) => {
     await loadGraphRAGExample(page);
 
     let alertMessage = '';
@@ -131,13 +131,18 @@ test.describe('DOT export robustness', () => {
       await dialog.dismiss();
     });
 
+    const downloadPromise = page.waitForEvent('download', { timeout: 10000 }).catch(() => null);
+
     await openExportMenu(page);
     const dotBtn = page.getByRole('button', { name: /DOT/i }).first();
     await dotBtn.click();
     await page.waitForTimeout(1000);
 
-    // GraphRAG has unclustered workflow nodes → validation fires
-    expect(alertMessage).toContain('cluster');
+    // GraphRAG has unclustered workflow nodes — clustering validation gate was removed,
+    // so export should proceed without a clustering alert.
+    const download = await downloadPromise;
+    expect(alertMessage).not.toContain('cluster');
+    expect(download).not.toBeNull();
   });
 
   test('DOT export with clustered workflow nodes + beamCard annotations should NOT be blocked', async ({ page }) => {
@@ -346,5 +351,29 @@ test.describe('JSON export robustness', () => {
 
     expect(alertMessage).not.toContain('cluster');
     expect(download).not.toBeNull();
+  });
+});
+
+// ─── CREATE KG ROBUSTNESS ──────────────────────────────────────────────────
+
+test.describe('Create KG — no cluster required', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.waitForSelector('canvas', { timeout: 15000 });
+    await dismissModal(page);
+  });
+
+  test('Create KG does not block on unclustered nodes', async ({ page }) => {
+    await loadGraphRAGExample(page);
+
+    await page.route('**/api/kg', async (route: any) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'ok', mode: 'test', triples_len: 10 }) });
+    });
+
+    const createKgBtn = page.getByRole('button', { name: /Create KG/i });
+    await createKgBtn.click();
+    await page.waitForTimeout(1000);
+
+    await expect(page.getByText(/does not belong to any cluster/i)).toHaveCount(0);
   });
 });

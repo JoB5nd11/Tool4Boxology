@@ -414,74 +414,7 @@ if (model && model.nodeDataArray) {
     input.click();
   };
 
-// Add validation function to check if all nodes belong to exactly one cluster
-const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
-  if (!diagramRef.current) return { valid: false, errors: ['No diagram available'] };
-  
-  const diagram = diagramRef.current;
-  const model = diagram.model as go.GraphLinksModel;
-  const nodes = model.nodeDataArray;
-  
-  const errors: string[] = [];
-  
-  // Get all group nodes (clusters)
-  const groups = nodes.filter((n: any) => n.isGroup);
-  
-  // Check each non-group node
-  for (const node of nodes) {
-    if (node.isGroup) continue; // Skip cluster nodes themselves
-    if (node.category === 'beamCard') continue; // Annotation/risk nodes are standalone
-    
-    const isShared = node.isShared && node.sharedGroups && node.sharedGroups.length > 0;
-    
-    // Check if node has a group assignment OR is shared
-    if (!node.group && !isShared) {
-      const nodeLabel = node.label || node.text || node.name || node.key;
-      errors.push(`Node "${nodeLabel}" does not belong to any cluster.`);
-      continue;
-    }
-    
-    // If node has regular group, verify it exists
-    if (node.group) {
-      const groupExists = groups.some((g: any) => g.key === node.group);
-      if (!groupExists) {
-        const nodeLabel = node.label || node.text || node.name || node.key;
-        errors.push(`Node "${nodeLabel}" belongs to a non-existent cluster.`);
-      }
-    }
-    
-    // If node is shared, verify all sharedGroups exist
-    if (isShared) {
-      for (const sharedGroupKey of node.sharedGroups) {
-        const groupExists = groups.some((g: any) => g.key === sharedGroupKey);
-        if (!groupExists) {
-          const nodeLabel = node.label || node.text || node.name || node.key;
-          errors.push(`Node "${nodeLabel}" references non-existent cluster: ${sharedGroupKey}`);
-        }
-      }
-    }
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors
-  };
-};
-
   const handleExport = async (kind: 'png' | 'jpg' | 'json' | 'dot' | 'beam') => {
-    // Validate clustering before export (skip for image and BEAM exports)
-    if (kind !== 'png' && kind !== 'jpg' && kind !== 'beam') {
-      const validation = validateNodeClustering();
-      if (!validation.valid) {
-        alert(
-          'Cannot export: All nodes must belong to exactly one cluster.\n\n' +
-          'Issues found:\n' +
-          validation.errors.join('\n')
-        );
-        return;
-      }
-    }
-
     if (!diagramRef.current) {
       alert('No diagram to export');
       return;
@@ -1079,13 +1012,6 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
   const [loadingMessage, setLoadingMessage] = useState<string>(''); // Add this state
 
   const handleCreateKG = async () => {
-    const validation = validateNodeClustering();
-    if (!validation.valid) {
-      setLoadingMessage(`Validation failed:\n\n${validation.errors.join('\n')}`);
-      setIsCreatingKG(true);
-      setTimeout(() => setIsCreatingKG(false), 2500);
-      return;
-    }
     if (!diagramRef.current) {
       setLoadingMessage('Diagram not ready.');
       setIsCreatingKG(true);
