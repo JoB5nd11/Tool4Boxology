@@ -4,6 +4,7 @@ import { setupDiagramValidation, validateGoJSDiagram } from './plugin/GoJSBoxolo
 import { mapShapeToGoJSFigure } from './utils/shapeMapping';
 import { shapeTypesTree , shapes } from './data/shape';
 import { beamStyleMap } from './data/beamStyles';
+import { inferLinkCategory } from './utils/linkCategory';
 
 interface ContextMenuPosition {
   x: number;
@@ -764,6 +765,26 @@ function showSmallPorts(node: any, show: any) {
           diagram.model.setDataProperty(nodeData, 'text', displayLabel);
         }
       });
+    });
+
+    diagram.addDiagramListener('LinkDrawn', (e) => {
+      const link = e.subject;
+      if (!(link instanceof go.Link)) return;
+      const fromData = link.fromNode?.data;
+      const toData = link.toNode?.data;
+      const category = inferLinkCategory(fromData, toData);
+      if (category) {
+        (diagram.model as go.GraphLinksModel).setCategoryForLinkData(link.data, category);
+      }
+    });
+
+    diagram.addDiagramListener('LinkRelinked', (e) => {
+      const link = e.subject;
+      if (!(link instanceof go.Link)) return;
+      const fromData = link.fromNode?.data;
+      const toData = link.toNode?.data;
+      const category = inferLinkCategory(fromData, toData);
+      (diagram.model as go.GraphLinksModel).setCategoryForLinkData(link.data, category ?? '');
     });
 
     const handleDragOver = (e: DragEvent) => {
