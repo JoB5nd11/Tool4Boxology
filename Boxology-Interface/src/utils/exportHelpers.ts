@@ -234,6 +234,7 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
       DesignPattern: patterns,
       annotations,
       annotationLinks,
+      nodeDataArray: nodeDataArray.filter((n: any) => !n.isGroup && n.category !== 'beamCard'),
     };
   });
 
