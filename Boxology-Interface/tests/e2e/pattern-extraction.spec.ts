@@ -77,4 +77,21 @@ test.describe('buildDesignPatternsFromModelData — topology-based extraction', 
     expect(patterns.length).toBe(1);
     expect(patterns[0].id).toBe('y');
   });
+
+  test('annotation-linked beamCard does not leak into process input/output (regression for annotation-bleed bug)', () => {
+    const nodeDataArray = [
+      { key: 'p', name: 'Train', type: 'Train', label: 'P' },
+      { key: 'a', name: 'Data', type: 'Data', label: 'A' },
+      { key: 'r', name: 'Risk', category: 'beamCard', label: 'R' },
+    ];
+    const linkDataArray = [
+      { from: 'a', to: 'p' },
+      { from: 'r', to: 'p', category: 'annotation' },
+    ];
+
+    const patterns = buildDesignPatternsFromModelData(nodeDataArray, linkDataArray);
+
+    expect(patterns.length).toBe(1);
+    expect(patterns[0].input).toEqual([{ id: 'a', name: 'Data', label: 'A' }]);
+  });
 });

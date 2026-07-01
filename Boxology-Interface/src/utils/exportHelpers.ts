@@ -41,10 +41,12 @@ export function buildDesignPatternsFromModelData(
       .map((g: any) => [String(g.key), g])
   );
 
-  const links = (linkDataArray ?? []).map((l: any) => ({
-    from: String(l.from),
-    to: String(l.to),
-  }));
+  const links = (linkDataArray ?? [])
+    .filter((l: any) => l.category !== 'annotation')
+    .map((l: any) => ({
+      from: String(l.from),
+      to: String(l.to),
+    }));
 
   // Count process nodes per cluster so a cluster's id/label is only reused
   // when it unambiguously identifies a single pattern (avoids id collisions
