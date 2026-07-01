@@ -848,18 +848,8 @@ if (model && model.nodeDataArray) {
   }, [leftCollapsed, rightCollapsed]);
 
   const processNodeNames = [
-    "Train", "Engineer", "Deduce", "Induce", "Transform", "Embed"
+    "Train", "Engineer", "Deduce", "Induce", "Transform", "Embed", "Infer"
   ];
-
-  // Validate process nodes in a selection
-  function hasMultipleProcessNodes(selectedNodes: go.Node[]) {
-    const processNodes = selectedNodes.filter(
-      n =>
-        processNodeNames.includes(n.data.name) ||
-        processNodeNames.includes(n.data.type)
-    );
-    return processNodes.length > 1;
-  }
 
   // Detect which nodes should be shared based on cluster connectivity
   const detectAndUpdateSharedNodes = () => {
@@ -928,20 +918,14 @@ if (model && model.nodeDataArray) {
     }
     const diagram = diagramRef.current;
 
-    // Collect selected non-group nodes
+    // Collect selected nodes AND existing clusters (for nesting)
     const selectedNodes: go.Node[] = [];
     diagram.selection.each(part => {
-      if (part instanceof go.Node && !part.data.isGroup) selectedNodes.push(part);
+      if (part instanceof go.Node) selectedNodes.push(part);
     });
 
     if (selectedNodes.length === 0) {
       alert('Select one or more nodes to cluster.');
-      return;
-    }
-
-    // 🚨 ADD VALIDATION HERE
-    if (hasMultipleProcessNodes(selectedNodes)) {
-      alert('❌ Error: A cluster cannot contain more than one process node.');
       return;
     }
 
