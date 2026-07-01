@@ -1,0 +1,104 @@
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dct:  <http://purl.org/dc/terms/> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix t4b:  <http://tool4boxology.org/> .
+@prefix align: <http://tool4boxology.org/beam-alignment#> .
+
+#################################################################
+#  BEAM <-> T4B Alignment (bridge ontology)
+#
+#  Connects the Tool4Boxology working vocabulary (T4B) to the
+#  higher-level Boxology's Extended Annotation Model (BEAM).
+#
+#  Design: T4B is treated as a SPECIALIZED PROFILE of BEAM.
+#  Direction is one-way (T4B -> BEAM): every T4B thing is also a
+#  BEAM thing, never the reverse. A reasoner does the rest.
+#
+#  This file modifies NEITHER original ontology. It only adds links.
+#  See: BEAM-T4B-Alignment-Docs/ for the full rationale (D1-D5).
+#
+#  IMPORTANT - real namespace:
+#  T4B classes live at  http://tool4boxology.org/  (e.g. .../Model),
+#  NOT at .../Tool4BoxologyOntology# . This bridge targets the real IRIs,
+#  confirmed in Tool4BoxologyOntology.ttl and kg_creation/mapping.ttl.
+#################################################################
+
+<http://tool4boxology.org/beam-alignment> a owl:Ontology ;
+    dct:title "BEAM <-> T4B Alignment"@en ;
+    dct:description """Bridge ontology aligning the Tool4Boxology (T4B) vocabulary
+        with the BEAM core ontology. T4B is modelled as a specialized profile of
+        BEAM via rdfs:subClassOf, one owl:equivalentClass anchor, and two
+        rdfs:subPropertyOf links that reconstruct BEAM's use/produce flow."""@en ;
+    dct:license <https://creativecommons.org/licenses/by/4.0> ;
+    owl:versionInfo "1.0.0 (2026-05-30)" ;
+    owl:imports <http://w3id.org/beam/core#> ,
+                <http://tool4boxology.org/Tool4BoxologyOntology> .
+
+#################################################################
+#  D2 - Anchor: a Boxology diagram IS a BEAM System (two-directional)
+#################################################################
+
+t4b:Boxology  owl:equivalentClass  beam:System .
+
+#################################################################
+#  D3 - Map the leaf types; deliberately skip t4b:Artifact.
+#
+#  t4b:Artifact is a catch-all root (it even contains Process and
+#  Actor), so it must NOT be equated with the narrower beam:Resource.
+#  We map the meaningful leaves instead.
+#
+#  Note on precision: Process/Model alone would only make a t4b:Train
+#  a beam:Process. We add the specific sub-mappings (Train, Generate,
+#  ...) so the reasoner infers the PRECISE BEAM subtype (beam:Train),
+#  not just the parent. The ~40 specialized T4B types (CNN, LSTM,
+#  OWLOntology, KG, Image, Dataset, ...) need no mapping - they
+#  inherit through these anchors automatically.
+#################################################################
+
+# --- Resources: instances ---
+t4b:Data    rdfs:subClassOf  beam:Data .
+t4b:Symbol  rdfs:subClassOf  beam:Symbol .
+
+# --- Resources: models ---
+t4b:Model            rdfs:subClassOf  beam:Model .
+t4b:SemanticModel    rdfs:subClassOf  beam:SemanticModel .
+t4b:StatisticalModel rdfs:subClassOf  beam:StatisticalModel .
+
+# --- Processes ---
+t4b:Process    rdfs:subClassOf  beam:Process .
+t4b:Generate   rdfs:subClassOf  beam:Generate .
+t4b:Train      rdfs:subClassOf  beam:Train .
+t4b:Engineer   rdfs:subClassOf  beam:Engineer .
+t4b:Transform  rdfs:subClassOf  beam:Transform .
+t4b:Infer      rdfs:subClassOf  beam:Infer .
+
+# --- Agents ---
+t4b:Actor  rdfs:subClassOf  beam:Agent .
+
+#################################################################
+#  D4 - Bridge the DesignPattern gap at the PROPERTY level.
+#
+#  T4B wraps each operation in a DesignPattern box; BEAM links a
+#  Process directly to the resources it uses/produces. The pipeline
+#  already emits two "shortcut" role links that bypass the box and
+#  line up exactly with BEAM. Two subPropertyOf axioms reconstruct
+#  BEAM's entire use/produce flow by entailment - no transform code.
+#
+#    input  --inputRoleParticipatesInProcess-->  process   (resource used by process)
+#    process --outputRoleParticipatesInProcess--> output    (process produces resource)
+#################################################################
+
+t4b:inputRoleParticipatesInProcess   rdfs:subPropertyOf  beam:usedBy .
+t4b:outputRoleParticipatesInProcess  rdfs:subPropertyOf  beam:produce .
+
+#################################################################
+#  Bridge summary: 12 rdfs:subClassOf + 1 owl:equivalentClass
+#                  + 2 rdfs:subPropertyOf = 15 axioms.
+#
+#  NOT included (deferred - see docs "What is NOT decided yet"):
+#   - fixing the t4b:Process subClassOf t4b:Artifact quirk
+#   - property chain  hasPattern o hasProcess -> beam:contain / beam:hasProcess
+#   - any tool/pipeline/UI work (BEAM export button, SHACL, etc.)
+#################################################################

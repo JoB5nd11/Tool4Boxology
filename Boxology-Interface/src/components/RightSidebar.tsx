@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import * as go from 'gojs';
 import ExCls from '../Examples/Pain-Cls-Example.json';
 import ExSeg from '../Examples/MRI-seg-Example.json';
+import { graphragExampleData } from '../data/graphragExample';
 import InstructionDialog from './InstructionDialog';  
 import WorkflowImg from '../assets/WorkFlow.png';
 
@@ -239,9 +240,16 @@ WHERE {
           <button onClick={openVideoLink} style={getButtonStyle()}>Tutorial Video</button>
         </div>
         <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px',color: '#1b1b1bff' }}>Boxology example</strong>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
           <button onClick={() => loadExample(ExCls)} style={getButtonStyle()}>Pain Classification</button>
           <button onClick={() => loadExample(ExSeg)} style={getButtonStyle()}>MRI Segmentation</button>
+          <button
+            onClick={() => loadExample({ ...graphragExampleData, modelData: { boxologyLabel: 'GraphRAG Example' } })}
+            style={getButtonStyle()}
+            title="Load Graph-RAG Chatbot BEAM notation example (Figure 3 from the BEAM paper)"
+          >
+            GraphRAG (BEAM)
+          </button>
         </div>
         <strong style={{ display: 'block', marginBottom: 6, fontWeight: '600', fontSize: '14px',color: '#1b1b1bff' }}>Query example</strong>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

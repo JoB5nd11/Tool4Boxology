@@ -18,7 +18,9 @@ export function mapShapeToGoJSFigure(shapeType: string): string {
     case 'TriangleDown':
       return 'TriangleDown';
     case 'Hexagon':
-      return 'CustomHexagon'; // Use the built-in GoJS Hexagon figure
+      return 'CustomHexagon';
+    case 'Note':
+      return 'NoteShape'; // Custom document/note shape with folded corner
     default:
       console.warn(`Unknown shape type: ${shapeType}, falling back to Rectangle`);
       return 'Rectangle';

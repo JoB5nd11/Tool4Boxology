@@ -36,9 +36,9 @@
                                                     "Maria-Esther Vidal" ;
                                      dc:creator "Yashrajsinh Chudasama"@en ,
                                                       "Tool4Boxology" ;
-                                     dc:description "This ontology extends the ontology of EASY-AI to 
-                                                             represent the boxology of design patterns over 
-                                                             neuro-symbolic AI systems on knowledge graphs"@en ;
+                                     dc:description """This ontology extends the ontology of EASY-AI to
+                                                             represent the boxology of design patterns over
+                                                             neuro-symbolic AI systems on knowledge graphs"""@en ;
                                      dc:title "Tool4Boxology Ontology"@en ;
                                      terms:created "" ;
                                      terms:language "en" ;

@@ -226,10 +226,37 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
     const label = page.name || page.boxologyLabel || `Diagram ${idx + 1}`;
     page.boxologyLabel = label;
 
+    const annotations = nodeDataArray
+      .filter((n: any) => n.category === 'beamCard')
+      .map((n: any) => ({
+        key: String(n.key),
+        name: n.name ?? n.type ?? '',
+        label: n.label ?? n.text ?? '',
+        subtext: n.subtext ?? '',
+      }));
+
+    const annotationKeys = new Set(annotations.map((a: any) => a.key));
+    const annotationLinks = (linkDataArray ?? [])
+      .filter((l: any) => l.category === 'annotation')
+      .map((l: any) => {
+        const fromNode = nodeDataArray.find((n: any) => String(n.key) === String(l.from));
+        const toNode = nodeDataArray.find((n: any) => String(n.key) === String(l.to));
+        return {
+          from: String(l.from),
+          to: String(l.to),
+          fromType: fromNode?.name ?? fromNode?.type ?? '',
+          toType: toNode?.name ?? toNode?.type ?? '',
+          fromIsAnnotation: annotationKeys.has(String(l.from)),
+          toIsAnnotation: annotationKeys.has(String(l.to)),
+        };
+      });
+
     return {
-      id,  
-      label,   
-      DesignPattern: patterns
+      id,
+      label,
+      DesignPattern: patterns,
+      annotations,
+      annotationLinks,
     };
   });
 

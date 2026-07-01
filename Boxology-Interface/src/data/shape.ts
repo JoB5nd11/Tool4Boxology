@@ -35,6 +35,18 @@ export const shapes: ShapeDefinition[] = [
   { name: 'Infer',            label: 'Inference',         shape: 'RoundedRectangle', borderRadius: '45px', color: '#fffacd', stroke: '#b8860b', group: 'BEAM Concepts' },
   { name: 'Transform',        label: 'Transformation',    shape: 'RoundedRectangle', borderRadius: '45px', color: '#ffb6c1', stroke: '#cd5c5c', group: 'BEAM Concepts' },
   { name: 'Actor',            label: 'Actor',             shape: 'Triangle',          color: '#ffd700', stroke: '#b8860b', group: 'BEAM Concepts' },
+
+  // BEAM Annotation elements — Table 2 of BEAM paper (two-section card layout)
+  { name: 'System',      label: 'System',      shape: 'Rectangle', color: '#e8f5e9', stroke: '#388e3c', group: 'BEAM Annotation', category: 'beamCard' },
+  { name: 'Context',     label: 'Context',     shape: 'Rectangle', color: '#f5f5f5', stroke: '#757575', group: 'BEAM Annotation', category: 'beamCard' },
+  { name: 'Note',        label: 'Note',        shape: 'Note',      color: '#fffde7', stroke: '#9e9e9e', group: 'BEAM Annotation', category: 'beamCard' },
+
+  // BEAM Risk elements — Table 3 of BEAM paper (two-section card layout)
+  { name: 'Risk',        label: 'Risk',        shape: 'Rectangle', color: '#fff3e0', stroke: '#fb8c00', group: 'BEAM Risk', category: 'beamCard' },
+  { name: 'RiskSource',  label: 'Risk Source', shape: 'Rectangle', color: '#fffde7', stroke: '#f9a825', group: 'BEAM Risk', category: 'beamCard' },
+  { name: 'Consequence', label: 'Consequence', shape: 'Rectangle', color: '#fce4ec', stroke: '#e91e63', group: 'BEAM Risk', category: 'beamCard' },
+  { name: 'Impact',      label: 'Impact',      shape: 'Rectangle', color: '#ef9a9a', stroke: '#c62828', group: 'BEAM Risk', category: 'beamCard' },
+  { name: 'RiskControl', label: 'Risk Control', shape: 'Rectangle', color: '#e8f5e9', stroke: '#388e3c', group: 'BEAM Risk', category: 'beamCard' },
 ];
 
 // ADD: Type definitions for each shape
@@ -66,7 +78,8 @@ export type GoShape =
   | 'Ellipse'
   | 'Triangle'
   | 'TriangleDown'
-  | 'Hexagon';
+  | 'Hexagon'
+  | 'Note';
 
 export interface ShapeDefinition {
   name: string;
@@ -76,6 +89,7 @@ export interface ShapeDefinition {
   stroke: string;
   group: string;
   borderRadius?: '45px';
+  category?: string;
 }
 
 export type ShapeTypeTree = {

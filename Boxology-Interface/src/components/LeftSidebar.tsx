@@ -26,6 +26,8 @@ const categoryOrder = [
   'Processes & Actions',
   //'Documentation',
   'BEAM Concepts',
+  'BEAM Annotation',
+  'BEAM Risk',
 ];
 
 
@@ -120,7 +122,8 @@ export default function LeftSidebar({
                      shape.shape === 'Triangle' ? '0' : '2px',
           clipPath: shape.shape === 'Triangle' ? 'polygon(50% 0%, 0% 100%, 100% 100%)' :
                    shape.shape === 'Diamond' ? 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' :
-                   shape.shape === 'Hexagon' ? 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' : 'none',
+                   shape.shape === 'Hexagon' ? 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' :
+                   shape.shape === 'Note' ? 'polygon(0% 0%, 75% 0%, 100% 25%, 100% 100%, 0% 100%)' : 'none',
           marginBottom: '4px',
           display: 'flex',
           alignItems: 'center',
