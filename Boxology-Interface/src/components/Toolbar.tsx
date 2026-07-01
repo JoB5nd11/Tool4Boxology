@@ -437,8 +437,9 @@ LIMIT 100`;
               style={exportItemStyle}
               onMouseOver={hoverOn}
               onMouseOut={hoverOff}
+              title="KG interchange format — for backend ingestion, not for reopening a diagram. Use Save to reopen later."
             >
-              📄 JSON
+              📄 Export KG JSON
             </button>
 
             <button

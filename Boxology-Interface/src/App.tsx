@@ -355,6 +355,14 @@ function App() {
         return;
       }
 
+      if (model && Array.isArray(model.boxologies) && !Array.isArray(model.nodeDataArray)) {
+        alert(
+          'This looks like an exported KG JSON file, not a saved diagram.\n\n' +
+          'Use a .boxology file (or JSON saved via Save) to reopen a diagram for editing.'
+        );
+        return;
+      }
+
       // Normalize node names/types to capitalized form
 const capitalize = (str: string) =>
   str ? str.charAt(0).toUpperCase() + str.slice(1) : str;

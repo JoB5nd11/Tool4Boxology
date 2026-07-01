@@ -34,6 +34,11 @@ test.describe('BEAM Export — UI', () => {
     await expect(page.getByRole('button', { name: /PNG/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /BEAM Turtle/i })).toBeVisible();
   });
+
+  test('JSON export button is labeled to distinguish it from Save', async ({ page }) => {
+    await openExportMenu(page);
+    await expect(page.getByRole('button', { name: /Export KG JSON/i })).toBeVisible();
+  });
 });
 
 test.describe('BEAM Export — no cluster required', () => {
