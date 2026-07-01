@@ -1076,6 +1076,55 @@ if (model && model.nodeDataArray) {
     }
   };
 
+  const handleAutoArrange = () => {
+    if (!diagramRef.current) {
+      alert('No diagram available');
+      return;
+    }
+    const diagram = diagramRef.current;
+
+    const workflowParts = new go.Set<go.Part>();
+    const annotationParts = new go.Set<go.Part>();
+
+    diagram.nodes.each((node) => {
+      if (node.data.isGroup) return;
+      if (node.data.category === 'beamCard') {
+        annotationParts.add(node);
+      } else {
+        workflowParts.add(node);
+      }
+    });
+    diagram.links.each((link) => {
+      if (link.data.category === 'annotation') {
+        annotationParts.add(link);
+      } else {
+        workflowParts.add(link);
+      }
+    });
+
+    diagram.startTransaction('auto-arrange');
+
+    const workflowLayout = new go.LayeredDigraphLayout({ direction: 0, layerSpacing: 60, columnSpacing: 30 });
+    workflowLayout.doLayout(workflowParts);
+
+    const annotationLayout = new go.LayeredDigraphLayout({ direction: 90, layerSpacing: 40, columnSpacing: 20 });
+    annotationLayout.doLayout(annotationParts);
+
+    const workflowBounds = diagram.computePartsBounds(workflowParts);
+    const annotationBounds = diagram.computePartsBounds(annotationParts);
+    if (!annotationBounds.isEmpty() && !workflowBounds.isEmpty()) {
+      const dx = workflowBounds.x - annotationBounds.x;
+      const dy = workflowBounds.y - annotationBounds.height - 60 - annotationBounds.y;
+      annotationParts.each((part) => {
+        if (part instanceof go.Node) {
+          part.move(new go.Point(part.location.x + dx, part.location.y + dy));
+        }
+      });
+    }
+
+    diagram.commitTransaction('auto-arrange');
+  };
+
   const handleUploadKG = async (files: FileList) => {
     setLoadingMessage('Uploading Knowledge Graph...');
     setIsCreatingKG(true);
@@ -1142,6 +1191,7 @@ if (model && model.nodeDataArray) {
         onUploadKG={handleUploadKG}
         beamViewActive={beamViewActive}
         onBeamViewToggle={setBeamViewActive}
+        onAutoArrange={handleAutoArrange}
       />
 
       {/* Tab Bar */}

@@ -377,3 +377,42 @@ test.describe('Create KG — no cluster required', () => {
     await expect(page.getByText(/does not belong to any cluster/i)).toHaveCount(0);
   });
 });
+
+// ─── AUTO-ARRANGE ───────────────────────────────────────────────────────────
+
+test.describe('Auto-arrange', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.waitForSelector('canvas', { timeout: 15000 });
+    const gotItBtn = page.getByRole('button', { name: /GOT IT/i });
+    if (await gotItBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await gotItBtn.click();
+    }
+  });
+
+  test('Auto-arrange changes node locations without changing node count or keys', async ({ page }) => {
+    await page.getByRole('button', { name: /GraphRAG \(BEAM\)/i }).click();
+    await page.waitForTimeout(1500);
+
+    const before = await page.evaluate(() => {
+      const diagram = (window as any).__gojs_diagram;
+      return diagram.model.nodeDataArray.map((n: any) => ({ key: n.key, loc: n.loc }));
+    });
+
+    await page.getByRole('button', { name: /Auto-arrange/i }).click();
+    await page.waitForTimeout(500);
+
+    const after = await page.evaluate(() => {
+      const diagram = (window as any).__gojs_diagram;
+      return diagram.model.nodeDataArray.map((n: any) => ({ key: n.key, loc: n.loc }));
+    });
+
+    expect(after.length).toBe(before.length);
+    expect(after.map((n: any) => n.key).sort()).toEqual(before.map((n: any) => n.key).sort());
+    const anyLocationChanged = after.some((a: any) => {
+      const b = before.find((x: any) => x.key === a.key);
+      return b && b.loc !== a.loc;
+    });
+    expect(anyLocationChanged).toBe(true);
+  });
+});

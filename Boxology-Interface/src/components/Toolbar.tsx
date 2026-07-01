@@ -35,6 +35,7 @@ type ToolbarProps = {
   onUploadKG?: (files: FileList) => void;
   beamViewActive: boolean;
   onBeamViewToggle: (active: boolean) => void;
+  onAutoArrange: () => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -59,6 +60,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onUploadKG,
   beamViewActive,
   onBeamViewToggle,
+  onAutoArrange,
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
   const [showHelpMenu, setShowHelpMenu] = React.useState(false);  // <-- added
@@ -569,6 +571,15 @@ LIMIT 100`;
         title="Toggle BEAM notation view — re-skins nodes to BEAM visual style"
       >
         ⬡ BEAM View
+      </button>
+
+      {/* Auto-arrange */}
+      <button
+        onClick={onAutoArrange}
+        style={simpleButtonStyle}
+        title="Auto-arrange nodes using a layered directed-graph layout"
+      >
+        🧭 Auto-arrange
       </button>
 
       {/* Separator */}
