@@ -17,8 +17,7 @@ interface RightSidebarProps {
     isSuperNode?: boolean;
   } | null;
   diagramRef: React.RefObject<go.Diagram | null>;
-  setPages: (pages: any[]) => void;
-  setCurrentPageId: (id: string) => void;
+  onLoadExample: (example: any) => void;
 }
 
 // Simplified color presets
@@ -56,7 +55,7 @@ function getButtonStyle(options?: {
   };
 }
 
-export default function RightSidebar({ selectedData, diagramRef, setPages, setCurrentPageId }: RightSidebarProps) {
+export default function RightSidebar({ selectedData, diagramRef, onLoadExample }: RightSidebarProps) {
   const [localLabel, setLocalLabel] = useState('');
   const [localColor, setLocalColor] = useState('#ffffff');
   const [localStroke, setLocalStroke] = useState('#000000');
@@ -121,44 +120,11 @@ WHERE {
     }
   }, [selectedData, selectedCount]);
 
-  // Helper: load example JSON into diagram
+  // Load example JSON as a new page. Page/model orchestration lives in App.tsx
+  // (see handleLoadExampleAsPage) so it can save the active tab and append
+  // rather than replace the existing diagrams.
   const loadExample = (example: any) => {
-    if (!diagramRef.current) return;
-    try {
-      const nodeDataArray = example.nodeDataArray || [];
-      const linkDataArray = example.linkDataArray || [];
-      const modelData = example.modelData || {};
-      const boxologyId = modelData.boxologyId || modelData.id || `boxology_${Math.random().toString(36).slice(2, 10)}`;
-      const boxologyLabel = modelData.boxologyLabel || modelData.label || 'Diagram';
-
-      const newPage = {
-        id: boxologyId,
-        name: boxologyLabel,
-        nodeDataArray,
-        linkDataArray,
-        boxologyId,
-        boxologyLabel,
-      };
-
-      setPages([newPage]);
-      setCurrentPageId(boxologyId);
-
-      const diagram = diagramRef.current;
-      diagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
-
-      try {
-        if (!diagram.model.modelData) (diagram.model as any).modelData = {};
-        diagram.model.setDataProperty(diagram.model.modelData, 'boxologyId', boxologyId);
-        diagram.model.setDataProperty(diagram.model.modelData, 'boxologyLabel', boxologyLabel);
-      } catch {
-        const m = diagram.model as any;
-        if (!m.modelData) m.modelData = {};
-        m.modelData.boxologyId = boxologyId;
-        m.modelData.boxologyLabel = boxologyLabel;
-      }
-    } catch (err) {
-      console.error('Failed to load example', err);
-    }
+    onLoadExample(example);
   };
 
   const openInstructionDialog = () => {

@@ -118,6 +118,38 @@ function App() {
     setCurrentPageId(newPage.id);
   };
 
+  // Load an example diagram as a NEW page (append) instead of replacing the
+  // existing tabs, so the user's current work is preserved.
+  const handleLoadExampleAsPage = (example: any) => {
+    // Save the current diagram before switching, so the active tab isn't lost.
+    if (diagramRef.current && currentPageId) {
+      const model = diagramRef.current.model as go.GraphLinksModel;
+      updateCurrentPage(model.nodeDataArray, model.linkDataArray);
+    }
+
+    const nodeDataArray = example.nodeDataArray || [];
+    const linkDataArray = example.linkDataArray || [];
+    const modelData = example.modelData || {};
+    // Examples ship a fixed boxologyId (e.g. "exampleid-12"); keep it for export,
+    // but give the PAGE a fresh uuid so loading the same example twice can't
+    // collide on page id (which would break tab switching/closing).
+    const boxologyId = modelData.boxologyId || modelData.id || `boxology_${uuidv4().replace(/-/g, '').slice(0, 8)}`;
+    const boxologyLabel = modelData.boxologyLabel || modelData.label || 'Diagram';
+
+    const newPage: PageData = {
+      id: uuidv4(),
+      name: boxologyLabel,
+      nodeDataArray,
+      linkDataArray,
+      boxologyId,
+      boxologyLabel,
+    };
+
+    setPages(prev => [...prev, newPage]);
+    setCurrentPageId(newPage.id);
+    // The page-load effect (keyed on currentPageId) pushes this into the canvas.
+  };
+
 
   // Switch to different page
   const handlePageSwitch = (pageId: string) => {
@@ -1296,6 +1328,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         {pages.map((page) => (
           <button
             key={page.id}
+            data-testid="page-tab"
             onClick={() => handlePageSwitch(page.id)}
             onDoubleClick={(e) => { e.stopPropagation(); handleRenamePage(page.id); }}
             title='Double Click to Rename It'
@@ -1495,8 +1528,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             <RightSidebar
               selectedData={selectedData}
               diagramRef={diagramRef}
-              setPages={setPages}
-              setCurrentPageId={setCurrentPageId}
+              onLoadExample={handleLoadExampleAsPage}
             />
           )}
         </div>
