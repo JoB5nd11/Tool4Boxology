@@ -19,37 +19,55 @@ import { generateMultiPageRMLExport, generateStableIdFromData, normalizeModelDat
 import { API_BASE } from './config';
 import InstructionDialog from './components/InstructionDialog';
 import LoadingBox from './components/LoadingBox';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import type { PageData, DiagramData } from './types';
+import { loadSession, clearSession, hasContent } from './utils/sessionStorage';
+import { useSessionPersistence } from './hooks/useSessionPersistence';
+
+const blankPage = (): PageData => ({
+  id: uuidv4(),
+  name: 'Diagram',
+  nodeDataArray: [],
+  linkDataArray: [],
+});
+
+const elementaryPatternsGroup = () =>
+  elementaryPatterns.map(pattern => ({
+    id: pattern.id,
+    name: pattern.name,
+    description: pattern.description,
+    type: 'pattern',
+    pattern: pattern,
+  }));
 
 function App() {
   const diagramRef = useRef<go.Diagram | null>(null);
-  const [containers, setContainers] = useState<string[]>(['General', 'Annotation']);
-  const [customContainerShapes, setCustomContainerShapes] = useState<{ [key: string]: any[] }>({});
+
+  // Read once, before first render, so the canvas never flashes blank on restore.
+  const [restored] = useState(() => loadSession());
+  const [showRestoredNotice, setShowRestoredNotice] = useState(
+    () => !!restored && hasContent(restored.pages)
+  );
+
+  const [containers, setContainers] = useState<string[]>(
+    () => restored?.containers ?? ['General', 'Annotation']
+  );
+  const [customContainerShapes, setCustomContainerShapes] = useState<{ [key: string]: any[] }>(
+    () => restored?.customContainerShapes ?? {}
+  );
   const [selectedData, setSelectedData] = useState<any>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-  const [customGroups, setCustomGroups] = useState<{ [key: string]: any[] }>({});
+  const [customGroups, setCustomGroups] = useState<{ [key: string]: any[] }>(() => ({
+    ...(restored?.customGroups ?? {}),
+    // Always re-seeded from source, never trusted from the snapshot.
+    'Elementary Patterns': elementaryPatternsGroup(),
+  }));
   const [beamViewActive, setBeamViewActive] = useState(false);
 
   // Page management for GoJS diagrams
-    type PageData = {
-      id: string;
-      name: string;
-      nodeDataArray: any[];
-      linkDataArray: any[];
-      // optional stable identifiers/labels used by Boxology exports/imports
-      boxologyId?: string;
-      boxologyLabel?: string;
-    };
-
-  const [pages, setPages] = useState<PageData[]>(
-    [
-      {
-        id: uuidv4(),
-        name: "Diagram",
-        nodeDataArray: [],
-        linkDataArray: [],
-      },
-    ]
-  );
+  const [pages, setPages] = useState<PageData[]>(() => restored?.pages ?? [blankPage()]);
 
   // sanitize a filename for Windows/posix
   const sanitizeFilename = (name: string) =>
@@ -64,7 +82,12 @@ function App() {
     setPages(prev => prev.map(pg => pg.id === pageId ? { ...pg, name: newName.trim() } : pg));
   };
 
-  const [currentPageId, setCurrentPageId] = useState(pages[0].id);
+  const [currentPageId, setCurrentPageId] = useState(() => {
+    // Guard against a snapshot whose currentPageId is not among its own pages.
+    const restoredId = restored?.currentPageId;
+    const valid = restoredId && (restored?.pages ?? []).some(p => p.id === restoredId);
+    return valid ? (restoredId as string) : pages[0].id;
+  });
 
   // Update current page data
   const updateCurrentPage = (nodeDataArray: any[], linkDataArray: any[]) => {
@@ -123,32 +146,89 @@ function App() {
   // Get current page
   const currentPage = pages.find((p) => p.id === currentPageId);
 
-  // Load diagram data when page changes
-  useEffect(() => {
-    if (diagramRef.current && currentPage) {
-      const diagram = diagramRef.current;
-      diagram.model = new go.GraphLinksModel(
-        currentPage.nodeDataArray,
-        currentPage.linkDataArray
-      );
-    }
-  }, [currentPageId, currentPage]);
+  // Autosave reads state at write time (up to 800ms after the last edit), so it
+  // must not close over a stale render's values.
+  const sessionStateRef = useRef({ pages, currentPageId, containers, customContainerShapes, customGroups });
+  sessionStateRef.current = { pages, currentPageId, containers, customContainerShapes, customGroups };
 
-  // Initialize elementary patterns in custom groups
+  const { markDirty, markSaved, autosaveFailed } = useSessionPersistence(
+    () => sessionStateRef.current
+  );
+
+  const handleStartFresh = () => {
+    clearSession();
+    const fresh = blankPage();
+    setPages([fresh]);
+    setCurrentPageId(fresh.id);
+    setContainers(['General', 'Annotation']);
+    setCustomContainerShapes({});
+    setCustomGroups({ 'Elementary Patterns': elementaryPatternsGroup() });
+    setShowRestoredNotice(false);
+    markSaved();
+  };
+
+  // True while we are pushing a page into the canvas, so the resulting model
+  // events are not mistaken for user edits.
+  const isLoadingPageRef = useRef(false);
+  // Which page is loaded into which go.Diagram instance. GoDiagram rebuilds the
+  // instance on a container/customGroup change (and twice under StrictMode), and
+  // each rebuild starts empty — so the page id alone is not enough to know
+  // whether the canvas is showing what we think it is.
+  const loadedRef = useRef<{ diagram: go.Diagram | null; pageId: string | null }>({
+    diagram: null,
+    pageId: null,
+  });
+  const [diagramEpoch, setDiagramEpoch] = useState(0);
+
+  // Load the current page into the canvas.
+  //
+  // Deliberately NOT keyed on `currentPage` identity alone: every edit now
+  // rewrites the page object in `pages`, and reloading the model on each of
+  // those would blow away selection and scroll position mid-edit.
   useEffect(() => {
-    const patternsGroup = elementaryPatterns.map(pattern => ({
-      id: pattern.id,
-      name: pattern.name,
-      description: pattern.description,
-      type: 'pattern',
-      pattern: pattern
-    }));
-    
-    setCustomGroups(prev => ({
-      ...prev,
-      'Elementary Patterns': patternsGroup
-    }));
-  }, []); // Only run once on mount
+    const diagram = diagramRef.current;
+    if (!diagram || !currentPage) return;
+    if (loadedRef.current.diagram === diagram && loadedRef.current.pageId === currentPageId) return;
+
+    loadedRef.current = { diagram, pageId: currentPageId };
+    isLoadingPageRef.current = true;
+    diagram.model = new go.GraphLinksModel(
+      currentPage.nodeDataArray,
+      currentPage.linkDataArray
+    );
+    // Released on a macrotask: GoJS commits its initial layout transaction
+    // after the assignment returns.
+    window.setTimeout(() => { isLoadingPageRef.current = false; }, 0);
+  }, [currentPageId, currentPage, diagramEpoch]);
+
+  // Canvas -> state. Fires on every committed transaction (see GoDiagram).
+  const handleModelChange = (nodeDataArray: DiagramData[], linkDataArray: DiagramData[]) => {
+    if (isLoadingPageRef.current) return;
+    setPages(prev =>
+      prev.map(p => (p.id === currentPageId ? { ...p, nodeDataArray, linkDataArray } : p))
+    );
+    markDirty();
+  };
+
+  // Palette customizations are part of the session too — losing a custom
+  // container on refresh is the same bug as losing a diagram.
+  //
+  // Compares values rather than counting runs: StrictMode re-invokes this effect
+  // with unchanged deps, and treating that as an edit would mark a freshly
+  // loaded session dirty and warn on every refresh.
+  const lastPaletteRef = useRef({ containers, customContainerShapes, customGroups });
+  useEffect(() => {
+    const last = lastPaletteRef.current;
+    if (
+      last.containers === containers &&
+      last.customContainerShapes === customContainerShapes &&
+      last.customGroups === customGroups
+    ) {
+      return;
+    }
+    lastPaletteRef.current = { containers, customContainerShapes, customGroups };
+    markDirty();
+  }, [containers, customContainerShapes, customGroups, markDirty]);
 
   // Consolidated container management
   const handleAddContainer = (containerName: string) => {
@@ -250,9 +330,12 @@ function App() {
   const isUserCancelledError = (err: any) =>
     err?.name === 'AbortError' || err?.canceled === true || /aborted|cancel/i.test(String(err?.message));
 
+  // Every export and save funnels through here, which makes it the app's single
+  // save point: a successful write clears the unsaved-changes warning.
   const saveOrDownload = async (blob: Blob, filename: string, mime: string): Promise<boolean> => {
     try {
       await saveWithPicker(blob, filename, mime);
+      markSaved();
       return true;
     } catch (err) {
       // If the user canceled the picker, do not save
@@ -260,6 +343,7 @@ function App() {
       // On other errors (e.g., unsupported), fallback to classic download
       try {
         downloadFile(blob, filename);
+        markSaved();
         return true;
       } catch {
         return false;
@@ -1124,6 +1208,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
       });
       if (!res.ok) throw new Error(`Backend error ${res.status}: ${await res.text()}`);
       setLoadingMessage('KG created successfully.');
+      markSaved();
       setTimeout(() => setIsCreatingKG(false), 2000);
     } catch (err: any) {
       setLoadingMessage(`Failed to create KG:\n${err?.message ?? err}`);
@@ -1358,8 +1443,10 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             containers={containers}
             customGroups={customGroups}
             beamViewActive={beamViewActive}
+            onModelChange={handleModelChange}
+            onDiagramInit={() => setDiagramEpoch(e => e + 1)}
           />
-          <ContextMenu 
+          <ContextMenu
             contextMenu={contextMenu}
             onAction={handleContextMenuAction}
             selectedData={selectedData}
@@ -1699,6 +1786,39 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           <LoadingBox message={loadingMessage} />
         </div>
       )}
+
+      {/* Session restored after a refresh/crash. Auto-hides; the snapshot is
+          kept, so reloading again still restores. */}
+      <Snackbar
+        open={showRestoredNotice}
+        autoHideDuration={10000}
+        onClose={() => setShowRestoredNotice(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Alert
+          severity="info"
+          variant="filled"
+          onClose={() => setShowRestoredNotice(false)}
+          action={
+            <Button color="inherit" size="small" onClick={handleStartFresh}>
+              Start fresh
+            </Button>
+          }
+        >
+          Restored your last session{restored?.savedAt ? ` from ${new Date(restored.savedAt).toLocaleString()}` : ''}
+        </Alert>
+      </Snackbar>
+
+      {/* Autosave is off (usually localStorage quota). Stays up until the user
+          dismisses it — silently losing autosave is exactly the bug we are fixing. */}
+      <Snackbar
+        open={autosaveFailed}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Alert severity="warning" variant="filled">
+          Autosave failed — your work is no longer being saved in this browser. Export your diagram to avoid losing it.
+        </Alert>
+      </Snackbar>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { setupDiagramValidation, validateGoJSDiagram } from './plugin/GoJSBoxolo
 import { mapShapeToGoJSFigure } from './utils/shapeMapping';
 import { shapeTypesTree , shapes } from './data/shape';
 import { beamStyleMap } from './data/beamStyles';
+import type { DiagramData } from './types';
 
 interface ContextMenuPosition {
   x: number;
@@ -18,6 +19,14 @@ interface GoDiagramProps {
   containers: string[];
   customGroups: Record<string, any[]>;
   beamViewActive: boolean;
+  /** Fires after every committed user transaction, so App can keep `pages` in sync with the canvas. */
+  onModelChange?: (nodeDataArray: DiagramData[], linkDataArray: DiagramData[]) => void;
+  /**
+   * Fires whenever a new go.Diagram instance is built (mount, StrictMode remount,
+   * or a container/customGroup change re-running setup). The new instance starts
+   * empty, so App must push the current page back into it.
+   */
+  onDiagramInit?: () => void;
 }
 
 // Helper: Recursively build menu
@@ -155,8 +164,17 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
   containers,
   customGroups,
   beamViewActive,
+  onModelChange,
+  onDiagramInit,
 }) => {
   const diagramDivRef = useRef<HTMLDivElement>(null);
+
+  // Held in refs so a new callback identity never re-runs the setup effect,
+  // which would tear down and rebuild the whole diagram.
+  const onModelChangeRef = useRef(onModelChange);
+  onModelChangeRef.current = onModelChange;
+  const onDiagramInitRef = useRef(onDiagramInit);
+  onDiagramInitRef.current = onDiagramInit;
 
   const handleSidebarChange = (field: string, value: string) => {
     if (!diagramRef.current || !setSelectedData) return;
@@ -883,7 +901,36 @@ function showSmallPorts(node: any, show: any) {
     (window as any).__gojs_diagram = diagram;
     setupDiagramValidation(diagram);
 
+    // Keep App's `pages` state in step with the canvas. Without this, `pages`
+    // only catches up on page switch / export, and anything autosaved between
+    // those moments would be stale.
+    const modelListener = (e: go.ChangedEvent) => {
+      if (!e.isTransactionFinished) return;
+
+      const txn = e.object as go.Transaction | null;
+      if (!txn) return;
+      // Layout runs its own transaction when a model is loaded; not a user edit.
+      if (txn.name === 'Layout' || txn.name === 'Initial Layout') return;
+      // A transaction can close having touched only Diagram properties and no
+      // model data at all — GoJS setup (padding, nodeTemplate, grid, ...) lands
+      // in the first committed transaction, and model.commit() commits even when
+      // its body changed nothing. Only model changes are real edits.
+      const touchedModel = txn.changes.toArray().some((c) => c.model !== null);
+      if (!touchedModel) return;
+
+      const model = e.model as go.GraphLinksModel;
+      onModelChangeRef.current?.(
+        model.nodeDataArray as DiagramData[],
+        model.linkDataArray as DiagramData[]
+      );
+    };
+    diagram.addModelChangedListener(modelListener);
+
+    // The new instance is empty; tell App to load the current page into it.
+    onDiagramInitRef.current?.();
+
     return () => {
+      diagram.removeModelChangedListener(modelListener);
       if (diagramDiv) {
         diagramDiv.removeEventListener('dragover', handleDragOver);
         diagramDiv.removeEventListener('drop', handleDrop);
