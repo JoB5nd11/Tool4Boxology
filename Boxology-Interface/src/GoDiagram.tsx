@@ -4,7 +4,19 @@ import { setupDiagramValidation, validateGoJSDiagram } from './plugin/GoJSBoxolo
 import { mapShapeToGoJSFigure } from './utils/shapeMapping';
 import { shapeTypesTree , shapes } from './data/shape';
 import { beamStyleMap } from './data/beamStyles';
-import type { DiagramData } from './types';
+import type { DiagramData, RiskClass } from './types';
+
+// The three BEAM risk classes offered as inline tags (only these have a direct
+// relationship to a workflow component). Order = order shown in the picker.
+const RISK_CLASSES: { value: RiskClass; label: string; color: string }[] = [
+  { value: 'Risk',        label: 'Risk',         color: '#fb8c00' },
+  { value: 'RiskSource',  label: 'Risk Source',  color: '#f9a825' },
+  { value: 'RiskControl', label: 'Risk Control', color: '#388e3c' },
+];
+const RISK_CLASS_COLOR: Record<string, string> =
+  Object.fromEntries(RISK_CLASSES.map((r) => [r.value, r.color]));
+const RISK_CLASS_LABEL: Record<string, string> =
+  Object.fromEntries(RISK_CLASSES.map((r) => [r.value, r.label]));
 
 interface ContextMenuPosition {
   x: number;
@@ -155,6 +167,110 @@ function showTypeSelector(e: go.InputEvent, node: go.Node) {
   }, 0);
 
   document.body.appendChild(dropdownContainer);
+}
+
+// Toggle the on-hover "+ risk" affordance of a node.
+function showAddRisk(node: go.GraphObject, show: boolean) {
+  const add = (node as go.Node).findObject?.('ADD_RISK');
+  if (add) add.visible = show;
+}
+
+// Remove the risk tag whose ✕ was clicked. `obj` is the ✕ TextBlock; walk up to
+// the item panel to get its index in the node's riskTags array.
+function removeRiskTag(obj: go.GraphObject) {
+  const node = obj.part;
+  if (!(node instanceof go.Node) || !node.diagram) return;
+  // Walk up to the item panel. `itemIndex` lives on Panel and reads as
+  // undefined/NaN on non-item objects (not -1), so test for a valid index.
+  let panel: any = obj;
+  while (panel && !(panel.itemIndex >= 0)) panel = panel.panel;
+  if (!panel || !(panel.itemIndex >= 0)) return;
+  const arr = (node.data as any).riskTags;
+  if (!Array.isArray(arr)) return;
+  const diagram = node.diagram;
+  diagram.model.startTransaction('remove risk tag');
+  diagram.model.removeArrayItem(arr, panel.itemIndex);
+  diagram.model.commitTransaction('remove risk tag');
+}
+
+// Dropdown to pick a risk class; on choice, append a new (unnamed) tag to the node.
+function showRiskClassPicker(_e: go.InputEvent, node: go.Node) {
+  const diagram = node.diagram;
+  const diagramDiv = diagram?.div;
+  if (!diagram || !diagramDiv) return;
+
+  const diagramRect = diagramDiv.getBoundingClientRect();
+  const viewPoint = diagram.transformDocToView(node.location);
+  const screenX = diagramRect.left + viewPoint.x + window.scrollX;
+  const screenY = diagramRect.top + viewPoint.y + window.scrollY - 40;
+
+  const container = document.createElement('div');
+  container.style.position = 'absolute';
+  container.style.left = screenX + 'px';
+  container.style.top = screenY + 'px';
+  container.style.zIndex = '10000';
+  container.style.backgroundColor = 'white';
+  container.style.border = '1px solid #d1d5db';
+  container.style.borderRadius = '4px';
+  container.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+  container.style.minWidth = '130px';
+  container.style.overflow = 'hidden';
+  container.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+
+  const closeHandler = (event: MouseEvent | KeyboardEvent) => {
+    if (event instanceof MouseEvent && container.contains(event.target as Node)) return;
+    if (event instanceof KeyboardEvent && event.key !== 'Escape') return;
+    container.remove();
+    document.removeEventListener('click', closeHandler);
+    document.removeEventListener('keydown', closeHandler);
+  };
+
+  RISK_CLASSES.forEach((rc) => {
+    const option = document.createElement('div');
+    option.style.display = 'flex';
+    option.style.alignItems = 'center';
+    option.style.gap = '8px';
+    option.style.padding = '8px 12px';
+    option.style.cursor = 'pointer';
+    option.style.fontSize = '12px';
+    option.style.color = 'black';
+    option.onmouseenter = () => { option.style.background = '#f3f4f6'; };
+    option.onmouseleave = () => { option.style.background = 'white'; };
+
+    const dot = document.createElement('span');
+    dot.style.width = '9px';
+    dot.style.height = '9px';
+    dot.style.borderRadius = '50%';
+    dot.style.background = rc.color;
+    dot.style.flex = '0 0 auto';
+    option.appendChild(dot);
+    option.appendChild(document.createTextNode(rc.label));
+
+    option.onclick = (event) => {
+      event.stopPropagation();
+      diagram.model.startTransaction('add risk tag');
+      const data = node.data as any;
+      if (!Array.isArray(data.riskTags)) diagram.model.set(data, 'riskTags', []);
+      diagram.model.addArrayItem(data.riskTags, {
+        id: `risktag_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+        riskClass: rc.value,
+        name: '',
+      });
+      diagram.model.commitTransaction('add risk tag');
+      container.remove();
+      document.removeEventListener('click', closeHandler);
+      document.removeEventListener('keydown', closeHandler);
+    };
+
+    container.appendChild(option);
+  });
+
+  setTimeout(() => {
+    document.addEventListener('click', closeHandler);
+    document.addEventListener('keydown', closeHandler);
+  }, 0);
+
+  document.body.appendChild(container);
 }
 
 const GoDiagram: React.FC<GoDiagramProps> = ({
@@ -353,9 +469,11 @@ function showSmallPorts(node: any, show: any) {
           // const node = obj as go.Node;
           // node.cursor = 'move';  // Default to move
           showSmallPorts(obj, true);
+          showAddRisk(obj, true);
         },
         mouseLeave: (e, obj) => {
           showSmallPorts(obj, false);
+          showAddRisk(obj, false);
         },
         mouseDragEnter: (e, obj) => {
           const node = obj as go.Node;
@@ -450,68 +568,146 @@ function showSmallPorts(node: any, show: any) {
         new go.Binding('text', 'label').makeTwoWay()
       ),
       
-      // Type selector - Always visible
-      $(go.Panel, 'Auto',
+      // Top cluster above the node: risk badges (top) → type badge → "+ risk"
+      // affordance (bottom, nearest the box, shown on hover). The Vertical panel
+      // handles stacking; individual pieces keep their own names/handlers.
+      $(go.Panel, 'Vertical',
         {
-          name: 'TYPE_BADGE',
           alignment: go.Spot.Top,
           alignmentFocus: go.Spot.Bottom,
-          margin: new go.Margin(-8, 0, 0, 0),
-          cursor: 'pointer',
-          visible: true  // CHANGED: Always visible
+          margin: new go.Margin(-6, 0, 0, 0),
         },
-        $(go.Shape, 'RoundedRectangle',
+
+        // Risk tags — one badge per entry in the node's riskTags array
+        $(go.Panel, 'Vertical',
+          { name: 'RISK_BADGES' },
+          new go.Binding('itemArray', 'riskTags'),
           {
-            fill: 'white',
-            stroke: '#d1d5db',
-            strokeWidth: 1,
-            parameter1: 10
+            itemTemplate: $(go.Panel, 'Auto',
+              { margin: new go.Margin(0, 0, 2, 0) },
+              $(go.Shape, 'RoundedRectangle',
+                { parameter1: 7, strokeWidth: 0 },
+                new go.Binding('fill', 'riskClass', (rc: string) => RISK_CLASS_COLOR[rc] ?? '#9ca3af')
+              ),
+              $(go.Panel, 'Horizontal',
+                { margin: new go.Margin(1, 6, 1, 6) },
+                // Class label
+                $(go.TextBlock,
+                  { font: 'bold 8px system-ui, -apple-system, sans-serif', stroke: 'white' },
+                  new go.Binding('text', 'riskClass', (rc: string) => RISK_CLASS_LABEL[rc] ?? rc)
+                ),
+                // Editable short name for the risk
+                $(go.TextBlock,
+                  {
+                    font: '8px system-ui, -apple-system, sans-serif',
+                    stroke: 'white',
+                    editable: true,
+                    margin: new go.Margin(0, 0, 0, 4),
+                    minSize: new go.Size(22, NaN),
+                    maxLines: 1,
+                    overflow: go.TextBlock.OverflowEllipsis,
+                  },
+                  new go.Binding('text', 'name').makeTwoWay()
+                ),
+                // Remove ✕
+                $(go.TextBlock, '✕',
+                  {
+                    font: 'bold 8px system-ui, -apple-system, sans-serif',
+                    stroke: 'rgba(255,255,255,0.9)',
+                    cursor: 'pointer',
+                    margin: new go.Margin(0, 0, 0, 5),
+                    click: (_e, obj) => removeRiskTag(obj),
+                  }
+                )
+              )
+            )
           }
         ),
-        $(go.Panel, 'Horizontal',
-          { margin: new go.Margin(3, 8, 3, 8) },
-          // Small colored dot indicator
-          $(go.Shape, 'Circle',
+
+        // Type selector - Always visible
+        $(go.Panel, 'Auto',
+          {
+            name: 'TYPE_BADGE',
+            cursor: 'pointer',
+            visible: true  // CHANGED: Always visible
+          },
+          $(go.Shape, 'RoundedRectangle',
             {
-              width: 5,
-              height: 5,
-              stroke: null,
-              margin: new go.Margin(0, 4, 0, 0)
-            },
-            new go.Binding('fill', 'type', (type) => {
-              if (!type || type === 'No Type') return '#9ca3af';
-              return '#3b82f6';
-            })
+              fill: 'white',
+              stroke: '#d1d5db',
+              strokeWidth: 1,
+              parameter1: 10
+            }
           ),
-          // Type text
-          $(go.TextBlock,
-            {
-              font: '9px system-ui, -apple-system, sans-serif',
-              stroke: '#6b7280'
-            },
-            new go.Binding('text', 'type', (type) => type || 'No Type'),
-            new go.Binding('stroke', 'type', (type) => {
-              if (!type || type === 'No Type') return '#9ca3af';
-              return '#3b82f6';
-            })
+          $(go.Panel, 'Horizontal',
+            { margin: new go.Margin(3, 8, 3, 8) },
+            // Small colored dot indicator
+            $(go.Shape, 'Circle',
+              {
+                width: 5,
+                height: 5,
+                stroke: null,
+                margin: new go.Margin(0, 4, 0, 0)
+              },
+              new go.Binding('fill', 'type', (type) => {
+                if (!type || type === 'No Type') return '#9ca3af';
+                return '#3b82f6';
+              })
+            ),
+            // Type text
+            $(go.TextBlock,
+              {
+                font: '9px system-ui, -apple-system, sans-serif',
+                stroke: '#6b7280'
+              },
+              new go.Binding('text', 'type', (type) => type || 'No Type'),
+              new go.Binding('stroke', 'type', (type) => {
+                if (!type || type === 'No Type') return '#9ca3af';
+                return '#3b82f6';
+              })
+            ),
+            // Dropdown arrow
+            $(go.Shape, 'TriangleDown',
+              {
+                width: 5,
+                height: 3,
+                fill: '#9ca3af',
+                stroke: null,
+                margin: new go.Margin(0, 0, 0, 3)
+              }
+            )
           ),
-          // Dropdown arrow
-          $(go.Shape, 'TriangleDown',
+          {
+            click: (e, obj) => {
+              const node = obj.part as go.Node;
+              showTypeSelector(e, node);
+            }
+          }
+        ),
+
+        // "+ risk" affordance — hidden until node hover (toggled by showAddRisk)
+        $(go.Panel, 'Auto',
+          {
+            name: 'ADD_RISK',
+            visible: false,
+            cursor: 'pointer',
+            margin: new go.Margin(2, 0, 0, 0),
+            click: (e, obj) => {
+              const node = obj.part as go.Node;
+              showRiskClassPicker(e, node);
+            }
+          },
+          $(go.Shape, 'RoundedRectangle',
+            { fill: '#fef3c7', stroke: '#f59e0b', strokeWidth: 0.75, parameter1: 8 }
+          ),
+          $(go.TextBlock, '+ risk',
             {
-              width: 5,
-              height: 3,
-              fill: '#9ca3af',
-              stroke: null,
-              margin: new go.Margin(0, 0, 0, 3)
+              font: '8px system-ui, -apple-system, sans-serif',
+              stroke: '#b45309',
+              margin: new go.Margin(1, 6, 1, 6)
             }
           )
-        ),
-        {
-          click: (e, obj) => {
-            const node = obj.part as go.Node;
-            showTypeSelector(e, node);
-          }
-        }
+        )
       )
     );
 

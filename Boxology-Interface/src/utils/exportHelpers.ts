@@ -251,6 +251,31 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
         };
       });
 
+    // Desugar inline risk tags: each becomes a synthetic annotation node + an
+    // annotation link back to its component, so the existing backend rules emit
+    // `beamr:hasRisk` (Risk), `originatedFrom` (RiskSource), `associatedTo`
+    // (RiskControl) with no changes to the Python side.
+    for (const n of nodeDataArray as any[]) {
+      const tags = Array.isArray(n.riskTags) ? n.riskTags : [];
+      for (const tag of tags) {
+        if (!tag?.id || !tag?.riskClass) continue;
+        annotations.push({
+          key: String(tag.id),
+          name: String(tag.riskClass),
+          label: tag.name ?? '',
+          subtext: '',
+        });
+        annotationLinks.push({
+          from: String(tag.id),
+          to: String(n.key),
+          fromType: String(tag.riskClass),
+          toType: n.name ?? n.type ?? '',
+          fromIsAnnotation: true,
+          toIsAnnotation: false,
+        });
+      }
+    }
+
     return {
       id,
       label,
