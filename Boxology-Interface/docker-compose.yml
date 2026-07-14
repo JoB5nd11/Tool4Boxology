@@ -6,7 +6,7 @@ services:
       dockerfile: backend/Dockerfile
     container_name: boxology-backend
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - .:/app
     working_dir: /app
@@ -42,7 +42,7 @@ services:
     depends_on:
       - backend
     environment:
-      - VITE_BACKEND_URL=http://localhost:8000
+      - VITE_BACKEND_URL=http://localhost:8001
   
   boxology_kg:
     container_name: boxology_kg

@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 import sys, os, socket, importlib, traceback
@@ -56,6 +57,59 @@ async def api_create_kg(source: dict):
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/beam-export")
+async def api_beam_export(source: dict):
+    """Return a Turtle file containing the BEAM view of the diagram (no Virtuoso needed)."""
+    try:
+        for name in list(sys.modules.keys()):
+            if name.startswith("kg_creation"):
+                del sys.modules[name]
+        from kg_creation.in_memory_rdfizer.generator import kg_generation
+        from kg_creation.beam_enrichment import enrich_with_beam
+        from kg_creation.beam_annotation_triples import generate_annotation_triples
+
+        t4b_triples = kg_generation(source)
+        enriched = enrich_with_beam(t4b_triples)
+        annotation_triples = generate_annotation_triples(source)
+
+        beam_lines = []
+        for line in enriched.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if "w3id.org/beam/" in stripped:
+                beam_lines.append(stripped)
+
+        if annotation_triples:
+            for line in annotation_triples.splitlines():
+                stripped = line.strip()
+                if stripped:
+                    beam_lines.append(stripped)
+
+        all_lines = t4b_triples.splitlines() + beam_lines
+
+        prefixes = (
+            "@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
+            "@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .\n"
+            "@prefix owl:   <http://www.w3.org/2002/07/owl#> .\n"
+            "@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .\n"
+            "@prefix t4b:   <http://tool4boxology.org/> .\n"
+            "@prefix beam:  <http://w3id.org/beam/core#> .\n"
+            "@prefix beamr: <http://w3id.org/beam/risk#> .\n"
+            "\n"
+        )
+        body = "\n".join(l for l in all_lines if l.strip()) + "\n"
+
+        return PlainTextResponse(
+            content=prefixes + body,
+            media_type="text/turtle",
+            headers={"Content-Disposition": "attachment; filename=beam_export.ttl"},
+        )
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/")
 async def root():

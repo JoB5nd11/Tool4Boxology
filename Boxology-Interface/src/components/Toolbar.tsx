@@ -29,6 +29,7 @@ type ToolbarProps = {
   onExportJSON: () => void;
   //onExportDrawio: () => void;
   onExportDOT: () => void;
+  onExportBEAM: () => void;
   onOpenGraphviz: () => void;
   onCreateKG?: () => void;
   onUploadKG?: (files: FileList) => void;
@@ -52,11 +53,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onExportJSON,
   //onExportDrawio,
   onExportDOT,
+  onExportBEAM,
   onOpenGraphviz,
   onCreateKG,
   onUploadKG,
   beamViewActive,
-  onBeamViewToggle
+  onBeamViewToggle,
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
   const [showHelpMenu, setShowHelpMenu] = React.useState(false);  // <-- added
@@ -462,7 +464,21 @@ LIMIT 100`;
             >
               🗂️ PNG
             </button>
-            
+
+            <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
+
+            <button
+              onClick={() => {
+                onExportBEAM();
+                setShowExportMenu(false);
+              }}
+              style={exportItemStyle}
+              onMouseOver={hoverOn}
+              onMouseOut={hoverOff}
+            >
+              ⬡ BEAM Turtle (.ttl)
+            </button>
+
             <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
           </div>
         )}

@@ -199,6 +199,23 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     }
 
     // Define custom figures for GoJS
+    go.Shape.defineFigureGenerator("NoteShape", function(_shape, w, h) {
+      const fold = Math.min(w * 0.22, h * 0.22);
+      const geo = new go.Geometry();
+      const body = new go.PathFigure(0, 0, true);
+      body.add(new go.PathSegment(go.PathSegment.Line, w - fold, 0));
+      body.add(new go.PathSegment(go.PathSegment.Line, w, fold));
+      body.add(new go.PathSegment(go.PathSegment.Line, w, h));
+      body.add(new go.PathSegment(go.PathSegment.Line, 0, h).close());
+      geo.add(body);
+      // Fold crease line
+      const crease = new go.PathFigure(w - fold, 0, false);
+      crease.add(new go.PathSegment(go.PathSegment.Line, w - fold, fold));
+      crease.add(new go.PathSegment(go.PathSegment.Line, w, fold));
+      geo.add(crease);
+      return geo;
+    });
+
     go.Shape.defineFigureGenerator("CustomHexagon", function(shape, w, h) {
       let param1 = shape ? shape.parameter1 : NaN;
       if (isNaN(param1)) param1 = 1;
@@ -482,19 +499,33 @@ function showSmallPorts(node: any, show: any) {
 
     diagram.linkTemplate = $(
       go.Link,
-      // 🔧 CHANGED: Use Orthogonal instead of AvoidsNodes (much faster)
-      {routing: go.Routing.AvoidsNodes,
-          curve: go.Curve.JumpOver,
-          corner: 5,
-          toShortLength: 4,
+      {
+        routing: go.Routing.AvoidsNodes,
+        curve: go.Curve.JumpOver,
+        corner: 5,
+        toShortLength: 4,
+        reshapable: true,
+        resegmentable: true,
+        relinkableFrom: true,
+        relinkableTo: true,
+      },
+      $(go.Shape, { strokeWidth: 2, stroke: "#555" }),
+      $(go.Shape, { toArrow: "Triangle", fill: "#555", stroke: null })
+    );
+
+    // Annotation connector — dotted line (Table 2 BEAM paper)
+    diagram.linkTemplateMap.add('annotation',
+      $(go.Link,
+        {
+          routing: go.Routing.Normal,
           reshapable: true,
           resegmentable: true,
           relinkableFrom: true,
           relinkableTo: true,
-      },
-      // { routing: go.Link.Orthogonal, corner: 5, selectable: true }, // commented to retain AvoidNodes
-      $(go.Shape, { strokeWidth: 2, stroke: "#555" }),
-      $(go.Shape, { toArrow: "Triangle", fill: "#555", stroke: null })
+        },
+        $(go.Shape, { strokeWidth: 1.5, stroke: '#757575', strokeDashArray: [4, 3] }),
+        $(go.Shape, { toArrow: 'OpenTriangle', stroke: '#757575', scale: 0.8 })
+      )
     );
 
     diagram.groupTemplateMap.add('ClusterGroup',
@@ -560,6 +591,112 @@ function showSmallPorts(node: any, show: any) {
           ),
           $(go.Placeholder, { padding: 12 })
         )
+      )
+    );
+
+    // ── BEAM Card template — two-section layout (header + description) ────────
+    // Used for: System, Context, Note, Risk, Risk Source, Consequence, Impact, Risk Control
+    // CARD_SHAPE is the Spot main element so it sets the node bounds.
+    // The Vertical content panel uses stretch:Fill to inherit that width,
+    // giving TextBlocks a real pixel budget so WrapFit actually wraps.
+    diagram.nodeTemplateMap.add('beamCard',
+      $(go.Node, 'Spot',
+        {
+          locationSpot: go.Spot.TopLeft,
+          selectable: true,
+          movable: true,
+          resizable: true,
+          resizeObjectName: 'CARD_SHAPE',
+          contextClick: (e, obj) => {
+            const node = obj.part;
+            if (node instanceof go.Node) {
+              setSelectedData(node.data);
+              const mouseEvent = e.event as MouseEvent;
+              setContextMenu({ x: mouseEvent.clientX, y: mouseEvent.clientY });
+            }
+          },
+          mouseEnter: (_e, obj) => showSmallPorts(obj, true),
+          mouseLeave: (_e, obj) => showSmallPorts(obj, false),
+        },
+        new go.Binding('location', 'loc', go.Point.parse).makeTwoWay(go.Point.stringify),
+
+        // Main Spot element: border shape drives node bounds + default port
+        $(go.Shape, 'Rectangle',
+          {
+            name: 'CARD_SHAPE',
+            fill: 'white',
+            strokeWidth: 2,
+            portId: '',
+            fromLinkable: true,
+            toLinkable: true,
+            fromSpot: go.Spot.AllSides,
+            toSpot: go.Spot.AllSides,
+            cursor: 'move',
+            minSize: new go.Size(160, 80),
+            maxSize: new go.Size(800, 600),
+          },
+          new go.Binding('stroke', 'stroke'),
+          new go.Binding('strokeWidth', 'strokeWidth'),
+          new go.Binding('desiredSize', 'size', go.Size.parse).makeTwoWay(go.Size.stringify),
+        ),
+
+        // Content overlay — stretch:Fill constrains width to CARD_SHAPE so WrapFit works
+        $(go.Panel, 'Vertical',
+          {
+            alignment: go.Spot.Center,
+            stretch: go.GraphObject.Fill,
+            defaultAlignment: go.Spot.Left,
+          },
+          // Header: colored band + bold title
+          $(go.Panel, 'Auto',
+            { stretch: go.GraphObject.Horizontal, minSize: new go.Size(0, 34) },
+            $(go.Shape, 'Rectangle',
+              { strokeWidth: 0, stretch: go.GraphObject.Fill },
+              new go.Binding('fill', 'color'),
+            ),
+            $(go.TextBlock, {
+              stretch: go.GraphObject.Horizontal,
+              margin: new go.Margin(6, 10, 6, 10),
+              font: 'bold 11px sans-serif',
+              stroke: '#111',
+              editable: true,
+              wrap: go.TextBlock.WrapFit,
+              alignment: go.Spot.Left,
+              maxLines: 3,
+              overflow: go.TextBlock.OverflowEllipsis,
+            },
+            new go.Binding('text', 'label').makeTwoWay(),
+            ),
+          ),
+          // Separator line
+          $(go.Shape, 'LineH', {
+            stroke: '#aaa',
+            strokeWidth: 1,
+            stretch: go.GraphObject.Horizontal,
+            height: 1,
+          }),
+          // Body: description — wraps within CARD_SHAPE width
+          $(go.TextBlock, {
+            stretch: go.GraphObject.Horizontal,
+            margin: new go.Margin(6, 10, 6, 10),
+            font: '10px sans-serif',
+            stroke: '#444',
+            editable: true,
+            isMultiline: true,
+            wrap: go.TextBlock.WrapFit,
+            maxLines: 10,
+            overflow: go.TextBlock.OverflowEllipsis,
+            alignment: go.Spot.TopLeft,
+          },
+          new go.Binding('text', 'subtext').makeTwoWay(),
+          ),
+        ),
+
+        // Port indicators (visible on hover via showSmallPorts)
+        makePort('T', go.Spot.Top, true, true),
+        makePort('L', go.Spot.Left, true, true),
+        makePort('R', go.Spot.Right, true, true),
+        makePort('B', go.Spot.Bottom, true, true),
       )
     );
 
@@ -707,7 +844,9 @@ function showSmallPorts(node: any, show: any) {
           color: shape.color,
           stroke: shape.stroke,
           loc: go.Point.stringify(point),
-          type: shape.name,  // 🔧 FIX: Set default type to shape name
+          type: shape.name,
+          ...(shape.category && { category: shape.category }),
+          ...(shape.category === 'beamCard' && { size: '220 100', subtext: 'Description' }),
           ...(shape.width && { width: shape.width }),
           ...(shape.height && { height: shape.height }),
         };
@@ -716,7 +855,7 @@ function showSmallPorts(node: any, show: any) {
           const radius = shape.borderRadius ? parseFloat(shape.borderRadius) : 15;
           nodeData.parameter1 = radius;
         }
-        
+
         if (shape.shape === 'Hexagon') {
           nodeData.parameter1 = 1;
         }
@@ -741,6 +880,7 @@ function showSmallPorts(node: any, show: any) {
     }
 
     diagramRef.current = diagram;
+    (window as any).__gojs_diagram = diagram;
     setupDiagramValidation(diagram);
 
     return () => {

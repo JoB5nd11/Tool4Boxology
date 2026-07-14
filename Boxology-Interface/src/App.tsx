@@ -90,10 +90,11 @@ function App() {
       nodeDataArray: [],
       linkDataArray: [],
     };
-    
+
     setPages(prev => [...prev, newPage]);
     setCurrentPageId(newPage.id);
   };
+
 
   // Switch to different page
   const handlePageSwitch = (pageId: string) => {
@@ -429,6 +430,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
   // Check each non-group node
   for (const node of nodes) {
     if (node.isGroup) continue; // Skip cluster nodes themselves
+    if (node.category === 'beamCard') continue; // Annotation/risk nodes are standalone
     
     const isShared = node.isShared && node.sharedGroups && node.sharedGroups.length > 0;
     
@@ -466,16 +468,18 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
   };
 };
 
-  const handleExport = async (kind: 'png' | 'jpg' | 'json' | 'dot') => {
-    // Validate clustering before export
-    const validation = validateNodeClustering();
-    if (!validation.valid) {
-      alert(
-        'Cannot export: All nodes must belong to exactly one cluster.\n\n' +
-        'Issues found:\n' +
-        validation.errors.join('\n')
-      );
-      return;
+  const handleExport = async (kind: 'png' | 'jpg' | 'json' | 'dot' | 'beam') => {
+    // Validate clustering before export (skip for image and BEAM exports)
+    if (kind !== 'png' && kind !== 'jpg' && kind !== 'beam') {
+      const validation = validateNodeClustering();
+      if (!validation.valid) {
+        alert(
+          'Cannot export: All nodes must belong to exactly one cluster.\n\n' +
+          'Issues found:\n' +
+          validation.errors.join('\n')
+        );
+        return;
+      }
     }
 
     if (!diagramRef.current) {
@@ -523,20 +527,24 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         // persist pages with any newly generated boxology ids/labels (generateMultiPageRMLExport will also set them if missing)
         setPages(updatedPages);
 
-        const rmlData = generateMultiPageRMLExport(updatedPages);
+        try {
+          const rmlData = generateMultiPageRMLExport(updatedPages);
 
-        const exportData = {
-          metadata: {
-            exportId: exportUUID,
-            userId,
-            exportDate: new Date().toISOString()
-          },
-          ...rmlData
-        };
+          const exportData = {
+            metadata: {
+              exportId: exportUUID,
+              userId,
+              exportDate: new Date().toISOString()
+            },
+            ...rmlData
+          };
 
-        const json = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-        await saveOrDownload(blob, `boxology_${userId}_${timestamp}_${exportUUID}.json`, 'application/json');
+          const json = JSON.stringify(exportData, null, 2);
+          const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+          await saveOrDownload(blob, `boxology_${userId}_${timestamp}_${exportUUID}.json`, 'application/json');
+        } catch (err: any) {
+          alert(err?.message ?? 'JSON export failed');
+        }
         break;
       }
 
@@ -548,6 +556,37 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         const dot = modelToDOT(data, { graphLabel: 'Boxology' });
         const blob = new Blob([dot], { type: 'text/vnd.graphviz;charset=utf-8' });
         await saveOrDownload(blob, `diagram_${timestamp}.dot`, 'text/vnd.graphviz');
+        break;
+      }
+
+      case 'beam': {
+        try {
+          const model = diagramRef.current!.model as go.GraphLinksModel;
+          const currentPageNodes = model.nodeDataArray.map((n: any) => ({
+            ...n,
+            type: n.type ?? n.name,
+          }));
+          const currentPageLinks = model.linkDataArray.map((l: any) => ({ ...l }));
+          const updatedPages = pages.map(p =>
+            p.id === currentPageId
+              ? { ...p, nodeDataArray: currentPageNodes, linkDataArray: currentPageLinks }
+              : p
+          );
+
+          const rmlData = generateMultiPageRMLExport(updatedPages);
+
+          const res = await fetch(`${API_BASE}/api/beam-export`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(rmlData),
+          });
+          if (!res.ok) throw new Error(`Backend error ${res.status}: ${await res.text()}`);
+          const turtle = await res.text();
+          const blob = new Blob([turtle], { type: 'text/turtle;charset=utf-8' });
+          await saveOrDownload(blob, `beam_export_${timestamp}.ttl`, 'text/turtle');
+        } catch (err: any) {
+          alert(`BEAM export failed:\n${err?.message ?? err}`);
+        }
         break;
       }
     }
@@ -1143,6 +1182,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         onExportJPG={() => handleExport('jpg')}
         onExportJSON={() => handleExport('json')}
         onExportDOT={() => handleExport('dot')}
+        onExportBEAM={() => handleExport('beam')}
 
         onOpenGraphviz={() => {
           const dot = (() => {

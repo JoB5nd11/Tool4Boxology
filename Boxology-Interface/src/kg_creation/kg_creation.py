@@ -3,6 +3,16 @@ try:
 except:
     from .in_memory_rdfizer.generator import kg_generation
 
+try:
+    from beam_enrichment import enrich_with_beam
+except:
+    from .beam_enrichment import enrich_with_beam
+
+try:
+    from beam_annotation_triples import generate_annotation_triples
+except:
+    from .beam_annotation_triples import generate_annotation_triples
+
 from SPARQLWrapper import SPARQLWrapper, POST, DIGEST, JSON
 import os
 import socket
@@ -60,12 +70,71 @@ def insert_triples(triples):
 	sparql.setQuery(query)
 	results = sparql.query().convert()
 
+def _delete_stale_beam(sparql, boxology_entity):
+	# The main DELETE below clears each component's rdf:type triples (including the
+	# inferred beam:* types) and the T4B role properties. It does NOT touch the
+	# inferred BEAM object properties (use/usedBy/produce/producedBy), so we scrub
+	# those explicitly here while the T4B structure is still present to locate them.
+	beam = "http://w3id.org/beam/core#"
+	t4b = "http://tool4boxology.org/"
+	query = (
+		"DELETE { "
+		"?in <" + beam + "usedBy> ?pr . "
+		"?pr <" + beam + "use> ?in . "
+		"?pr <" + beam + "produce> ?out . "
+		"?out <" + beam + "producedBy> ?pr . "
+		"} WHERE { "
+		+ boxology_entity + " <" + t4b + "hasPattern> ?dp . "
+		"?dp <" + t4b + "hasInput> ?in . "
+		"?dp <" + t4b + "hasProcess> ?pr . "
+		"?dp <" + t4b + "hasOutput> ?out . "
+		"}"
+	)
+	sparql.setReturnFormat(JSON)
+	sparql.setQuery(query)
+	sparql.query().convert()
+
+def _delete_stale_annotations(sparql, boxology_entity):
+	beam = "http://w3id.org/beam/core#"
+	q_meta = (
+		"DELETE { "
+		+ boxology_entity + " <" + beam + "description> ?d . "
+		+ boxology_entity + " <" + beam + "context> ?c . "
+		"} WHERE { "
+		"{ " + boxology_entity + " <" + beam + "description> ?d } "
+		"UNION "
+		"{ " + boxology_entity + " <" + beam + "context> ?c } "
+		"}"
+	)
+	sparql.setReturnFormat(JSON)
+	sparql.setQuery(q_meta)
+	sparql.query().convert()
+	box_iri = boxology_entity.strip("<>")
+	box_id = box_iri.split("/")[-1]
+	ann_prefix = "http://tool4boxology.org/Annotation/" + box_id + "/"
+	q_ann_out = (
+		"DELETE { ?ann ?p ?o } "
+		"WHERE { ?ann ?p ?o . FILTER(STRSTARTS(STR(?ann), '" + ann_prefix + "')) }"
+	)
+	sparql.setReturnFormat(JSON)
+	sparql.setQuery(q_ann_out)
+	sparql.query().convert()
+	q_ann_in = (
+		"DELETE { ?s ?p ?ann } "
+		"WHERE { ?s ?p ?ann . FILTER(STRSTARTS(STR(?ann), '" + ann_prefix + "')) }"
+	)
+	sparql.setReturnFormat(JSON)
+	sparql.setQuery(q_ann_in)
+	sparql.query().convert()
+
 def update_kg(source,triples):
 	sparql = _get_update_sparql()
 	#sparql = SPARQLWrapper(SPARQL_ENDPOINT,defaultGraph=SPARQL_ENDPOINT)
 	for boxology in source["boxologies"]:
 		boxology_entity = "<http://tool4boxology.org/Boxology/" + boxology["id"] + ">"
-		query = "DELETE WHERE {" 
+		_delete_stale_beam(sparql, boxology_entity)
+		_delete_stale_annotations(sparql, boxology_entity)
+		query = "DELETE WHERE {"
 		query += boxology_entity + " a <http://tool4boxology.org/Boxology> .\n"
 		query += boxology_entity + " <http://www.w3.org/2000/01/rdf-schema#label> ?boxology_label .\n"
 		query += boxology_entity + " <http://tool4boxology.org/hasPattern> ?design_pattern .\n"
@@ -93,9 +162,17 @@ def update_kg(source,triples):
 
 def create_kg(source):
 	knowledge_graph = kg_generation(source)
+	knowledge_graph = enrich_with_beam(knowledge_graph)
+	annotation_triples = generate_annotation_triples(source)
+	if annotation_triples:
+		knowledge_graph = knowledge_graph + annotation_triples
 	update_needed = boxology_exists(source)
 	if update_needed:
 		update_kg(source,knowledge_graph)
+		mode = "update"
 	else:
 		insert_triples(knowledge_graph)
+		mode = "insert"
+	triples_len = sum(1 for line in knowledge_graph.splitlines() if line.strip())
+	return {"mode": mode, "triples_len": triples_len}
 

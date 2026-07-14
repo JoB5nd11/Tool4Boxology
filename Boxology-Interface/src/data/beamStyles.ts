@@ -72,4 +72,16 @@ export const beamStyleMap: Record<string, BeamStyle> = {
   embed:     { color: '#ffb6c1', stroke: '#cd5c5c', shape: 'RoundedRectangle', beamClass: 'beam:Transform' },
   Normalize: { color: '#ffb6c1', stroke: '#cd5c5c', shape: 'RoundedRectangle', beamClass: 'beam:Transform' },
   aggregate: { color: '#ffb6c1', stroke: '#cd5c5c', shape: 'RoundedRectangle', beamClass: 'beam:Transform' },
+
+  // --- BEAM Annotation elements (Table 2) ---
+  System:      { color: '#e8f5e9', stroke: '#388e3c', shape: 'Rectangle', beamClass: 'beam:System' },
+  Context:     { color: '#f5f5f5', stroke: '#757575', shape: 'Rectangle', beamClass: 'beam:Context' },
+  Note:        { color: '#fffde7', stroke: '#9e9e9e', shape: 'Note',      beamClass: 'beam:Note' },
+
+  // --- BEAM Risk elements (Table 3) ---
+  Risk:        { color: '#fff3e0', stroke: '#fb8c00', shape: 'Rectangle', beamClass: 'beam:Risk' },
+  RiskSource:  { color: '#fffde7', stroke: '#f9a825', shape: 'Rectangle', beamClass: 'beam:RiskSource' },
+  Consequence: { color: '#fce4ec', stroke: '#e91e63', shape: 'Rectangle', beamClass: 'beam:Consequence' },
+  Impact:      { color: '#ef9a9a', stroke: '#c62828', shape: 'Rectangle', beamClass: 'beam:Impact' },
+  RiskControl: { color: '#e8f5e9', stroke: '#388e3c', shape: 'Rectangle', beamClass: 'beam:RiskControl' },
 };
