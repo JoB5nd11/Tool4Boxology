@@ -1,12 +1,14 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# npm bug workaround: ensure latest npm and clean install
-RUN npm install -g npm@latest && rm -rf node_modules package-lock.json && npm install
+# Use the npm bundled with the base image. `npm install -g npm@latest` used to
+# live here, but npm 12 requires Node >=22.22 and broke every fresh build on
+# node:20; the bundled npm already satisfies package.json's engines.
+RUN rm -rf node_modules package-lock.json && npm install
 
 # Copy source code
 COPY . .
