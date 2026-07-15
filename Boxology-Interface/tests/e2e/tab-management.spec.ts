@@ -161,6 +161,39 @@ test.describe('Tab management', () => {
     expect(await nodeCount(page)).toBe(0);
   });
 
+  // Save hands the diagram a NEW normalized Model. modelsRef is authoritative on
+  // the next tab switch, so if Save doesn't repoint it, switching away and back
+  // re-attaches the PRE-save model and every post-save edit is silently lost —
+  // and flows stale into BEAM/KG export, which override the active page from the
+  // live model. Regression test for that.
+  test('edits made after a Save survive a tab round-trip', async ({ page }) => {
+    // Suppress the real file picker; Save falls back to a download.
+    await page.addInitScript(() => { delete (window as any).showSaveFilePicker; });
+    await page.reload();
+    await page.waitForSelector('canvas', { timeout: 15000 });
+    await dismissModal(page);
+
+    await addNode(page, 'before-save');
+    expect(await nodeCount(page)).toBe(1);
+
+    page.once('dialog', (d) => d.accept());
+    const download = page.waitForEvent('download').catch(() => null);
+    await page.getByRole('button', { name: /Save/i }).click();
+    await download;
+    await page.waitForTimeout(800);
+
+    await addNode(page, 'after-save');
+    expect(await nodeCount(page)).toBe(2);
+
+    const tabs = page.getByTestId('page-tab');
+    await page.getByTestId('add-tab').click();
+    await page.waitForTimeout(500);
+    await tabs.nth(0).click();
+    await page.waitForTimeout(700);
+
+    expect(await nodeCount(page)).toBe(2);
+  });
+
   // Every other undo test here either undoes an edit made before a switch, or
   // asserts undo does nothing — so none of them would notice undo being broken
   // on a freshly created tab. This covers that gap.

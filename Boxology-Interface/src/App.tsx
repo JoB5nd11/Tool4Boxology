@@ -229,6 +229,11 @@ function App() {
   // already had some, contrary to what the go.d.ts comment implies. See the
   // `diagram.skipsUndoManager` guard below, which is the other half of this fix.
   const modelsRef = useRef<Map<string, go.GraphLinksModel>>(new Map());
+  // Identifies the newest in-flight load, so a stale load's release cannot lower
+  // the guard out from under a newer one. `guardRef` holds the skipsUndoManager
+  // value to restore, captured once per guarded span rather than per load.
+  const loadGenRef = useRef(0);
+  const guardRef = useRef<{ active: boolean; prev: boolean }>({ active: false, prev: false });
   // Which page is loaded into which go.Diagram instance. GoDiagram rebuilds the
   // instance on a container/customGroup change (and twice under StrictMode), and
   // each rebuild starts empty — so the page id alone is not enough to know
@@ -281,7 +286,15 @@ function App() {
     //
     // GoJS wants the previous value remembered and restored, not a hardcoded
     // false — its own tools (DraggingTool, LinkingTool) drive this flag too.
-    const prevSkips = diagram.skipsUndoManager;
+    //
+    // Captured once per guarded span, not once per load: if a second load starts
+    // while this one's guard is still up, it would otherwise capture `true` as
+    // its "previous" value and restore the diagram into a permanently guarded
+    // state, silently disabling undo recording from then on.
+    const gen = ++loadGenRef.current;
+    if (!guardRef.current.active) {
+      guardRef.current = { active: true, prev: diagram.skipsUndoManager };
+    }
     diagram.skipsUndoManager = true;
     diagram.model = model;
 
@@ -308,18 +321,25 @@ function App() {
       if (released) return;
       released = true;
       diagram.removeDiagramListener('InitialLayoutCompleted', release);
-      diagram.skipsUndoManager = prevSkips;
       isLoadingPageRef.current = false;
+      // Only the newest load may lower the guard. An older load's release
+      // firing after a newer one began would drop the guard while the newer
+      // model's layout pass is still pending — the exact history wipe this
+      // guard exists to prevent.
+      if (gen !== loadGenRef.current) return;
+      diagram.skipsUndoManager = guardRef.current.prev;
+      guardRef.current.active = false;
     };
     diagram.addDiagramListener('InitialLayoutCompleted', release);
-    // Safety net, deliberately kept despite no test covering it: a stuck guard
-    // does NOT break undo on the next tab (the newly attached model carries its
-    // own skipsUndoManager=false, and that is what gates recording — measured),
-    // so this failure is invisible to any behavioural test. What it would do is
-    // leave the diagram flag true, and the next load's `prevSkips` would then
-    // latch true and propagate it to a model that does gate recording. Cheap
-    // insurance against a GoJS upgrade that stops firing the event.
-    window.setTimeout(release, 100);
+    // Safety net against a GoJS upgrade that stops firing the event, which would
+    // otherwise wedge the guard up for the session. Deliberately far longer than
+    // any plausible layout: a short timer is the same race the event release
+    // replaced, just with a longer fuse — on a throttled or backgrounded tab rAF
+    // can stall for seconds, and if the timer wins, history is wiped. No test
+    // covers this path: a stuck guard leaves undo working (the freshly attached
+    // model carries its own skipsUndoManager=false, and that gates recording —
+    // measured), so the failure is invisible to any behavioural test.
+    window.setTimeout(release, 5000);
   }, [currentPageId, currentPage, diagramEpoch]);
 
   // Canvas -> state. Fires on every committed transaction (see GoDiagram).
@@ -487,13 +507,21 @@ function App() {
         model.linkDataArray || []
       );
 
-      // Update the model with normalized data
-      diagramRef.current.model = go.Model.fromJson(JSON.stringify({
+      // Update the model with normalized data.
+      //
+      // This hands the diagram a NEW Model object, so modelsRef — which is
+      // authoritative on the next tab switch — must be repointed at it. Without
+      // that, switching away and back re-attaches the pre-save model and every
+      // post-save edit vanishes, then flows stale into BEAM/KG export (both
+      // override the active page from the live model).
+      const normalized = go.Model.fromJson(JSON.stringify({
         class: "GraphLinksModel",
         nodeDataArray,
         linkDataArray,
         modelData: model.modelData
-      }));
+      })) as go.GraphLinksModel;
+      diagramRef.current.model = normalized;
+      modelsRef.current.set(currentPageId, normalized);
 
       // ensure model.modelData exists
       const updatedModel = diagramRef.current.model as go.GraphLinksModel;
