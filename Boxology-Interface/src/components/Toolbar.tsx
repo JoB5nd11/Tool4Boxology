@@ -30,6 +30,8 @@ type ToolbarProps = {
   //onExportDrawio: () => void;
   onExportDOT: () => void;
   onExportBEAM: () => void;
+  /** Number of open tabs. Export JSON/BEAM and Create KG span all of them. */
+  pageCount: number;
   onOpenGraphviz: () => void;
   onCreateKG?: () => void;
   onUploadKG?: (files: FileList) => void;
@@ -54,6 +56,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   //onExportDrawio,
   onExportDOT,
   onExportBEAM,
+  pageCount,
   onOpenGraphviz,
   onCreateKG,
   onUploadKG,
@@ -61,6 +64,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onBeamViewToggle,
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
+  // JSON/BEAM/KG export every tab (generateMultiPageRMLExport). Say so, but stay
+  // quiet at one tab — "all 1 tabs" is noise.
+  const scopeSuffix = pageCount > 1 ? ` (all ${pageCount} tabs)` : '';
   const [showHelpMenu, setShowHelpMenu] = React.useState(false);  // <-- added
   const [showAlignOrganize, setShowAlignOrganize] = useState(false);
   const exportMenuRef = React.useRef<HTMLDivElement>(null);
@@ -438,7 +444,7 @@ LIMIT 100`;
               onMouseOver={hoverOn}
               onMouseOut={hoverOff}
             >
-              📄 JSON
+              📄 JSON{scopeSuffix}
             </button>
 
             <button
@@ -476,7 +482,7 @@ LIMIT 100`;
               onMouseOver={hoverOn}
               onMouseOut={hoverOff}
             >
-              ⬡ BEAM Turtle (.ttl)
+              ⬡ BEAM Turtle (.ttl){scopeSuffix}
             </button>
 
             <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
@@ -521,7 +527,7 @@ LIMIT 100`;
           }}
           title="Create Knowledge Graph in Virtuoso from current pages"
         >
-          🔗 Create KG
+          🔗 Create KG{scopeSuffix}
         </button>
       )}
 

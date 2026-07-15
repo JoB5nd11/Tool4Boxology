@@ -1323,6 +1323,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           openInGraphviz(dot, 'dot');
         }}
         onCreateKG={handleCreateKG}
+        pageCount={pages.length}
         onUploadKG={handleUploadKG}
         beamViewActive={beamViewActive}
         onBeamViewToggle={setBeamViewActive}

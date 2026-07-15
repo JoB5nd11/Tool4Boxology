@@ -65,4 +65,27 @@ test.describe('Tab management', () => {
     expect(activeBg).not.toBe(inactiveBg);
     expect(activeBorder).toBe('rgb(17, 9, 105)');
   });
+
+  test('export menu states its scope only when multiple tabs exist', async ({ page }) => {
+    // NOTE: match /BEAM Turtle/, never /BEAM/ — a "⬡ BEAM View" toggle button
+    // also exists (Toolbar.tsx:570) and /BEAM/ would fail Playwright strict mode
+    // with two matches.
+
+    // One tab: no scope suffix — "all 1 tabs" would be noise.
+    await page.getByRole('button', { name: /Export/i }).click();
+    await expect(page.getByRole('button', { name: /JSON/i })).not.toHaveText(/all /);
+    await expect(page.getByRole('button', { name: /BEAM Turtle/i })).not.toHaveText(/all /);
+    await expect(page.getByRole('button', { name: /Create KG/i })).not.toHaveText(/all /);
+
+    // Clicking + both closes the menu (the only close path is a mousedown
+    // outside — Toolbar.tsx:71-86 registers no Escape handler) and adds a tab.
+    await page.getByTestId('add-tab').click();
+    await page.waitForTimeout(500);
+
+    // Two tabs: scope is stated with a live count.
+    await page.getByRole('button', { name: /Export/i }).click();
+    await expect(page.getByRole('button', { name: /JSON/i })).toHaveText(/all 2 tabs/);
+    await expect(page.getByRole('button', { name: /BEAM Turtle/i })).toHaveText(/all 2 tabs/);
+    await expect(page.getByRole('button', { name: /Create KG/i })).toHaveText(/all 2 tabs/);
+  });
 });
