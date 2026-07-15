@@ -160,4 +160,26 @@ test.describe('Tab management', () => {
     await page.waitForTimeout(500);
     expect(await nodeCount(page)).toBe(0);
   });
+
+  // Every other undo test here either undoes an edit made before a switch, or
+  // asserts undo does nothing — so none of them would notice undo being broken
+  // on a freshly created tab. This covers that gap.
+  //
+  // It does NOT guard the load effect's skipsUndoManager release, though the
+  // shape of the test invites that reading: a stuck guard still leaves undo
+  // working here, because the newly attached model carries its own
+  // skipsUndoManager=false and that is what gates recording. Verified by
+  // disabling the release and watching this test pass anyway.
+  test('undo works on a brand-new tab', async ({ page }) => {
+    await page.getByTestId('add-tab').click();
+    await page.waitForTimeout(500);
+    expect(await nodeCount(page)).toBe(0);
+
+    await addNode(page, 'gamma');
+    expect(await nodeCount(page)).toBe(1);
+
+    await page.getByRole('button', { name: /Undo/i }).click();
+    await page.waitForTimeout(500);
+    expect(await nodeCount(page)).toBe(0);
+  });
 });

@@ -278,15 +278,48 @@ function App() {
     // the modelsRef comment above). Confirmed empirically against gojs 3.1.5:
     // without this guard, reattaching a previously-used, history-bearing model
     // still loses its history on every switch.
+    //
+    // GoJS wants the previous value remembered and restored, not a hardcoded
+    // false — its own tools (DraggingTool, LinkingTool) drive this flag too.
+    const prevSkips = diagram.skipsUndoManager;
     diagram.skipsUndoManager = true;
     diagram.model = model;
 
-    // Released on a macrotask: GoJS commits its initial layout transaction
-    // after the assignment returns.
-    window.setTimeout(() => {
-      diagram.skipsUndoManager = false;
+    // The guard must stay up until GoJS's initial-layout pass has run, because
+    // that pass is what decides whether to wipe the UndoManager. GoJS schedules
+    // it on a requestAnimationFrame, so a setTimeout(0) release is a RACE, not a
+    // sequence: whichever of the two the browser happens to run first wins, and
+    // if the timer wins, the history is gone. Measured both orders on gojs 3.1.5.
+    //
+    // "InitialLayoutCompleted" is that pass's own completion signal, so it
+    // releases on the event we actually depend on rather than on a guess about
+    // frame timing. Verified on 3.1.5: it fires from inside the layout pass,
+    // after GoJS has already decided not to clear (guard still up), and it fires
+    // even for an empty model — so a brand-new tab releases normally.
+    //
+    // Deliberately NOT released from this effect's cleanup. `currentPage` is a
+    // new object on every edit, so the effect re-runs constantly and merely
+    // short-circuits on `loadedRef` — and under StrictMode the mount runs
+    // effect/cleanup/effect, where the second run short-circuits too. Releasing
+    // from cleanup would drop the guard before the layout pass it exists to
+    // cover. These self-release instead; both are idempotent.
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      diagram.removeDiagramListener('InitialLayoutCompleted', release);
+      diagram.skipsUndoManager = prevSkips;
       isLoadingPageRef.current = false;
-    }, 0);
+    };
+    diagram.addDiagramListener('InitialLayoutCompleted', release);
+    // Safety net, deliberately kept despite no test covering it: a stuck guard
+    // does NOT break undo on the next tab (the newly attached model carries its
+    // own skipsUndoManager=false, and that is what gates recording — measured),
+    // so this failure is invisible to any behavioural test. What it would do is
+    // leave the diagram flag true, and the next load's `prevSkips` would then
+    // latch true and propagate it to a model that does gate recording. Cheap
+    // insurance against a GoJS upgrade that stops firing the event.
+    window.setTimeout(release, 100);
   }, [currentPageId, currentPage, diagramEpoch]);
 
   // Canvas -> state. Fires on every committed transaction (see GoDiagram).
