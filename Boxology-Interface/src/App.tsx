@@ -33,6 +33,18 @@ const blankPage = (): PageData => ({
   linkDataArray: [],
 });
 
+// Names are cosmetic (page.id is a uuid), but `Diagram ${pages.length + 1}`
+// collides: with Diagram 1/2/3, closing Diagram 2 leaves length 2 and the next
+// add produces a second "Diagram 3". Derive from the highest existing suffix.
+const nextDiagramName = (existing: PageData[]): string => {
+  const used = existing
+    .map((p) => /^Diagram (\d+)$/.exec(p.name))
+    .filter((m): m is RegExpExecArray => m !== null)
+    .map((m) => parseInt(m[1], 10));
+  const max = used.length ? Math.max(...used) : 0;
+  return `Diagram ${max + 1}`;
+};
+
 const elementaryPatternsGroup = () =>
   elementaryPatterns.map(pattern => ({
     id: pattern.id,
@@ -109,7 +121,7 @@ function App() {
 
     const newPage: PageData = {
       id: uuidv4(),
-      name: `Diagram ${pages.length + 1}`,
+      name: nextDiagramName(pages),
       nodeDataArray: [],
       linkDataArray: [],
     };
@@ -1329,6 +1341,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           <button
             key={page.id}
             data-testid="page-tab"
+            data-active={page.id === currentPageId}
             onClick={() => handlePageSwitch(page.id)}
             onDoubleClick={(e) => { e.stopPropagation(); handleRenamePage(page.id); }}
             title='Double Click to Rename It'
@@ -1381,8 +1394,31 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             )}
           </button>
         ))}
-        
-        {/* Replace the Add Page button with a Home Page button */}
+
+        <button
+          onClick={handleAddNewPage}
+          data-testid="add-tab"
+          aria-label="Add tab"
+          title="Add a new diagram tab"
+          style={{
+            backgroundColor: '#E3E3E3',
+            color: '#110969',
+            border: '1px solid #b6b3b3ff',
+            padding: '8px 14px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '18px',
+            fontWeight: '700',
+            lineHeight: 1,
+            transition: 'background-color 0.2s ease',
+          }}
+          onMouseEnter={(e) => ((e.target as HTMLElement).style.backgroundColor = '#bedaeeff')}
+          onMouseLeave={(e) => ((e.target as HTMLElement).style.backgroundColor = '#E3E3E3')}
+        >
+          +
+        </button>
+
+        {/* Home Page button — pinned right via marginLeft: 'auto' */}
         <button
           onClick={() => { window.location.href = '/home/index.html'; }}
           style={{
