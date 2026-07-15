@@ -88,4 +88,76 @@ test.describe('Tab management', () => {
     await expect(page.getByRole('button', { name: /BEAM Turtle/i })).toHaveText(/all 2 tabs/);
     await expect(page.getByRole('button', { name: /Create KG/i })).toHaveText(/all 2 tabs/);
   });
+
+  // Adds one node in its own transaction — i.e. exactly one undoable edit.
+  //
+  // Uses the window.__gojs_diagram hook (assigned at GoDiagram.tsx:1073) and
+  // model.addNodeData, matching export-robustness.spec.ts. Do NOT drag from the
+  // palette: it is an HTML5 draggable div (LeftSidebar.tsx:83-86) and Playwright's
+  // dragTo drives mouse events, which do not reliably fire native HTML5 DnD.
+  async function addNode(page: any, label: string) {
+    await page.evaluate((lbl: string) => {
+      const diagram = (window as any).__gojs_diagram;
+      if (!diagram) throw new Error('__gojs_diagram missing — GoDiagram did not initialize');
+      diagram.startTransaction('add test node');
+      diagram.model.addNodeData({
+        key: `test_${lbl}`,
+        name: 'Data',
+        type: 'Data',
+        label: lbl,
+        shape: 'Rectangle',
+        color: '#b7eaffff',
+        stroke: '#1E5F8B',
+      });
+      diagram.commitTransaction('add test node');
+    }, label);
+    await page.waitForTimeout(300);
+  }
+
+  async function nodeCount(page: any) {
+    return page.evaluate(() => (window as any).__gojs_diagram?.model?.nodeDataArray?.length ?? -1);
+  }
+
+  test('undo history survives a tab switch', async ({ page }) => {
+    const tabs = page.getByTestId('page-tab');
+
+    // Edit tab A.
+    await addNode(page, 'alpha');
+    const afterEdit = await nodeCount(page);
+    expect(afterEdit).toBeGreaterThan(0);
+
+    // Switch away to a new tab B, then back to A.
+    await page.getByTestId('add-tab').click();
+    await page.waitForTimeout(500);
+    await tabs.nth(0).click();
+    await page.waitForTimeout(500);
+    await expect(tabs.nth(0)).toHaveAttribute('data-active', 'true');
+    expect(await nodeCount(page)).toBe(afterEdit);
+
+    // Undo must still revert the edit made before the switch.
+    await page.getByRole('button', { name: /Undo/i }).click();
+    await page.waitForTimeout(500);
+    expect(await nodeCount(page)).toBe(afterEdit - 1);
+  });
+
+  test('a closed tab leaves no undo residue', async ({ page }) => {
+    const tabs = page.getByTestId('page-tab');
+
+    // Edit tab B, then close it.
+    await page.getByTestId('add-tab').click();
+    await page.waitForTimeout(500);
+    await addNode(page, 'beta');
+    expect(await nodeCount(page)).toBeGreaterThan(0);
+    await tabs.nth(1).getByText('×').click();
+    await page.waitForTimeout(500);
+    await expect(tabs).toHaveCount(1);
+
+    // A brand-new tab must be empty, and undo must not replay the dead tab's edit.
+    await page.getByTestId('add-tab').click();
+    await page.waitForTimeout(500);
+    expect(await nodeCount(page)).toBe(0);
+    await page.getByRole('button', { name: /Undo/i }).click();
+    await page.waitForTimeout(500);
+    expect(await nodeCount(page)).toBe(0);
+  });
 });

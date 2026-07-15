@@ -177,7 +177,8 @@ function App() {
   // Close page
   const handleClosePage = (pageId: string) => {
     if (pages.length === 1) return; // Can't close last page
-    
+    modelsRef.current.delete(pageId);
+
     setPages(prev => prev.filter(page => page.id !== pageId));
     
     // If closing current page, switch to first remaining page
@@ -201,6 +202,7 @@ function App() {
 
   const handleStartFresh = () => {
     clearSession();
+    modelsRef.current.clear();
     const fresh = blankPage();
     setPages([fresh]);
     setCurrentPageId(fresh.id);
@@ -214,6 +216,19 @@ function App() {
   // True while we are pushing a page into the canvas, so the resulting model
   // events are not mistaken for user edits.
   const isLoadingPageRef = useRef(false);
+  // One live model per page. GoJS keeps undo history on the Model's UndoManager,
+  // and replacing Diagram.model copies only isEnabled/maxHistoryLength — NOT the
+  // history (go.d.ts:4387). Constructing a fresh model per switch therefore wiped
+  // undo. Reusing the page's model keeps its history.
+  //
+  // Reusing the Model object is necessary but NOT sufficient: GoJS's Diagram.model
+  // setter unconditionally resets an internal "has this diagram laid out yet" flag,
+  // which forces the very next layout pass to run as an "Initial Layout"
+  // transaction. Committing THAT transaction unconditionally clears the
+  // (re)attached model's UndoManager — wiping history even for a model that
+  // already had some, contrary to what the go.d.ts comment implies. See the
+  // `diagram.skipsUndoManager` guard below, which is the other half of this fix.
+  const modelsRef = useRef<Map<string, go.GraphLinksModel>>(new Map());
   // Which page is loaded into which go.Diagram instance. GoDiagram rebuilds the
   // instance on a container/customGroup change (and twice under StrictMode), and
   // each rebuild starts empty — so the page id alone is not enough to know
@@ -223,6 +238,22 @@ function App() {
     pageId: null,
   });
   const [diagramEpoch, setDiagramEpoch] = useState(0);
+
+  // A rebuilt diagram instance invalidates every cached model; the load effect
+  // below repopulates the current page's. Costs undo history on palette changes,
+  // which are rare — correctness beats history here.
+  //
+  // Also resets loadedRef: under React StrictMode, GoDiagram's setup effect runs
+  // twice at mount, each call bumping diagramEpoch — React batches both into a
+  // single commit (0 -> 2, skipping past 1). Without resetting loadedRef here,
+  // the load effect below sees its own `{diagram, pageId}` guard still matching
+  // (the diagram instance didn't change again after the second bump) and skips
+  // re-populating the cache this effect just cleared, orphaning the diagram's
+  // live model outside modelsRef for the rest of its life.
+  useEffect(() => {
+    modelsRef.current.clear();
+    loadedRef.current = { diagram: null, pageId: null };
+  }, [diagramEpoch]);
 
   // Load the current page into the canvas.
   //
@@ -236,13 +267,26 @@ function App() {
 
     loadedRef.current = { diagram, pageId: currentPageId };
     isLoadingPageRef.current = true;
-    diagram.model = new go.GraphLinksModel(
-      currentPage.nodeDataArray,
-      currentPage.linkDataArray
-    );
+
+    let model = modelsRef.current.get(currentPageId);
+    if (!model) {
+      model = new go.GraphLinksModel(currentPage.nodeDataArray, currentPage.linkDataArray);
+      modelsRef.current.set(currentPageId, model);
+    }
+    // Suppress GoJS's forced "Initial Layout" transaction from being recorded
+    // (and from clearing the model's UndoManager via its internal Dx flag — see
+    // the modelsRef comment above). Confirmed empirically against gojs 3.1.5:
+    // without this guard, reattaching a previously-used, history-bearing model
+    // still loses its history on every switch.
+    diagram.skipsUndoManager = true;
+    diagram.model = model;
+
     // Released on a macrotask: GoJS commits its initial layout transaction
     // after the assignment returns.
-    window.setTimeout(() => { isLoadingPageRef.current = false; }, 0);
+    window.setTimeout(() => {
+      diagram.skipsUndoManager = false;
+      isLoadingPageRef.current = false;
+    }, 0);
   }, [currentPageId, currentPage, diagramEpoch]);
 
   // Canvas -> state. Fires on every committed transaction (see GoDiagram).
@@ -513,6 +557,9 @@ if (model && model.nodeDataArray) {
           return { ...pg, boxologyId: id, boxologyLabel: label };
         });
 
+        // These pages are rebuilt from the file; a surviving cached model would
+        // resurrect content the user just replaced.
+        modelsRef.current.clear();
         setPages(ensuredPages);
         setCurrentPageId(ensuredPages[0].id);
 
