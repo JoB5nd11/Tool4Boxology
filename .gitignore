@@ -1,3 +1,11 @@
 __pycache__/
 *.pyc
 node_modules/
+
+# Local documentation / working notes (not part of the upstream repo)
+docs/
+
+# Claude Code / Superpowers local tooling (not part of the upstream repo)
+.claude/
+CLAUDE.md
+.superpowers/
