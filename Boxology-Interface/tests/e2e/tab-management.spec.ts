@@ -28,6 +28,59 @@ test.describe('Tab management', () => {
     await expect(tabs.nth(0)).toHaveAttribute('data-active', 'false');
   });
 
+  test('double-click renames a tab inline; Enter commits', async ({ page }) => {
+    const tabs = page.getByTestId('page-tab');
+    await tabs.nth(0).dblclick();
+
+    const input = page.getByTestId('tab-rename-input');
+    await expect(input).toBeVisible();
+    await input.fill('Renamed Tab');
+    await input.press('Enter');
+
+    await expect(page.getByTestId('tab-rename-input')).toHaveCount(0);
+    await expect(tabs.nth(0)).toHaveText(/Renamed Tab/);
+  });
+
+  test('clicking away (blur) commits an inline rename', async ({ page }) => {
+    const tabs = page.getByTestId('page-tab');
+    await tabs.nth(0).dblclick();
+
+    const input = page.getByTestId('tab-rename-input');
+    await input.fill('Blur Saved');
+    // Move focus off the field without pressing Enter.
+    await page.getByTestId('add-tab').click();
+    await page.waitForTimeout(300);
+
+    await expect(page.getByTestId('tab-rename-input')).toHaveCount(0);
+    await expect(tabs.nth(0)).toHaveText(/Blur Saved/);
+  });
+
+  test('Escape cancels an inline rename', async ({ page }) => {
+    const tabs = page.getByTestId('page-tab');
+    const original = (await tabs.nth(0).innerText()).replace(/×/g, '').trim();
+
+    await tabs.nth(0).dblclick();
+    const input = page.getByTestId('tab-rename-input');
+    await input.fill('Should Not Stick');
+    await input.press('Escape');
+
+    await expect(page.getByTestId('tab-rename-input')).toHaveCount(0);
+    await expect(tabs.nth(0)).toHaveText(new RegExp(original));
+  });
+
+  test('an all-whitespace rename is a no-op, not a wipe', async ({ page }) => {
+    const tabs = page.getByTestId('page-tab');
+    const original = (await tabs.nth(0).innerText()).replace(/×/g, '').trim();
+
+    await tabs.nth(0).dblclick();
+    const input = page.getByTestId('tab-rename-input');
+    await input.fill('   ');
+    await input.press('Enter');
+
+    await expect(page.getByTestId('tab-rename-input')).toHaveCount(0);
+    await expect(tabs.nth(0)).toHaveText(new RegExp(original));
+  });
+
   test('tab names do not collide after closing a middle tab', async ({ page }) => {
     const tabs = page.getByTestId('page-tab');
 

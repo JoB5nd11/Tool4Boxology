@@ -85,13 +85,37 @@ function App() {
   const sanitizeFilename = (name: string) =>
     name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim().replace(/\s+/g, '_').slice(0, 120);
 
-  // allow renaming a page (double-click tab)
-  const handleRenamePage = (pageId: string) => {
+  // Inline tab rename: double-click swaps the label for a text field.
+  // editingPageId is the tab being edited (null = none); editingName is the live
+  // field value. renameCancelled lets Escape suppress the commit that the
+  // field's own blur would otherwise fire as it unmounts.
+  const [editingPageId, setEditingPageId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const renameCancelled = useRef(false);
+
+  const beginRename = (pageId: string) => {
     const p = pages.find(pp => pp.id === pageId);
     if (!p) return;
-    const newName = prompt('Enter new page name:', p.name);
-    if (!newName) return;
-    setPages(prev => prev.map(pg => pg.id === pageId ? { ...pg, name: newName.trim() } : pg));
+    renameCancelled.current = false;
+    setEditingPageId(pageId);
+    setEditingName(p.name);
+  };
+
+  const commitRename = () => {
+    if (renameCancelled.current) { renameCancelled.current = false; setEditingPageId(null); return; }
+    if (!editingPageId) return;
+    const trimmed = editingName.trim();
+    // Empty name is a no-op rename, not a wipe — keep the existing name.
+    if (trimmed) {
+      setPages(prev => prev.map(pg => pg.id === editingPageId ? { ...pg, name: trimmed } : pg));
+      markDirty();
+    }
+    setEditingPageId(null);
+  };
+
+  const cancelRename = () => {
+    renameCancelled.current = true;
+    setEditingPageId(null);
   };
 
   const [currentPageId, setCurrentPageId] = useState(() => {
@@ -1446,66 +1470,106 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         backgroundColor: '#f8f9fa',
         alignItems: 'center'
       }}>
-        {pages.map((page) => (
-          <button
-            key={page.id}
-            data-testid="page-tab"
-            data-active={page.id === currentPageId}
-            onClick={() => handlePageSwitch(page.id)}
-            onDoubleClick={(e) => { e.stopPropagation(); handleRenamePage(page.id); }}
-            title='Double Click to Rename It'
-            style={{
-              backgroundColor: page.id === currentPageId ? '#ffffff' : '#cfd3d8',
-              color: page.id === currentPageId ? '#110969ff' : '#000',
-              border: '1px solid #b6b3b3ff',
-              // Transparent (not absent) when inactive, so activating a tab does
-              // not shift its text down by 3px.
-              borderTop: page.id === currentPageId ? '3px solid #110969' : '3px solid transparent',
-              boxShadow: page.id === currentPageId ? '0 2px 6px rgba(0,0,0,0.2)' : 'none',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: page.id === currentPageId ? '600' : '400',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              minWidth: '100px',
-              maxWidth: '200px'
-            }}
-          >
-            <span style={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              flex: 1
-            }}>
-              {page.name}
-            </span>
-            {pages.length > 1 && (
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleClosePage(page.id);
-                }}
-                style={{
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  padding: '0 4px',
-                  borderRadius: '2px',
-                  opacity: 0.7,
-                  transition: 'opacity 0.2s ease'
-                }}
-                onMouseEnter={(e) => (e.target as HTMLElement).style.opacity = '1'}
-                onMouseLeave={(e) => (e.target as HTMLElement).style.opacity = '0.7'}
-              >
-                ×
+        {pages.map((page) => {
+          const active = page.id === currentPageId;
+          const isEditing = editingPageId === page.id;
+          // Shared so the editable field and the button look identical in place.
+          const tabStyle: React.CSSProperties = {
+            backgroundColor: active ? '#ffffff' : '#cfd3d8',
+            color: active ? '#110969ff' : '#000',
+            border: '1px solid #b6b3b3ff',
+            // Transparent (not absent) when inactive, so activating a tab does
+            // not shift its text down by 3px.
+            borderTop: active ? '3px solid #110969' : '3px solid transparent',
+            boxShadow: active ? '0 2px 6px rgba(0,0,0,0.2)' : 'none',
+            padding: '8px 16px',
+            borderRadius: '4px',
+            cursor: isEditing ? 'text' : 'pointer',
+            fontSize: '16px',
+            fontWeight: active ? '600' : '400',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            minWidth: '100px',
+            maxWidth: '200px'
+          };
+
+          // Rendered as a plain div (not a <button>) while editing: a focusable
+          // <input> nested inside a <button> is invalid HTML and browsers can
+          // swallow its focus and keystrokes.
+          if (isEditing) {
+            return (
+              <div key={page.id} data-testid="page-tab" data-active={active} style={tabStyle}>
+                <input
+                  data-testid="tab-rename-input"
+                  autoFocus
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+                    else if (e.key === 'Escape') { e.preventDefault(); cancelRename(); }
+                  }}
+                  onBlur={commitRename}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    font: 'inherit',
+                    color: 'inherit',
+                    background: '#fff',
+                    border: '1px solid #110969',
+                    borderRadius: '3px',
+                    padding: '2px 4px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+            );
+          }
+
+          return (
+            <button
+              key={page.id}
+              data-testid="page-tab"
+              data-active={active}
+              onClick={() => handlePageSwitch(page.id)}
+              onDoubleClick={(e) => { e.stopPropagation(); beginRename(page.id); }}
+              title='Double-click to rename'
+              style={tabStyle}
+            >
+              <span style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1
+              }}>
+                {page.name}
               </span>
-            )}
-          </button>
-        ))}
+              {pages.length > 1 && (
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClosePage(page.id);
+                  }}
+                  style={{
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    padding: '0 4px',
+                    borderRadius: '2px',
+                    opacity: 0.7,
+                    transition: 'opacity 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => (e.target as HTMLElement).style.opacity = '1'}
+                  onMouseLeave={(e) => (e.target as HTMLElement).style.opacity = '0.7'}
+                >
+                  ×
+                </span>
+              )}
+            </button>
+          );
+        })}
 
         <button
           onClick={handleAddNewPage}
