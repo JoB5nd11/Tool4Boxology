@@ -6,8 +6,8 @@ const norm = (s?: string) => (s ?? '').trim().toLowerCase();
 
 // UPDATED: include 'embed' and common variants, detect by type/subtype/name/label
 const PROCESS_TYPES = new Set<string>([
-  'Train', 'Training', 'Engineer', 'Engineering','Deduce', 'Induce', 'Induction',
-   'Transform', 'Embed', 'Embedding'
+  'Train', 'Training', 'Engineer', 'Engineering', 'Deduce', 'Induce', 'Induction',
+  'Transform', 'Embed', 'Embedding', 'Infer', 'Inference'
 ].map(norm));
 
 // UPDATED: check type, then subtype, then name, then label (case-insensitive)
@@ -30,87 +30,66 @@ function singleOrArray(arr: any[]) {
   return arr;
 }
 
-/**
- * Build design patterns from raw model data (no Diagram instance needed)
- *
- * - finds ClusterGroup nodes
- * - collects member nodes
- * - finds intra-cluster links
- * - picks the process node (first matching PROCESS_TYPES)
- * - computes inputs as nodes that link -> process (from anywhere)
- * - computes outputs as nodes that link <- process (to anywhere)
- * - exports only id,label,input,output,process for each cluster
- */
 export function buildDesignPatternsFromModelData(
   nodeDataArray: any[],
   linkDataArray: any[]
 ) {
   const nodeByKey = new Map<string, any>(nodeDataArray.map((n: any) => [String(n.key), n]));
-  const groups = nodeDataArray.filter((n: any) => n.isGroup && n.category === 'ClusterGroup');
+  const groupByKey = new Map<string, any>(
+    nodeDataArray
+      .filter((n: any) => n.isGroup && n.category === 'ClusterGroup')
+      .map((g: any) => [String(g.key), g])
+  );
 
-  const links = (linkDataArray ?? []).map((l: any) => ({
-    from: String(l.from),
-    to: String(l.to),
-    raw: l
-  }));
+  const links = (linkDataArray ?? [])
+    .filter((l: any) => l.category !== 'annotation')
+    .map((l: any) => ({
+      from: String(l.from),
+      to: String(l.to),
+    }));
+
+  // Count process nodes per cluster so a cluster's id/label is only reused
+  // when it unambiguously identifies a single pattern (avoids id collisions
+  // when two process nodes share one cluster).
+  const processCountByGroup = new Map<string, number>();
+  for (const n of nodeDataArray) {
+    if (!n.isGroup && isProcess(n) && n.group) {
+      const gKey = String(n.group);
+      processCountByGroup.set(gKey, (processCountByGroup.get(gKey) ?? 0) + 1);
+    }
+  }
 
   const patterns: any[] = [];
 
-  for (const g of groups) {
-    const gKey = String(g.key);
+  for (const processNode of nodeDataArray) {
+    if (processNode.isGroup || !isProcess(processNode)) continue;
 
-    // members of this cluster
-    const members = nodeDataArray.filter((n: any) => !n.isGroup && String(n.group) === gKey);
-    const memberKeys = new Set(members.map(m => String(m.key)));
+    const processKey = String(processNode.key);
 
-    // intra-cluster links (both ends in same cluster)
-    const intraLinks = links.filter(l => memberKeys.has(l.from) && memberKeys.has(l.to));
+    const inputNodes = links
+      .filter(l => l.to === processKey)
+      .map(l => nodeByKey.get(l.from))
+      .filter(Boolean);
 
-    // find process node among members (UI should enforce exactly one)
-    const processNodes = members.filter(isProcess);
-    const processNode = processNodes[0] ?? null;
+    const outputNodes = links
+      .filter(l => l.from === processKey)
+      .map(l => nodeByKey.get(l.to))
+      .filter(Boolean);
 
-    // direct inputs: nodes (anywhere) that have a link -> process
-    const inputNodes = processNode
-      ? links
-          .filter(l => l.to === String(processNode.key))
-          .map(l => nodeByKey.get(l.from))
-          .filter(Boolean)
-      : [];
-
-    // direct outputs: nodes (anywhere) that have a link from process
-    const outputNodes = processNode
-      ? links
-          .filter(l => l.from === String(processNode.key))
-          .map(l => nodeByKey.get(l.to))
-          .filter(Boolean)
-      : [];
-
-    // fallback: if no process, treat cluster sources/sinks as inputs/outputs (intra-cluster)
-    let inputs = inputNodes;
-    let outputs = outputNodes;
-    if (!processNode) {
-      const incomingSet = new Set(intraLinks.map(l => l.to));
-      const outgoingSet = new Set(intraLinks.map(l => l.from));
-      const sources = members.filter(m => !incomingSet.has(String(m.key)));
-      const sinks = members.filter(m => !outgoingSet.has(String(m.key)));
-      inputs = sources;
-      outputs = sinks;
-    }
+    const group = processNode.group ? groupByKey.get(String(processNode.group)) : undefined;
+    const usesClusterIdentity = !!group && processCountByGroup.get(String(processNode.group)) === 1;
 
     const pattern: any = {
-      id: g.key,
-      label: g.label ?? g.text ?? 'Cluster'
+      id: usesClusterIdentity ? group.key : processNode.key,
+      label: usesClusterIdentity ? (group.label ?? group.text ?? 'Cluster') : (processNode.label ?? 'Pattern'),
     };
 
-    const mappedInputs = inputs.map(toComponent);
-    const mappedOutputs = outputs.map(toComponent);
-
-    const mappedProcess = processNode ? toComponent(processNode) : undefined;
+    const mappedInputs = inputNodes.map(toComponent);
+    const mappedOutputs = outputNodes.map(toComponent);
 
     if (mappedInputs.length > 0) pattern.input = singleOrArray(mappedInputs);
     if (mappedOutputs.length > 0) pattern.output = singleOrArray(mappedOutputs);
-    if (mappedProcess) pattern.process = mappedProcess;
+    pattern.process = toComponent(processNode);
 
     patterns.push(pattern);
   }
@@ -257,6 +236,7 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
       DesignPattern: patterns,
       annotations,
       annotationLinks,
+      nodeDataArray: nodeDataArray.filter((n: any) => !n.isGroup && n.category !== 'beamCard'),
     };
   });
 

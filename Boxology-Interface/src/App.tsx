@@ -186,7 +186,6 @@ function App() {
     // The page-load effect (keyed on currentPageId) pushes this into the canvas.
   };
 
-
   // Switch to different page
   const handlePageSwitch = (pageId: string) => {
     // Save current diagram data before switching
@@ -612,6 +611,14 @@ function App() {
         return;
       }
 
+      if (model && Array.isArray(model.boxologies) && !Array.isArray(model.nodeDataArray)) {
+        alert(
+          'This looks like an exported KG JSON file, not a saved diagram.\n\n' +
+          'Use a .boxology file (or JSON saved via Save) to reopen a diagram for editing.'
+        );
+        return;
+      }
+
       // Normalize node names/types to capitalized form
 const capitalize = (str: string) =>
   str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
@@ -674,74 +681,7 @@ if (model && model.nodeDataArray) {
     input.click();
   };
 
-// Add validation function to check if all nodes belong to exactly one cluster
-const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
-  if (!diagramRef.current) return { valid: false, errors: ['No diagram available'] };
-  
-  const diagram = diagramRef.current;
-  const model = diagram.model as go.GraphLinksModel;
-  const nodes = model.nodeDataArray;
-  
-  const errors: string[] = [];
-  
-  // Get all group nodes (clusters)
-  const groups = nodes.filter((n: any) => n.isGroup);
-  
-  // Check each non-group node
-  for (const node of nodes) {
-    if (node.isGroup) continue; // Skip cluster nodes themselves
-    if (node.category === 'beamCard') continue; // Annotation/risk nodes are standalone
-    
-    const isShared = node.isShared && node.sharedGroups && node.sharedGroups.length > 0;
-    
-    // Check if node has a group assignment OR is shared
-    if (!node.group && !isShared) {
-      const nodeLabel = node.label || node.text || node.name || node.key;
-      errors.push(`Node "${nodeLabel}" does not belong to any cluster.`);
-      continue;
-    }
-    
-    // If node has regular group, verify it exists
-    if (node.group) {
-      const groupExists = groups.some((g: any) => g.key === node.group);
-      if (!groupExists) {
-        const nodeLabel = node.label || node.text || node.name || node.key;
-        errors.push(`Node "${nodeLabel}" belongs to a non-existent cluster.`);
-      }
-    }
-    
-    // If node is shared, verify all sharedGroups exist
-    if (isShared) {
-      for (const sharedGroupKey of node.sharedGroups) {
-        const groupExists = groups.some((g: any) => g.key === sharedGroupKey);
-        if (!groupExists) {
-          const nodeLabel = node.label || node.text || node.name || node.key;
-          errors.push(`Node "${nodeLabel}" references non-existent cluster: ${sharedGroupKey}`);
-        }
-      }
-    }
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors
-  };
-};
-
   const handleExport = async (kind: 'png' | 'jpg' | 'json' | 'dot' | 'beam') => {
-    // Validate clustering before export (skip for image and BEAM exports)
-    if (kind !== 'png' && kind !== 'jpg' && kind !== 'beam') {
-      const validation = validateNodeClustering();
-      if (!validation.valid) {
-        alert(
-          'Cannot export: All nodes must belong to exactly one cluster.\n\n' +
-          'Issues found:\n' +
-          validation.errors.join('\n')
-        );
-        return;
-      }
-    }
-
     if (!diagramRef.current) {
       alert('No diagram to export');
       return;
@@ -1058,6 +998,15 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
       case 'uncluster_group':
         handleUnclusterGroup();
         break;
+      case 'mark_risk':
+        handleSetRiskMarker('Risk');
+        break;
+      case 'mark_risk_control':
+        handleSetRiskMarker('RiskControl');
+        break;
+      case 'clear_risk_marker':
+        handleSetRiskMarker(null);
+        break;
       default:
         if (target) {
           console.log('Adding to group:', target);
@@ -1175,18 +1124,8 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
   }, [leftCollapsed, rightCollapsed]);
 
   const processNodeNames = [
-    "Train", "Engineer", "Deduce", "Induce", "Transform", "Embed"
+    "Train", "Engineer", "Deduce", "Induce", "Transform", "Embed", "Infer"
   ];
-
-  // Validate process nodes in a selection
-  function hasMultipleProcessNodes(selectedNodes: go.Node[]) {
-    const processNodes = selectedNodes.filter(
-      n =>
-        processNodeNames.includes(n.data.name) ||
-        processNodeNames.includes(n.data.type)
-    );
-    return processNodes.length > 1;
-  }
 
   // Detect which nodes should be shared based on cluster connectivity
   const detectAndUpdateSharedNodes = () => {
@@ -1255,20 +1194,14 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     }
     const diagram = diagramRef.current;
 
-    // Collect selected non-group nodes
+    // Collect selected nodes AND existing clusters (for nesting)
     const selectedNodes: go.Node[] = [];
     diagram.selection.each(part => {
-      if (part instanceof go.Node && !part.data.isGroup) selectedNodes.push(part);
+      if (part instanceof go.Node) selectedNodes.push(part);
     });
 
     if (selectedNodes.length === 0) {
       alert('Select one or more nodes to cluster.');
-      return;
-    }
-
-    // 🚨 ADD VALIDATION HERE
-    if (hasMultipleProcessNodes(selectedNodes)) {
-      alert('❌ Error: A cluster cannot contain more than one process node.');
       return;
     }
 
@@ -1335,17 +1268,28 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     alert(`✅ Cluster unclustered! ${members.length} node(s) released.`);
   };
 
+  const handleSetRiskMarker = (marker: 'Risk' | 'RiskControl' | null) => {
+    if (!diagramRef.current) {
+      alert('No diagram available');
+      return;
+    }
+    const diagram = diagramRef.current;
+    const selectedPart = diagram.selection.first();
+
+    if (!(selectedPart instanceof go.Node) || selectedPart.data.isGroup || selectedPart.data.category === 'beamCard') {
+      alert('Select a single workflow component to mark.');
+      return;
+    }
+
+    diagram.startTransaction('set risk marker');
+    (diagram.model as go.GraphLinksModel).setDataProperty(selectedPart.data, 'riskMarker', marker ?? undefined);
+    diagram.commitTransaction('set risk marker');
+  };
+
   const [isCreatingKG, setIsCreatingKG] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string>(''); // Add this state
 
   const handleCreateKG = async () => {
-    const validation = validateNodeClustering();
-    if (!validation.valid) {
-      setLoadingMessage(`Validation failed:\n\n${validation.errors.join('\n')}`);
-      setIsCreatingKG(true);
-      setTimeout(() => setIsCreatingKG(false), 2500);
-      return;
-    }
     if (!diagramRef.current) {
       setLoadingMessage('Diagram not ready.');
       setIsCreatingKG(true);
@@ -1390,6 +1334,55 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
       setLoadingMessage(`Failed to create KG:\n${err?.message ?? err}`);
       setTimeout(() => setIsCreatingKG(false), 2500);
     }
+  };
+
+  const handleAutoArrange = () => {
+    if (!diagramRef.current) {
+      alert('No diagram available');
+      return;
+    }
+    const diagram = diagramRef.current;
+
+    const workflowParts = new go.Set<go.Part>();
+    const annotationParts = new go.Set<go.Part>();
+
+    diagram.nodes.each((node) => {
+      if (node.data.isGroup) return;
+      if (node.data.category === 'beamCard') {
+        annotationParts.add(node);
+      } else {
+        workflowParts.add(node);
+      }
+    });
+    diagram.links.each((link) => {
+      if (link.data.category === 'annotation') {
+        annotationParts.add(link);
+      } else {
+        workflowParts.add(link);
+      }
+    });
+
+    diagram.startTransaction('auto-arrange');
+
+    const workflowLayout = new go.LayeredDigraphLayout({ direction: 0, layerSpacing: 60, columnSpacing: 30 });
+    workflowLayout.doLayout(workflowParts);
+
+    const annotationLayout = new go.LayeredDigraphLayout({ direction: 90, layerSpacing: 40, columnSpacing: 20 });
+    annotationLayout.doLayout(annotationParts);
+
+    const workflowBounds = diagram.computePartsBounds(workflowParts);
+    const annotationBounds = diagram.computePartsBounds(annotationParts);
+    if (!annotationBounds.isEmpty() && !workflowBounds.isEmpty()) {
+      const dx = workflowBounds.x - annotationBounds.x;
+      const dy = workflowBounds.y - annotationBounds.height - 60 - annotationBounds.y;
+      annotationParts.each((part) => {
+        if (part instanceof go.Node) {
+          part.move(new go.Point(part.location.x + dx, part.location.y + dy));
+        }
+      });
+    }
+
+    diagram.commitTransaction('auto-arrange');
   };
 
   const handleUploadKG = async (files: FileList) => {
@@ -1459,6 +1452,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         onUploadKG={handleUploadKG}
         beamViewActive={beamViewActive}
         onBeamViewToggle={setBeamViewActive}
+        onAutoArrange={handleAutoArrange}
       />
 
       {/* Tab Bar */}

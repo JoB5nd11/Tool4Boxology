@@ -16,25 +16,6 @@ test.describe('BEAM Notation Integration', () => {
     await dismissModal(page);
   });
 
-  test('BEAM Concepts group appears in left sidebar', async ({ page }) => {
-    const beamGroup = page.getByText('BEAM Concepts');
-    await expect(beamGroup).toBeVisible();
-  });
-
-  test('BEAM Concepts group expands to show shapes', async ({ page }) => {
-    // Click the BEAM Concepts group header to expand it
-    const beamGroup = page.getByText('BEAM Concepts');
-    await beamGroup.click();
-    await page.waitForTimeout(500);
-
-    // Inference shape label should now be visible
-    await expect(page.getByText('Inference')).toBeVisible();
-    await expect(page.getByText('Statistical Model')).toBeVisible();
-    await expect(page.getByText('Semantic Model')).toBeVisible();
-    await expect(page.getByText('Training')).toBeVisible();
-    await expect(page.getByText('Engineering')).toBeVisible();
-  });
-
   test('BEAM View toggle button is visible in toolbar', async ({ page }) => {
     const beamToggle = page.getByRole('button', { name: /BEAM View/i });
     await expect(beamToggle).toBeVisible();

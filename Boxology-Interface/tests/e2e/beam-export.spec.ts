@@ -75,8 +75,7 @@ test.describe('BEAM Export — no cluster required', () => {
     expect(alertMessage).not.toContain('Cannot export');
   });
 
-  test('JSON export DOES show clustering error when nodes are unclustered', async ({ page }) => {
-    // Load GraphRAG example — it has unclustered workflow nodes
+  test('JSON export no longer shows a clustering error for unclustered nodes', async ({ page }) => {
     const graphragBtn = page.getByRole('button', { name: /GraphRAG \(BEAM\)/i });
     await graphragBtn.click();
     await page.waitForTimeout(1500);
@@ -87,13 +86,16 @@ test.describe('BEAM Export — no cluster required', () => {
       await dialog.dismiss();
     });
 
+    await page.route('**/api/beam-export', async (route: any) => {
+      await route.fulfill({ status: 200, contentType: 'text/turtle', body: '@prefix beam: <http://w3id.org/beam/core#> .\n' });
+    });
+
     await openExportMenu(page);
     const jsonBtn = page.getByRole('button', { name: /JSON/i });
     await jsonBtn.click();
     await page.waitForTimeout(1000);
 
-    // JSON export should show clustering validation error
-    expect(alertMessage).toContain('cluster');
+    expect(alertMessage).not.toContain('cluster');
   });
 });
 

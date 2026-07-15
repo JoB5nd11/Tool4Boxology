@@ -25,7 +25,6 @@ const categoryOrder = [
   'AI & Models',
   'Processes & Actions',
   //'Documentation',
-  'BEAM Concepts',
   'BEAM Annotation',
   'BEAM Risk',
 ];

@@ -5,6 +5,7 @@ import { mapShapeToGoJSFigure } from './utils/shapeMapping';
 import { shapeTypesTree , shapes } from './data/shape';
 import { beamStyleMap } from './data/beamStyles';
 import type { DiagramData } from './types';
+import { inferLinkCategory } from './utils/linkCategory';
 
 interface ContextMenuPosition {
   x: number;
@@ -652,6 +653,52 @@ function showSmallPorts(node: any, show: any) {
             showTypeSelector(e, node);
           }
         }
+      ),
+
+      // Risk / Risk Control marker badge — bottom-center, mirrors TYPE_BADGE (top-center)
+      $(go.Panel, 'Auto',
+        {
+          name: 'RISK_BADGE',
+          alignment: go.Spot.Bottom,
+          alignmentFocus: go.Spot.Top,
+          margin: new go.Margin(0, 0, -8, 0),
+        },
+        new go.Binding('visible', 'riskMarker', (marker) => !!marker),
+        $(go.Shape, 'RoundedRectangle',
+          {
+            fill: 'white',
+            strokeWidth: 1,
+            parameter1: 10
+          },
+          new go.Binding('stroke', 'riskMarker', (marker) =>
+            marker === 'RiskControl' ? '#388e3c' : '#fb8c00'
+          )
+        ),
+        $(go.Panel, 'Horizontal',
+          { margin: new go.Margin(3, 8, 3, 8) },
+          $(go.Shape, 'Circle',
+            {
+              width: 5,
+              height: 5,
+              stroke: null,
+              margin: new go.Margin(0, 4, 0, 0)
+            },
+            new go.Binding('fill', 'riskMarker', (marker) =>
+              marker === 'RiskControl' ? '#388e3c' : '#fb8c00'
+            )
+          ),
+          $(go.TextBlock,
+            {
+              font: '9px system-ui, -apple-system, sans-serif',
+            },
+            new go.Binding('text', 'riskMarker', (marker) =>
+              marker === 'RiskControl' ? 'Risk Control' : 'Risk'
+            ),
+            new go.Binding('stroke', 'riskMarker', (marker) =>
+              marker === 'RiskControl' ? '#388e3c' : '#fb8c00'
+            )
+          )
+        )
       )
     );
 
@@ -954,6 +1001,26 @@ function showSmallPorts(node: any, show: any) {
           diagram.model.setDataProperty(nodeData, 'text', displayLabel);
         }
       });
+    });
+
+    diagram.addDiagramListener('LinkDrawn', (e) => {
+      const link = e.subject;
+      if (!(link instanceof go.Link)) return;
+      const fromData = link.fromNode?.data;
+      const toData = link.toNode?.data;
+      const category = inferLinkCategory(fromData, toData);
+      if (category) {
+        (diagram.model as go.GraphLinksModel).setCategoryForLinkData(link.data, category);
+      }
+    });
+
+    diagram.addDiagramListener('LinkRelinked', (e) => {
+      const link = e.subject;
+      if (!(link instanceof go.Link)) return;
+      const fromData = link.fromNode?.data;
+      const toData = link.toNode?.data;
+      const category = inferLinkCategory(fromData, toData);
+      (diagram.model as go.GraphLinksModel).setCategoryForLinkData(link.data, category ?? '');
     });
 
     const handleDragOver = (e: DragEvent) => {

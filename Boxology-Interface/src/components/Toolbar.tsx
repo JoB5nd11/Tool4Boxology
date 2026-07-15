@@ -37,6 +37,7 @@ type ToolbarProps = {
   onUploadKG?: (files: FileList) => void;
   beamViewActive: boolean;
   onBeamViewToggle: (active: boolean) => void;
+  onAutoArrange: () => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -62,6 +63,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onUploadKG,
   beamViewActive,
   onBeamViewToggle,
+  onAutoArrange,
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
   // JSON/BEAM/KG export every tab (generateMultiPageRMLExport). Say so, but stay
@@ -443,6 +445,7 @@ LIMIT 100`;
               style={exportItemStyle}
               onMouseOver={hoverOn}
               onMouseOut={hoverOff}
+              title="KG interchange format — for backend ingestion, not for reopening a diagram. Use Save to reopen later."
             >
               📄 JSON{scopeSuffix}
             </button>
@@ -574,6 +577,15 @@ LIMIT 100`;
         title="Toggle BEAM notation view — re-skins nodes to BEAM visual style"
       >
         ⬡ BEAM View
+      </button>
+
+      {/* Auto-arrange */}
+      <button
+        onClick={onAutoArrange}
+        style={simpleButtonStyle}
+        title="Auto-arrange nodes using a layered directed-graph layout"
+      >
+        🧭 Auto-arrange
       </button>
 
       {/* Separator */}

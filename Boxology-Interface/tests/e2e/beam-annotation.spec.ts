@@ -40,6 +40,10 @@ test.describe('BEAM Annotation & Risk palette groups', () => {
     await expect(page.getByText('Impact').first()).toBeVisible();
     await expect(page.getByText('Risk Control').first()).toBeVisible();
   });
+
+  test('BEAM Concepts group no longer appears in left sidebar (deduped)', async ({ page }) => {
+    await expect(page.getByText('BEAM Concepts')).toHaveCount(0);
+  });
 });
 
 test.describe('GraphRAG Example loader (right sidebar)', () => {

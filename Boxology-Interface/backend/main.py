@@ -73,6 +73,12 @@ async def api_beam_export(source: dict):
         enriched = enrich_with_beam(t4b_triples)
         annotation_triples = generate_annotation_triples(source)
 
+        from kg_creation.beam_annotation_triples import generate_risk_marker_triples
+        all_workflow_nodes = [
+            n for b in source.get("boxologies", []) for n in b.get("nodeDataArray", [])
+        ]
+        risk_marker_triples = generate_risk_marker_triples(all_workflow_nodes)
+
         beam_lines = []
         for line in enriched.splitlines():
             stripped = line.strip()
@@ -83,6 +89,12 @@ async def api_beam_export(source: dict):
 
         if annotation_triples:
             for line in annotation_triples.splitlines():
+                stripped = line.strip()
+                if stripped:
+                    beam_lines.append(stripped)
+
+        if risk_marker_triples:
+            for line in risk_marker_triples.splitlines():
                 stripped = line.strip()
                 if stripped:
                     beam_lines.append(stripped)
