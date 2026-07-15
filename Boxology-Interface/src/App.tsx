@@ -33,6 +33,18 @@ const blankPage = (): PageData => ({
   linkDataArray: [],
 });
 
+// Names are cosmetic (page.id is a uuid), but `Diagram ${pages.length + 1}`
+// collides: with Diagram 1/2/3, closing Diagram 2 leaves length 2 and the next
+// add produces a second "Diagram 3". Derive from the highest existing suffix.
+const nextDiagramName = (existing: PageData[]): string => {
+  const used = existing
+    .map((p) => /^Diagram (\d+)$/.exec(p.name))
+    .filter((m): m is RegExpExecArray => m !== null)
+    .map((m) => parseInt(m[1], 10));
+  const max = used.length ? Math.max(...used) : 0;
+  return `Diagram ${max + 1}`;
+};
+
 const elementaryPatternsGroup = () =>
   elementaryPatterns.map(pattern => ({
     id: pattern.id,
@@ -73,13 +85,37 @@ function App() {
   const sanitizeFilename = (name: string) =>
     name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim().replace(/\s+/g, '_').slice(0, 120);
 
-  // allow renaming a page (double-click tab)
-  const handleRenamePage = (pageId: string) => {
+  // Inline tab rename: double-click swaps the label for a text field.
+  // editingPageId is the tab being edited (null = none); editingName is the live
+  // field value. renameCancelled lets Escape suppress the commit that the
+  // field's own blur would otherwise fire as it unmounts.
+  const [editingPageId, setEditingPageId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const renameCancelled = useRef(false);
+
+  const beginRename = (pageId: string) => {
     const p = pages.find(pp => pp.id === pageId);
     if (!p) return;
-    const newName = prompt('Enter new page name:', p.name);
-    if (!newName) return;
-    setPages(prev => prev.map(pg => pg.id === pageId ? { ...pg, name: newName.trim() } : pg));
+    renameCancelled.current = false;
+    setEditingPageId(pageId);
+    setEditingName(p.name);
+  };
+
+  const commitRename = () => {
+    if (renameCancelled.current) { renameCancelled.current = false; setEditingPageId(null); return; }
+    if (!editingPageId) return;
+    const trimmed = editingName.trim();
+    // Empty name is a no-op rename, not a wipe — keep the existing name.
+    if (trimmed) {
+      setPages(prev => prev.map(pg => pg.id === editingPageId ? { ...pg, name: trimmed } : pg));
+      markDirty();
+    }
+    setEditingPageId(null);
+  };
+
+  const cancelRename = () => {
+    renameCancelled.current = true;
+    setEditingPageId(null);
   };
 
   const [currentPageId, setCurrentPageId] = useState(() => {
@@ -109,13 +145,45 @@ function App() {
 
     const newPage: PageData = {
       id: uuidv4(),
-      name: `Diagram ${pages.length + 1}`,
+      name: nextDiagramName(pages),
       nodeDataArray: [],
       linkDataArray: [],
     };
 
     setPages(prev => [...prev, newPage]);
     setCurrentPageId(newPage.id);
+  };
+
+  // Load an example diagram as a NEW page (append) instead of replacing the
+  // existing tabs, so the user's current work is preserved.
+  const handleLoadExampleAsPage = (example: any) => {
+    // Save the current diagram before switching, so the active tab isn't lost.
+    if (diagramRef.current && currentPageId) {
+      const model = diagramRef.current.model as go.GraphLinksModel;
+      updateCurrentPage(model.nodeDataArray, model.linkDataArray);
+    }
+
+    const nodeDataArray = example.nodeDataArray || [];
+    const linkDataArray = example.linkDataArray || [];
+    const modelData = example.modelData || {};
+    // Examples ship a fixed boxologyId (e.g. "exampleid-12"); keep it for export,
+    // but give the PAGE a fresh uuid so loading the same example twice can't
+    // collide on page id (which would break tab switching/closing).
+    const boxologyId = modelData.boxologyId || modelData.id || `boxology_${uuidv4().replace(/-/g, '').slice(0, 8)}`;
+    const boxologyLabel = modelData.boxologyLabel || modelData.label || 'Diagram';
+
+    const newPage: PageData = {
+      id: uuidv4(),
+      name: boxologyLabel,
+      nodeDataArray,
+      linkDataArray,
+      boxologyId,
+      boxologyLabel,
+    };
+
+    setPages(prev => [...prev, newPage]);
+    setCurrentPageId(newPage.id);
+    // The page-load effect (keyed on currentPageId) pushes this into the canvas.
   };
 
 
@@ -133,7 +201,8 @@ function App() {
   // Close page
   const handleClosePage = (pageId: string) => {
     if (pages.length === 1) return; // Can't close last page
-    
+    modelsRef.current.delete(pageId);
+
     setPages(prev => prev.filter(page => page.id !== pageId));
     
     // If closing current page, switch to first remaining page
@@ -157,6 +226,7 @@ function App() {
 
   const handleStartFresh = () => {
     clearSession();
+    modelsRef.current.clear();
     const fresh = blankPage();
     setPages([fresh]);
     setCurrentPageId(fresh.id);
@@ -170,6 +240,24 @@ function App() {
   // True while we are pushing a page into the canvas, so the resulting model
   // events are not mistaken for user edits.
   const isLoadingPageRef = useRef(false);
+  // One live model per page. GoJS keeps undo history on the Model's UndoManager,
+  // and replacing Diagram.model copies only isEnabled/maxHistoryLength — NOT the
+  // history (go.d.ts:4387). Constructing a fresh model per switch therefore wiped
+  // undo. Reusing the page's model keeps its history.
+  //
+  // Reusing the Model object is necessary but NOT sufficient: GoJS's Diagram.model
+  // setter unconditionally resets an internal "has this diagram laid out yet" flag,
+  // which forces the very next layout pass to run as an "Initial Layout"
+  // transaction. Committing THAT transaction unconditionally clears the
+  // (re)attached model's UndoManager — wiping history even for a model that
+  // already had some, contrary to what the go.d.ts comment implies. See the
+  // `diagram.skipsUndoManager` guard below, which is the other half of this fix.
+  const modelsRef = useRef<Map<string, go.GraphLinksModel>>(new Map());
+  // Identifies the newest in-flight load, so a stale load's release cannot lower
+  // the guard out from under a newer one. `guardRef` holds the skipsUndoManager
+  // value to restore, captured once per guarded span rather than per load.
+  const loadGenRef = useRef(0);
+  const guardRef = useRef<{ active: boolean; prev: boolean }>({ active: false, prev: false });
   // Which page is loaded into which go.Diagram instance. GoDiagram rebuilds the
   // instance on a container/customGroup change (and twice under StrictMode), and
   // each rebuild starts empty — so the page id alone is not enough to know
@@ -179,6 +267,22 @@ function App() {
     pageId: null,
   });
   const [diagramEpoch, setDiagramEpoch] = useState(0);
+
+  // A rebuilt diagram instance invalidates every cached model; the load effect
+  // below repopulates the current page's. Costs undo history on palette changes,
+  // which are rare — correctness beats history here.
+  //
+  // Also resets loadedRef: under React StrictMode, GoDiagram's setup effect runs
+  // twice at mount, each call bumping diagramEpoch — React batches both into a
+  // single commit (0 -> 2, skipping past 1). Without resetting loadedRef here,
+  // the load effect below sees its own `{diagram, pageId}` guard still matching
+  // (the diagram instance didn't change again after the second bump) and skips
+  // re-populating the cache this effect just cleared, orphaning the diagram's
+  // live model outside modelsRef for the rest of its life.
+  useEffect(() => {
+    modelsRef.current.clear();
+    loadedRef.current = { diagram: null, pageId: null };
+  }, [diagramEpoch]);
 
   // Load the current page into the canvas.
   //
@@ -192,13 +296,74 @@ function App() {
 
     loadedRef.current = { diagram, pageId: currentPageId };
     isLoadingPageRef.current = true;
-    diagram.model = new go.GraphLinksModel(
-      currentPage.nodeDataArray,
-      currentPage.linkDataArray
-    );
-    // Released on a macrotask: GoJS commits its initial layout transaction
-    // after the assignment returns.
-    window.setTimeout(() => { isLoadingPageRef.current = false; }, 0);
+
+    let model = modelsRef.current.get(currentPageId);
+    if (!model) {
+      model = new go.GraphLinksModel(currentPage.nodeDataArray, currentPage.linkDataArray);
+      modelsRef.current.set(currentPageId, model);
+    }
+    // Suppress GoJS's forced "Initial Layout" transaction from being recorded
+    // (and from clearing the model's UndoManager via its internal Dx flag — see
+    // the modelsRef comment above). Confirmed empirically against gojs 3.1.5:
+    // without this guard, reattaching a previously-used, history-bearing model
+    // still loses its history on every switch.
+    //
+    // GoJS wants the previous value remembered and restored, not a hardcoded
+    // false — its own tools (DraggingTool, LinkingTool) drive this flag too.
+    //
+    // Captured once per guarded span, not once per load: if a second load starts
+    // while this one's guard is still up, it would otherwise capture `true` as
+    // its "previous" value and restore the diagram into a permanently guarded
+    // state, silently disabling undo recording from then on.
+    const gen = ++loadGenRef.current;
+    if (!guardRef.current.active) {
+      guardRef.current = { active: true, prev: diagram.skipsUndoManager };
+    }
+    diagram.skipsUndoManager = true;
+    diagram.model = model;
+
+    // The guard must stay up until GoJS's initial-layout pass has run, because
+    // that pass is what decides whether to wipe the UndoManager. GoJS schedules
+    // it on a requestAnimationFrame, so a setTimeout(0) release is a RACE, not a
+    // sequence: whichever of the two the browser happens to run first wins, and
+    // if the timer wins, the history is gone. Measured both orders on gojs 3.1.5.
+    //
+    // "InitialLayoutCompleted" is that pass's own completion signal, so it
+    // releases on the event we actually depend on rather than on a guess about
+    // frame timing. Verified on 3.1.5: it fires from inside the layout pass,
+    // after GoJS has already decided not to clear (guard still up), and it fires
+    // even for an empty model — so a brand-new tab releases normally.
+    //
+    // Deliberately NOT released from this effect's cleanup. `currentPage` is a
+    // new object on every edit, so the effect re-runs constantly and merely
+    // short-circuits on `loadedRef` — and under StrictMode the mount runs
+    // effect/cleanup/effect, where the second run short-circuits too. Releasing
+    // from cleanup would drop the guard before the layout pass it exists to
+    // cover. These self-release instead; both are idempotent.
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      diagram.removeDiagramListener('InitialLayoutCompleted', release);
+      isLoadingPageRef.current = false;
+      // Only the newest load may lower the guard. An older load's release
+      // firing after a newer one began would drop the guard while the newer
+      // model's layout pass is still pending — the exact history wipe this
+      // guard exists to prevent.
+      if (gen !== loadGenRef.current) return;
+      diagram.skipsUndoManager = guardRef.current.prev;
+      guardRef.current.active = false;
+    };
+    diagram.addDiagramListener('InitialLayoutCompleted', release);
+    // Safety net against a GoJS upgrade that stops firing the event, which would
+    // otherwise wedge the guard up for the session. Deliberately far longer than
+    // any plausible layout: a short timer is the same race the event release
+    // replaced, just with a longer fuse — on a throttled or backgrounded tab rAF
+    // can stall for seconds, and if the timer wins, history is wiped. No test
+    // covers this path: a stuck guard leaves undo working (the freshly attached
+    // model carries its own skipsUndoManager=false, and that gates recording —
+    // measured), so the failure is invisible to any behavioural test.
+    window.setTimeout(release, 5000);
   }, [currentPageId, currentPage, diagramEpoch]);
 
   // Canvas -> state. Fires on every committed transaction (see GoDiagram).
@@ -366,13 +531,21 @@ function App() {
         model.linkDataArray || []
       );
 
-      // Update the model with normalized data
-      diagramRef.current.model = go.Model.fromJson(JSON.stringify({
+      // Update the model with normalized data.
+      //
+      // This hands the diagram a NEW Model object, so modelsRef — which is
+      // authoritative on the next tab switch — must be repointed at it. Without
+      // that, switching away and back re-attaches the pre-save model and every
+      // post-save edit vanishes, then flows stale into BEAM/KG export (both
+      // override the active page from the live model).
+      const normalized = go.Model.fromJson(JSON.stringify({
         class: "GraphLinksModel",
         nodeDataArray,
         linkDataArray,
         modelData: model.modelData
-      }));
+      })) as go.GraphLinksModel;
+      diagramRef.current.model = normalized;
+      modelsRef.current.set(currentPageId, normalized);
 
       // ensure model.modelData exists
       const updatedModel = diagramRef.current.model as go.GraphLinksModel;
@@ -469,6 +642,9 @@ if (model && model.nodeDataArray) {
           return { ...pg, boxologyId: id, boxologyLabel: label };
         });
 
+        // These pages are rebuilt from the file; a surviving cached model would
+        // resurrect content the user just replaced.
+        modelsRef.current.clear();
         setPages(ensuredPages);
         setCurrentPageId(ensuredPages[0].id);
 
@@ -1279,6 +1455,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
           openInGraphviz(dot, 'dot');
         }}
         onCreateKG={handleCreateKG}
+        pageCount={pages.length}
         onUploadKG={handleUploadKG}
         beamViewActive={beamViewActive}
         onBeamViewToggle={setBeamViewActive}
@@ -1293,63 +1470,131 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         backgroundColor: '#f8f9fa',
         alignItems: 'center'
       }}>
-        {pages.map((page) => (
-          <button
-            key={page.id}
-            onClick={() => handlePageSwitch(page.id)}
-            onDoubleClick={(e) => { e.stopPropagation(); handleRenamePage(page.id); }}
-            title='Double Click to Rename It'
-            style={{
-              backgroundColor: page.id === currentPageId ? '#E3E3E3' : '#e0e0e0',
-              color: page.id === currentPageId ? '#110969ff' : '#000',
-              border: '1px solid #b6b3b3ff',
-              boxShadow: page.id === currentPageId ? '0 2px 6px rgba(0,0,0,0.2)' : 'none',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: page.id === currentPageId ? '600' : '400',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              minWidth: '100px',
-              maxWidth: '200px'
-            }}
-          >
-            <span style={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              flex: 1
-            }}>
-              {page.name}
-            </span>
-            {pages.length > 1 && (
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleClosePage(page.id);
-                }}
-                style={{
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  padding: '0 4px',
-                  borderRadius: '2px',
-                  opacity: 0.7,
-                  transition: 'opacity 0.2s ease'
-                }}
-                onMouseEnter={(e) => (e.target as HTMLElement).style.opacity = '1'}
-                onMouseLeave={(e) => (e.target as HTMLElement).style.opacity = '0.7'}
-              >
-                ×
+        {pages.map((page) => {
+          const active = page.id === currentPageId;
+          const isEditing = editingPageId === page.id;
+          // Shared so the editable field and the button look identical in place.
+          const tabStyle: React.CSSProperties = {
+            backgroundColor: active ? '#ffffff' : '#cfd3d8',
+            color: active ? '#110969ff' : '#000',
+            border: '1px solid #b6b3b3ff',
+            // Transparent (not absent) when inactive, so activating a tab does
+            // not shift its text down by 3px.
+            borderTop: active ? '3px solid #110969' : '3px solid transparent',
+            boxShadow: active ? '0 2px 6px rgba(0,0,0,0.2)' : 'none',
+            padding: '8px 16px',
+            borderRadius: '4px',
+            cursor: isEditing ? 'text' : 'pointer',
+            fontSize: '16px',
+            fontWeight: active ? '600' : '400',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            minWidth: '100px',
+            maxWidth: '200px'
+          };
+
+          // Rendered as a plain div (not a <button>) while editing: a focusable
+          // <input> nested inside a <button> is invalid HTML and browsers can
+          // swallow its focus and keystrokes.
+          if (isEditing) {
+            return (
+              <div key={page.id} data-testid="page-tab" data-active={active} style={tabStyle}>
+                <input
+                  data-testid="tab-rename-input"
+                  autoFocus
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+                    else if (e.key === 'Escape') { e.preventDefault(); cancelRename(); }
+                  }}
+                  onBlur={commitRename}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    font: 'inherit',
+                    color: 'inherit',
+                    background: '#fff',
+                    border: '1px solid #110969',
+                    borderRadius: '3px',
+                    padding: '2px 4px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+            );
+          }
+
+          return (
+            <button
+              key={page.id}
+              data-testid="page-tab"
+              data-active={active}
+              onClick={() => handlePageSwitch(page.id)}
+              onDoubleClick={(e) => { e.stopPropagation(); beginRename(page.id); }}
+              title='Double-click to rename'
+              style={tabStyle}
+            >
+              <span style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1
+              }}>
+                {page.name}
               </span>
-            )}
-          </button>
-        ))}
-        
-        {/* Replace the Add Page button with a Home Page button */}
+              {pages.length > 1 && (
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClosePage(page.id);
+                  }}
+                  style={{
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    padding: '0 4px',
+                    borderRadius: '2px',
+                    opacity: 0.7,
+                    transition: 'opacity 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => (e.target as HTMLElement).style.opacity = '1'}
+                  onMouseLeave={(e) => (e.target as HTMLElement).style.opacity = '0.7'}
+                >
+                  ×
+                </span>
+              )}
+            </button>
+          );
+        })}
+
+        <button
+          onClick={handleAddNewPage}
+          data-testid="add-tab"
+          aria-label="Add tab"
+          title="Add a new diagram tab"
+          style={{
+            backgroundColor: '#E3E3E3',
+            color: '#110969',
+            border: '1px solid #b6b3b3ff',
+            padding: '8px 14px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '18px',
+            fontWeight: '700',
+            lineHeight: 1,
+            transition: 'background-color 0.2s ease',
+          }}
+          onMouseEnter={(e) => ((e.target as HTMLElement).style.backgroundColor = '#bedaeeff')}
+          onMouseLeave={(e) => ((e.target as HTMLElement).style.backgroundColor = '#E3E3E3')}
+        >
+          +
+        </button>
+
+        {/* Home Page button — pinned right via marginLeft: 'auto' */}
         <button
           onClick={() => { window.location.href = '/home/index.html'; }}
           style={{
@@ -1495,8 +1740,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             <RightSidebar
               selectedData={selectedData}
               diagramRef={diagramRef}
-              setPages={setPages}
-              setCurrentPageId={setCurrentPageId}
+              onLoadExample={handleLoadExampleAsPage}
             />
           )}
         </div>

@@ -42,7 +42,9 @@ npm run lint
 npm run format
 ```
 
-No test suite is configured (`npm test` exits 0 without running anything).
+Tests are Playwright e2e specs in `Boxology-Interface/tests/e2e/`, run with
+`npx playwright test` (`playwright.config.ts` auto-starts Vite on port 3000).
+Note `npm test` is an `exit 0` stub and runs nothing — do not use it.
 
 ## Services & Ports
 

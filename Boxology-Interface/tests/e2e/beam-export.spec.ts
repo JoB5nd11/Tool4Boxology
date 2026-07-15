@@ -162,7 +162,12 @@ test.describe('BEAM Export — backend interaction', () => {
     await page.waitForTimeout(1500);
 
     expect(capturedBody).not.toBeNull();
-    const box = capturedBody.boxologies[0];
+    // Loading an example appends a new tab (the initial blank "Diagram" page is
+    // preserved), so the GraphRAG boxology is no longer guaranteed to sit at
+    // index 0. Select the boxology that actually carries the beamCard annotations.
+    const box = capturedBody.boxologies.reduce((a: any, b: any) =>
+      (b.annotations?.length ?? 0) > (a.annotations?.length ?? 0) ? b : a
+    );
 
     // GraphRAG example has 16 beamCard annotation nodes
     expect(box.annotations.length).toBeGreaterThanOrEqual(10);
