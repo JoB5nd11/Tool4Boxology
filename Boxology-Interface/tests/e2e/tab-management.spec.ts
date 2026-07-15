@@ -50,4 +50,19 @@ test.describe('Tab management', () => {
     const cleaned = names.map((n) => n.replace(/×/g, '').trim());
     expect(new Set(cleaned).size).toBe(cleaned.length);
   });
+
+  test('the active tab is visually distinct from inactive tabs', async ({ page }) => {
+    await page.getByTestId('add-tab').click();
+    await page.waitForTimeout(500);
+
+    const tabs = page.getByTestId('page-tab');
+    const activeBg = await tabs.nth(1).evaluate((el) => getComputedStyle(el).backgroundColor);
+    const inactiveBg = await tabs.nth(0).evaluate((el) => getComputedStyle(el).backgroundColor);
+    const activeBorder = await tabs.nth(1).evaluate((el) => getComputedStyle(el).borderTopColor);
+
+    expect(activeBg).toBe('rgb(255, 255, 255)');
+    expect(inactiveBg).toBe('rgb(207, 211, 216)');
+    expect(activeBg).not.toBe(inactiveBg);
+    expect(activeBorder).toBe('rgb(17, 9, 105)');
+  });
 });

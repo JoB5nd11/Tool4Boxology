@@ -1346,9 +1346,12 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
             onDoubleClick={(e) => { e.stopPropagation(); handleRenamePage(page.id); }}
             title='Double Click to Rename It'
             style={{
-              backgroundColor: page.id === currentPageId ? '#E3E3E3' : '#e0e0e0',
+              backgroundColor: page.id === currentPageId ? '#ffffff' : '#cfd3d8',
               color: page.id === currentPageId ? '#110969ff' : '#000',
               border: '1px solid #b6b3b3ff',
+              // Transparent (not absent) when inactive, so activating a tab does
+              // not shift its text down by 3px.
+              borderTop: page.id === currentPageId ? '3px solid #110969' : '3px solid transparent',
               boxShadow: page.id === currentPageId ? '0 2px 6px rgba(0,0,0,0.2)' : 'none',
               padding: '8px 16px',
               borderRadius: '4px',
