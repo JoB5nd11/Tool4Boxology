@@ -26,25 +26,16 @@ _TYPE_MAP = {
 }
 
 _RISK_TYPES = {"Risk", "RiskSource", "Consequence", "Impact", "RiskControl"}
-_WORKFLOW_TYPES = {
-    "Data", "Symbol", "Model", "SemanticModel", "StatisticalModel",
-    "Train", "Engineer", "Infer", "Transform", "Actor",
-    "Generate", "Deduce", "Embed", "Embedding",
-}
 
-# (from_type, to_type) → predicate IRI.  Checked in order; first match wins.
-_LINK_RULES = [
-    # Risk chain
-    ({"RiskSource"},  {"Risk"},         BEAMR + "isRiskSourceFor"),
-    ({"Risk"},        {"Consequence"},  BEAMR + "hasConsequence"),
-    ({"Consequence"}, {"Impact"},       BEAMR + "hasImpact"),
-    # Risk controls modify any risk concept
-    ({"RiskControl"}, _RISK_TYPES,      BEAMR + "modifiesRiskConcept"),
-    # Risk source originates from a workflow element
-    ({"RiskSource"},  _WORKFLOW_TYPES,  BEAMR + "originatedFrom"),
-    # Risk control associated to a workflow element
-    ({"RiskControl"}, _WORKFLOW_TYPES,  BEAMR + "associatedTo"),
-]
+# Risk-chain links between two cards: (from_type, to_type) → predicate IRI.
+# Looked up in both directions so the drawing direction doesn't matter.
+_CHAIN_RULES = {
+    ("RiskSource", "Risk"):        BEAMR + "isRiskSourceFor",
+    ("Risk", "Consequence"):       BEAMR + "hasConsequence",
+    ("Consequence", "Impact"):     BEAMR + "hasImpact",
+    # Risk → Impact direct shortcut (paper allows it)
+    ("Risk", "Impact"):            BEAMR + "hasConsequence",
+}
 
 
 def _iri(uri):
@@ -65,23 +56,39 @@ def _component_iri(node_key):
 
 
 def _resolve_link_property(from_type, to_type, from_is_annotation, to_is_annotation):
-    """Pick the BEAMR property for an annotation link based on endpoint types."""
-    # Risk → workflow element: reverse direction → element hasRisk risk
-    if from_type == "Risk" and not to_is_annotation:
-        return BEAMR + "hasRisk", True  # reversed
-    # Risk → Impact direct shortcut (paper allows it)
-    if from_type == "Risk" and to_type == "Impact":
-        return BEAMR + "hasConsequence", False
+    """Pick the BEAM/BEAMR property for an annotation link.
 
-    for from_set, to_set, prop in _LINK_RULES:
-        if from_type in from_set and to_type in to_set:
-            return prop, False
+    Returns (property IRI, reversed) — with reversed=True the triple is
+    emitted as `to property from`.  Both drawing directions of a connector
+    resolve to the same triple, since the visual notation does not force one.
+    """
+    # Card ↔ workflow element: the property depends only on the card type.
+    # Any concrete node counts as an element (beamr:associatedTo /
+    # beamr:originatedFrom range over beam:Unit), so no whitelist of
+    # workflow type names — subtypes like KG, Dataset or CNN qualify too.
+    if from_is_annotation != to_is_annotation:
+        card = from_type if from_is_annotation else to_type
+        card_is_from = from_is_annotation
+        if card == "Risk":
+            return BEAMR + "hasRisk", card_is_from       # element hasRisk risk
+        if card == "RiskSource":
+            return BEAMR + "originatedFrom", not card_is_from
+        if card == "RiskControl":
+            return BEAMR + "associatedTo", not card_is_from
+        if card in ("Note", "System"):
+            return BEAM + "note", card_is_from           # element beam:note note
+        return None, False
 
-    # Note / System / Context links to elements
-    if from_type == "Note" and not to_is_annotation:
-        return BEAM + "note", True  # element beam:note note
-    if from_type == "System" and not to_is_annotation:
-        return BEAM + "note", True
+    # Card ↔ card: risk chain, either drawing direction
+    if (from_type, to_type) in _CHAIN_RULES:
+        return _CHAIN_RULES[(from_type, to_type)], False
+    if (to_type, from_type) in _CHAIN_RULES:
+        return _CHAIN_RULES[(to_type, from_type)], True
+    # Risk controls modify any risk concept
+    if from_type == "RiskControl" and to_type in _RISK_TYPES:
+        return BEAMR + "modifiesRiskConcept", False
+    if to_type == "RiskControl" and from_type in _RISK_TYPES:
+        return BEAMR + "modifiesRiskConcept", True
 
     return None, False
 
@@ -98,6 +105,16 @@ def generate_annotation_triples(source):
 
         if not annotations:
             continue
+
+        # Risk cards already attached to a concrete element get their
+        # beamr:hasRisk triple from that link; only dangling ones fall back
+        # to a system-level hasRisk so they stay reachable in the graph.
+        element_linked = set()
+        for link in annotation_links:
+            if link.get("fromIsAnnotation") and not link.get("toIsAnnotation"):
+                element_linked.add(str(link["from"]))
+            elif link.get("toIsAnnotation") and not link.get("fromIsAnnotation"):
+                element_linked.add(str(link["to"]))
 
         node_map = {}  # key → { iri, name, is_annotation }
 
@@ -131,8 +148,10 @@ def generate_annotation_triples(source):
             if subtext:
                 lines.append(f"{_iri(ann_iri)} {_iri(BEAM + 'description')} {_lit(subtext)} .")
 
-            # Link risk/annotation nodes to their parent boxology
-            if name in _RISK_TYPES:
+            # beamr:hasRisk ranges over beamr:Risk only, so no box-level
+            # hasRisk for the other risk-perspective cards; they hang off the
+            # risk chain instead.
+            if name == "Risk" and str(key) not in element_linked:
                 lines.append(f"{_iri(box_iri)} {_iri(BEAMR + 'hasRisk')} {_iri(ann_iri)} .")
             elif name == "Note":
                 lines.append(f"{_iri(box_iri)} {_iri(BEAM + 'note')} {_iri(ann_iri)} .")
@@ -169,6 +188,73 @@ def generate_annotation_triples(source):
                 lines.append(f"{_iri(to_iri)} {_iri(prop)} {_iri(from_iri)} .")
             else:
                 lines.append(f"{_iri(from_iri)} {_iri(prop)} {_iri(to_iri)} .")
+
+    return "\n".join(lines) + "\n" if lines else ""
+
+
+_BASE_PROCESS_TYPES = {"Train", "Engineer", "Infer", "Transform", "Generate", "Deduce", "Embed"}
+
+
+def _is_process_type(name):
+    """True when t4b:{name} sits under beam:Process in the ontology bundle."""
+    if not name:
+        return False
+    if name in _BASE_PROCESS_TYPES:
+        return True
+    try:
+        from kg_creation.beam_enrichment import _load_schema
+    except ImportError:
+        from beam_enrichment import _load_schema
+    return BEAM + "Process" in _load_schema().subclass_closure.get(T4B + name, ())
+
+
+def generate_component_triples(source):
+    """T4B triples for every workflow node and workflow link in the export.
+
+    The RML pipeline only rdfizes components that participate in a design
+    pattern (wired to a recognised process node), so anything outside a
+    pattern was silently missing from the BEAM export.  This walks
+    nodeDataArray / workflowLinks directly, giving every diagram element a
+    typed, labelled Component IRI; beam_enrichment then lifts these to the
+    corresponding beam: classes and properties.
+    """
+    lines = []
+    for boxology in source.get("boxologies", []):
+        box_id = boxology.get("id", "")
+        box_iri = f"{T4B}Boxology/{box_id}"
+        node_type = {}
+
+        for node in boxology.get("nodeDataArray", []) or []:
+            key = str(node.get("key"))
+            name = node.get("type") or node.get("name") or ""
+            label = node.get("label") or node.get("text") or ""
+            comp_iri = _component_iri(key)
+            node_type[key] = name
+            lines.append(f"{_iri(comp_iri)} {_iri(RDF_TYPE)} {_iri(T4B + 'Component')} .")
+            if name and " " not in name:
+                lines.append(f"{_iri(comp_iri)} {_iri(RDF_TYPE)} {_iri(T4B + name)} .")
+            if label:
+                lines.append(f"{_iri(comp_iri)} {_iri(RDFS_LABEL)} {_lit(label)} .")
+            lines.append(f"{_iri(box_iri)} {_iri(BEAM + 'hasElement')} {_iri(comp_iri)} .")
+
+        for link in boxology.get("workflowLinks", []) or []:
+            from_key = str(link.get("from"))
+            to_key = str(link.get("to"))
+            if from_key not in node_type or to_key not in node_type:
+                continue
+            from_iri = _component_iri(from_key)
+            to_iri = _component_iri(to_key)
+            from_proc = _is_process_type(node_type[from_key])
+            to_proc = _is_process_type(node_type[to_key])
+            if from_proc and to_proc:
+                lines.append(f"{_iri(from_iri)} {_iri(BEAM + 'inform')} {_iri(to_iri)} .")
+            elif to_proc:
+                lines.append(
+                    f"{_iri(from_iri)} {_iri(T4B + 'inputRoleParticipatesInProcess')} {_iri(to_iri)} .")
+            elif from_proc:
+                lines.append(
+                    f"{_iri(from_iri)} {_iri(T4B + 'outputRoleParticipatesInProcess')} {_iri(to_iri)} .")
+            # resource → resource arrows have no counterpart in T4B/BEAM
 
     return "\n".join(lines) + "\n" if lines else ""
 

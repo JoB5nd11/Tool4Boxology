@@ -215,8 +215,14 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
       }));
 
     const annotationKeys = new Set(annotations.map((a: any) => a.key));
+    // A link is an annotation link if it touches a beamCard, even when the
+    // 'annotation' category got lost (e.g. on older saved diagrams).
+    const touchesCard = (l: any) =>
+      l.category === 'annotation' ||
+      annotationKeys.has(String(l.from)) ||
+      annotationKeys.has(String(l.to));
     const annotationLinks = (linkDataArray ?? [])
-      .filter((l: any) => l.category === 'annotation')
+      .filter(touchesCard)
       .map((l: any) => {
         const fromNode = nodeDataArray.find((n: any) => String(n.key) === String(l.from));
         const toNode = nodeDataArray.find((n: any) => String(n.key) === String(l.to));
@@ -230,12 +236,19 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
         };
       });
 
+    // Plain workflow arrows, so the backend can rdfize components that sit
+    // outside any design pattern (the RML step only covers pattern members).
+    const workflowLinks = (linkDataArray ?? [])
+      .filter((l: any) => !touchesCard(l))
+      .map((l: any) => ({ from: String(l.from), to: String(l.to) }));
+
     return {
       id,
       label,
       DesignPattern: patterns,
       annotations,
       annotationLinks,
+      workflowLinks,
       nodeDataArray: nodeDataArray.filter((n: any) => !n.isGroup && n.category !== 'beamCard'),
     };
   });

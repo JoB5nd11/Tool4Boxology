@@ -67,13 +67,23 @@ async def api_beam_export(source: dict):
                 del sys.modules[name]
         from kg_creation.in_memory_rdfizer.generator import kg_generation
         from kg_creation.beam_enrichment import enrich_with_beam
-        from kg_creation.beam_annotation_triples import generate_annotation_triples
+        from kg_creation.beam_annotation_triples import (
+            generate_annotation_triples,
+            generate_component_triples,
+            generate_risk_marker_triples,
+        )
 
+        # The RML step only covers components inside design patterns;
+        # generate_component_triples fills in every remaining node/link so the
+        # enrichment can type ALL elements in the BEAM vocabulary.
         t4b_triples = kg_generation(source)
-        enriched = enrich_with_beam(t4b_triples)
+        component_triples = generate_component_triples(source)
+        if t4b_triples and not t4b_triples.endswith("\n"):
+            t4b_triples += "\n"
+        combined = t4b_triples + component_triples
+        enriched = enrich_with_beam(combined)
         annotation_triples = generate_annotation_triples(source)
 
-        from kg_creation.beam_annotation_triples import generate_risk_marker_triples
         all_workflow_nodes = [
             n for b in source.get("boxologies", []) for n in b.get("nodeDataArray", [])
         ]
@@ -99,7 +109,20 @@ async def api_beam_export(source: dict):
                 if stripped:
                     beam_lines.append(stripped)
 
-        all_lines = t4b_triples.splitlines() + beam_lines
+        # combined + beam_lines overlap (component triples emit some beam:
+        # lines directly), and the two generators use slightly different
+        # spacing before the final '.' — dedupe on a normalised key.
+        seen = set()
+        all_lines = []
+        for line in combined.splitlines() + beam_lines:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            key = " ".join(stripped.rstrip(".").split())
+            if key in seen:
+                continue
+            seen.add(key)
+            all_lines.append(stripped)
 
         prefixes = (
             "@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
