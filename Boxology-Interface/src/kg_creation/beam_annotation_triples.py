@@ -208,6 +208,32 @@ def _is_process_type(name):
     return BEAM + "Process" in _load_schema().subclass_closure.get(T4B + name, ())
 
 
+# beam_core.ttl defines no generic System<->Element property — only the three
+# type-specific ones below (each domain beam:System). hasElement doesn't exist
+# in the bundle, so the System-level link is chosen by the node's BEAM class.
+_SYSTEM_LINK_PROPERTIES = (
+    (BEAM + "Resource", BEAM + "hasResource"),
+    (BEAM + "Process",  BEAM + "hasProcess"),
+    (BEAM + "Agent",    BEAM + "hasAgent"),
+)
+
+
+def _system_link_property(name):
+    """beam:hasResource / hasProcess / hasAgent for t4b:{name}, or None if the
+    type doesn't resolve to any of the three (nothing conformant to emit)."""
+    if not name:
+        return None
+    try:
+        from kg_creation.beam_enrichment import _load_schema
+    except ImportError:
+        from beam_enrichment import _load_schema
+    closure = _load_schema().subclass_closure.get(T4B + name, ())
+    for beam_class, prop in _SYSTEM_LINK_PROPERTIES:
+        if beam_class in closure:
+            return prop
+    return None
+
+
 def generate_component_triples(source):
     """T4B triples for every workflow node and workflow link in the export.
 
@@ -235,7 +261,9 @@ def generate_component_triples(source):
                 lines.append(f"{_iri(comp_iri)} {_iri(RDF_TYPE)} {_iri(T4B + name)} .")
             if label:
                 lines.append(f"{_iri(comp_iri)} {_iri(RDFS_LABEL)} {_lit(label)} .")
-            lines.append(f"{_iri(box_iri)} {_iri(BEAM + 'hasElement')} {_iri(comp_iri)} .")
+            system_prop = _system_link_property(name)
+            if system_prop:
+                lines.append(f"{_iri(box_iri)} {_iri(system_prop)} {_iri(comp_iri)} .")
 
         for link in boxology.get("workflowLinks", []) or []:
             from_key = str(link.get("from"))

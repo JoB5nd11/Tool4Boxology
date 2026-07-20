@@ -179,7 +179,26 @@ class TestGenerateComponentTriples(unittest.TestCase):
             f'<{T4B}Component/n1> <http://www.w3.org/2000/01/rdf-schema#label> "Event KG Subgraph" .',
             result,
         )
-        self.assertIn(f"<{T4B}Boxology/b1> <{BEAM}hasElement> <{T4B}Component/n1> .", result)
+        # beam_core.ttl defines no generic hasElement — KG resolves to
+        # beam:Symbol -> beam:Resource, so the System-level link is hasResource.
+        self.assertIn(f"<{T4B}Boxology/b1> <{BEAM}hasResource> <{T4B}Component/n1> .", result)
+        self.assertNotIn(f"{BEAM}hasElement", result)
+
+    def test_process_type_gets_hasProcess(self):
+        source = _box(nodes=[{"key": "p", "name": "Transform", "type": "Transform", "label": "Proc"}])
+        result = generate_component_triples(source)
+        self.assertIn(f"<{T4B}Boxology/b1> <{BEAM}hasProcess> <{T4B}Component/p> .", result)
+        self.assertNotIn(f"{BEAM}hasElement", result)
+
+    def test_agent_type_gets_hasAgent(self):
+        source = _box(nodes=[{"key": "a", "name": "Actor", "type": "Actor", "label": "User"}])
+        result = generate_component_triples(source)
+        self.assertIn(f"<{T4B}Boxology/b1> <{BEAM}hasAgent> <{T4B}Component/a> .", result)
+
+    def test_unresolvable_type_emits_no_system_link(self):
+        source = _box(nodes=[{"key": "x", "name": "NotARealType", "type": "NotARealType", "label": "?"}])
+        result = generate_component_triples(source)
+        self.assertNotIn(f"<{T4B}Boxology/b1>", result)
 
     def test_workflow_link_roles(self):
         source = _box(
