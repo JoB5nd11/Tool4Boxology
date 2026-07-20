@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import * as go from 'gojs';
 import ExCls from '../Examples/Pain-Cls-Example.json';
 import ExSeg from '../Examples/MRI-seg-Example.json';
-import { graphragExampleData } from '../data/graphragExample';
+import ExGraphRAG from '../Examples/GraphRAG-BEAM-Example.json';
 import InstructionDialog from './InstructionDialog';  
 import WorkflowImg from '../assets/WorkFlow.png';
 
@@ -210,7 +210,7 @@ WHERE {
           <button onClick={() => loadExample(ExCls)} style={getButtonStyle()}>Pain Classification</button>
           <button onClick={() => loadExample(ExSeg)} style={getButtonStyle()}>MRI Segmentation</button>
           <button
-            onClick={() => loadExample({ ...graphragExampleData, modelData: { boxologyLabel: 'GraphRAG Example' } })}
+            onClick={() => loadExample(ExGraphRAG)}
             style={getButtonStyle()}
             title="Load Graph-RAG Chatbot BEAM notation example (Figure 3 from the BEAM paper)"
           >
