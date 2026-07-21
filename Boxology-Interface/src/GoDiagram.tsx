@@ -662,6 +662,9 @@ function showSmallPorts(node: any, show: any) {
           alignment: go.Spot.Bottom,
           alignmentFocus: go.Spot.Top,
           margin: new go.Margin(0, 0, -8, 0),
+          // Default hidden: GoJS skips a Binding whose source property is
+          // undefined, so nodes with no riskMarker never run the converter below.
+          visible: false,
         },
         new go.Binding('visible', 'riskMarker', (marker) => !!marker),
         $(go.Shape, 'RoundedRectangle',
@@ -907,6 +910,7 @@ function showSmallPorts(node: any, show: any) {
             alignmentFocus: go.Spot.Bottom,
             margin: new go.Margin(-6, 0, 0, 0),
             cursor: 'pointer',
+            visible: false,  // see RISK_BADGE: undefined source property skips the binding
             click: (_e, obj) => showRiskClassSelector(_e, obj.part as go.Node),
           },
           new go.Binding('visible', 'name', (n) => RISK_CLASS_SET.has(n)),
