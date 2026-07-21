@@ -861,6 +861,10 @@ function showSmallPorts(node: any, show: any) {
             margin: new go.Margin(-6, 0, 0, 0),
             cursor: 'pointer',
             click: (_e, obj) => showRiskClassSelector(_e, obj.part as go.Node),
+            // Default hidden: GoJS skips a Binding whose source property is
+            // undefined, so a card with no `name` would otherwise keep the
+            // panel's defaults (visible, black dot, empty text).
+            visible: false,
           },
           new go.Binding('visible', 'name', (n) => RISK_CLASS_SET.has(n)),
           $(go.Shape, 'RoundedRectangle',
