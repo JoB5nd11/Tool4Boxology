@@ -48,6 +48,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   return (
     <div
       ref={menuRef}
+      // The menu renders at the cursor before the browser dispatches the
+      // native `contextmenu` event, so that event hit-tests onto this menu
+      // (outside the diagram div, whose handler would preventDefault it).
+      // Suppress it here or the browser menu opens on top of this one.
+      onContextMenu={(e) => e.preventDefault()}
       style={{
         position: 'fixed',
         left: Math.min(contextMenu.x, window.innerWidth - 200),
