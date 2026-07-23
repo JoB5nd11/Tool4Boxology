@@ -716,8 +716,20 @@ function showSmallPorts(node: any, show: any) {
         resegmentable: true,
         relinkableFrom: true,
         relinkableTo: true,
+        contextClick: (e, obj) => {
+          const link = obj.part;
+          if (link instanceof go.Link && e.diagram) {
+            if (!link.isSelected) e.diagram.select(link);
+            setSelectedData({ isLink: true, dash: !!link.data.dash });
+            const mouseEvent = e.event as MouseEvent;
+            setContextMenu({ x: mouseEvent.clientX, y: mouseEvent.clientY });
+            e.handled = true;
+          }
+        },
       },
-      $(go.Shape, { strokeWidth: 2, stroke: "#555" }),
+      $(go.Shape, { strokeWidth: 2, stroke: "#555" },
+        new go.Binding('strokeDashArray', 'dash', (d) => (d ? [6, 4] : null))
+      ),
       $(go.Shape, { toArrow: "Triangle", fill: "#555", stroke: null })
     );
 

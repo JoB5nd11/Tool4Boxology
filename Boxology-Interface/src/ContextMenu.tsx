@@ -63,8 +63,48 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         overflowY: 'auto',
       }}
     >
+      {/* Link (arrow) line style — only when a link is right-clicked */}
+      {selectedData?.isLink && (
+        <>
+          <div
+            style={{
+              padding: '8px 16px',
+              cursor: 'pointer',
+              color: '#495057',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              transition: 'background-color 0.2s ease',
+            }}
+            onClick={() => onAction('set_link_solid')}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+          >
+            <span style={{ marginRight: 8 }}>—</span>
+            Solid line{!selectedData?.dash && <span style={{ marginLeft: 'auto' }}>✓</span>}
+          </div>
+          <div
+            style={{
+              padding: '8px 16px',
+              cursor: 'pointer',
+              color: '#495057',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              transition: 'background-color 0.2s ease',
+            }}
+            onClick={() => onAction('set_link_dashed')}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+          >
+            <span style={{ marginRight: 8 }}>┅</span>
+            Dashed line{selectedData?.dash && <span style={{ marginLeft: 'auto' }}>✓</span>}
+          </div>
+        </>
+      )}
+
       {/* Cluster selected nodes - only show if NOT already a cluster */}
-      {!selectedData?.isCluster && (
+      {!selectedData?.isLink && !selectedData?.isCluster && (
         <div
           style={{
             padding: '8px 16px',
@@ -106,7 +146,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       )}
 
       {/* Risk marker actions — only for plain workflow nodes (not clusters, not beamCard) */}
-      {!selectedData?.isCluster && selectedData?.category !== 'beamCard' && !selectedData?.riskMarker && (
+      {!selectedData?.isLink && !selectedData?.isCluster && selectedData?.category !== 'beamCard' && !selectedData?.riskMarker && (
         <>
           <div
             style={{
@@ -145,7 +185,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         </>
       )}
 
-      {!selectedData?.isCluster && selectedData?.category !== 'beamCard' && selectedData?.riskMarker && (
+      {!selectedData?.isLink && !selectedData?.isCluster && selectedData?.category !== 'beamCard' && selectedData?.riskMarker && (
         <div
           style={{
             padding: '8px 16px',

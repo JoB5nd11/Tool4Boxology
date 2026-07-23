@@ -1007,6 +1007,12 @@ if (model && model.nodeDataArray) {
       case 'clear_risk_marker':
         handleSetRiskMarker(null);
         break;
+      case 'set_link_solid':
+        handleSetLinkDash(false);
+        break;
+      case 'set_link_dashed':
+        handleSetLinkDash(true);
+        break;
       default:
         if (target) {
           console.log('Adding to group:', target);
@@ -1284,6 +1290,19 @@ if (model && model.nodeDataArray) {
     diagram.startTransaction('set risk marker');
     (diagram.model as go.GraphLinksModel).setDataProperty(selectedPart.data, 'riskMarker', marker ?? undefined);
     diagram.commitTransaction('set risk marker');
+  };
+
+  const handleSetLinkDash = (dash: boolean) => {
+    if (!diagramRef.current) return;
+    const diagram = diagramRef.current;
+
+    diagram.startTransaction('set link style');
+    diagram.selection.each((part) => {
+      if (part instanceof go.Link && part.category !== 'annotation') {
+        diagram.model.setDataProperty(part.data, 'dash', dash || undefined);
+      }
+    });
+    diagram.commitTransaction('set link style');
   };
 
   const [isCreatingKG, setIsCreatingKG] = useState(false);
