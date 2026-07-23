@@ -20,6 +20,8 @@ interface GoDiagramProps {
   containers: string[];
   customGroups: Record<string, any[]>;
   beamViewActive: boolean;
+  /** Style for newly drawn arrows — true = dashed (risk relation), false = solid flow. */
+  arrowDash?: boolean;
   /** Fires after every committed user transaction, so App can keep `pages` in sync with the canvas. */
   onModelChange?: (nodeDataArray: DiagramData[], linkDataArray: DiagramData[]) => void;
   /**
@@ -305,6 +307,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
   containers,
   customGroups,
   beamViewActive,
+  arrowDash,
   onModelChange,
   onDiagramInit,
 }) => {
@@ -316,6 +319,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
   onModelChangeRef.current = onModelChange;
   const onDiagramInitRef = useRef(onDiagramInit);
   onDiagramInitRef.current = onDiagramInit;
+  const arrowDashRef = useRef(arrowDash);
+  arrowDashRef.current = arrowDash;
 
   const handleSidebarChange = (field: string, value: string) => {
     if (!diagramRef.current || !setSelectedData) return;
@@ -653,55 +658,6 @@ function showSmallPorts(node: any, show: any) {
             showTypeSelector(e, node);
           }
         }
-      ),
-
-      // Risk / Risk Control marker badge — bottom-center, mirrors TYPE_BADGE (top-center)
-      $(go.Panel, 'Auto',
-        {
-          name: 'RISK_BADGE',
-          alignment: go.Spot.Bottom,
-          alignmentFocus: go.Spot.Top,
-          margin: new go.Margin(0, 0, -8, 0),
-          // Default hidden: GoJS skips a Binding whose source property is
-          // undefined, so nodes with no riskMarker never run the converter below.
-          visible: false,
-        },
-        new go.Binding('visible', 'riskMarker', (marker) => !!marker),
-        $(go.Shape, 'RoundedRectangle',
-          {
-            fill: 'white',
-            strokeWidth: 1,
-            parameter1: 10
-          },
-          new go.Binding('stroke', 'riskMarker', (marker) =>
-            marker === 'RiskControl' ? '#388e3c' : '#fb8c00'
-          )
-        ),
-        $(go.Panel, 'Horizontal',
-          { margin: new go.Margin(3, 8, 3, 8) },
-          $(go.Shape, 'Circle',
-            {
-              width: 5,
-              height: 5,
-              stroke: null,
-              margin: new go.Margin(0, 4, 0, 0)
-            },
-            new go.Binding('fill', 'riskMarker', (marker) =>
-              marker === 'RiskControl' ? '#388e3c' : '#fb8c00'
-            )
-          ),
-          $(go.TextBlock,
-            {
-              font: '9px system-ui, -apple-system, sans-serif',
-            },
-            new go.Binding('text', 'riskMarker', (marker) =>
-              marker === 'RiskControl' ? 'Risk Control' : 'Risk'
-            ),
-            new go.Binding('stroke', 'riskMarker', (marker) =>
-              marker === 'RiskControl' ? '#388e3c' : '#fb8c00'
-            )
-          )
-        )
       )
     );
 
@@ -712,10 +668,17 @@ function showSmallPorts(node: any, show: any) {
         curve: go.Curve.JumpOver,
         corner: 5,
         toShortLength: 4,
+        selectable: true,
         reshapable: true,
         resegmentable: true,
         relinkableFrom: true,
         relinkableTo: true,
+        click: (e, obj) => {
+          const link = obj.part;
+          if (link instanceof go.Link) {
+            setSelectedData({ isLink: true, dash: !!link.data.dash });
+          }
+        },
         contextClick: (e, obj) => {
           const link = obj.part;
           if (link instanceof go.Link && e.diagram) {
@@ -727,7 +690,11 @@ function showSmallPorts(node: any, show: any) {
           }
         },
       },
-      $(go.Shape, { strokeWidth: 2, stroke: "#555" },
+      // Wide transparent stroke first: a fat, invisible hit zone so thin
+      // arrows are easy to click/select (the visible 2px path alone is a
+      // near-impossible target).
+      $(go.Shape, { isPanelMain: true, stroke: 'transparent', strokeWidth: 12 }),
+      $(go.Shape, { isPanelMain: true, strokeWidth: 2, stroke: "#555" },
         new go.Binding('strokeDashArray', 'dash', (d) => (d ? [6, 4] : null))
       ),
       $(go.Shape, { toArrow: "Triangle", fill: "#555", stroke: null })
@@ -738,12 +705,14 @@ function showSmallPorts(node: any, show: any) {
       $(go.Link,
         {
           routing: go.Routing.Normal,
+          selectable: true,
           reshapable: true,
           resegmentable: true,
           relinkableFrom: true,
           relinkableTo: true,
         },
-        $(go.Shape, { strokeWidth: 1.5, stroke: '#757575', strokeDashArray: [4, 3] }),
+        $(go.Shape, { isPanelMain: true, stroke: 'transparent', strokeWidth: 12 }),
+        $(go.Shape, { isPanelMain: true, strokeWidth: 1.5, stroke: '#757575', strokeDashArray: [4, 3] }),
         $(go.Shape, { toArrow: 'OpenTriangle', stroke: '#757575', scale: 0.8 })
       )
     );
@@ -1030,6 +999,9 @@ function showSmallPorts(node: any, show: any) {
       const category = inferLinkCategory(fromData, toData);
       if (category) {
         (diagram.model as go.GraphLinksModel).setCategoryForLinkData(link.data, category);
+      } else if (arrowDashRef.current) {
+        // Left-bar arrow picker: draw new workflow arrows dashed (risk relation)
+        diagram.model.setDataProperty(link.data, 'dash', true);
       }
     });
 

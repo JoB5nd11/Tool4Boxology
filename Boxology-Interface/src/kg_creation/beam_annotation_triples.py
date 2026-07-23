@@ -285,23 +285,3 @@ def generate_component_triples(source):
             # resource → resource arrows have no counterpart in T4B/BEAM
 
     return "\n".join(lines) + "\n" if lines else ""
-
-
-_VALID_RISK_MARKERS = {"Risk", "RiskControl"}
-
-
-def generate_risk_marker_triples(node_data_array):
-    """Return N-Triple lines for workflow nodes tagged with a riskMarker badge.
-
-    Additive to generate_annotation_triples: multi-types the SAME
-    Component/{id} IRI the main T4B pipeline already assigns each
-    workflow node, rather than creating a new resource.
-    """
-    lines = []
-    for node in node_data_array or []:
-        marker = node.get("riskMarker")
-        if marker not in _VALID_RISK_MARKERS:
-            continue
-        component_iri = _component_iri(node["key"])
-        lines.append(f"{_iri(component_iri)} {_iri(RDF_TYPE)} {_iri(BEAMR + marker)} .")
-    return "\n".join(lines) + "\n" if lines else ""

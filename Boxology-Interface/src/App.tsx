@@ -77,6 +77,9 @@ function App() {
     'Elementary Patterns': elementaryPatternsGroup(),
   }));
   const [beamViewActive, setBeamViewActive] = useState(false);
+  // Style for newly drawn arrows, picked in the left bar: false = solid flow,
+  // true = dashed (risk relation).
+  const [arrowDash, setArrowDash] = useState(false);
 
   // Draw-time edge-removal rules toggle. Default ON; only a stored "false"
   // disables it. Synced to the GoJS validation plugin, persisted per browser.
@@ -1009,15 +1012,6 @@ if (model && model.nodeDataArray) {
       case 'uncluster_group':
         handleUnclusterGroup();
         break;
-      case 'mark_risk':
-        handleSetRiskMarker('Risk');
-        break;
-      case 'mark_risk_control':
-        handleSetRiskMarker('RiskControl');
-        break;
-      case 'clear_risk_marker':
-        handleSetRiskMarker(null);
-        break;
       case 'set_link_solid':
         handleSetLinkDash(false);
         break;
@@ -1283,24 +1277,6 @@ if (model && model.nodeDataArray) {
     setTimeout(() => detectAndUpdateSharedNodes(), 100);
 
     alert(`✅ Cluster unclustered! ${members.length} node(s) released.`);
-  };
-
-  const handleSetRiskMarker = (marker: 'Risk' | 'RiskControl' | null) => {
-    if (!diagramRef.current) {
-      alert('No diagram available');
-      return;
-    }
-    const diagram = diagramRef.current;
-    const selectedPart = diagram.selection.first();
-
-    if (!(selectedPart instanceof go.Node) || selectedPart.data.isGroup || selectedPart.data.category === 'beamCard') {
-      alert('Select a single workflow component to mark.');
-      return;
-    }
-
-    diagram.startTransaction('set risk marker');
-    (diagram.model as go.GraphLinksModel).setDataProperty(selectedPart.data, 'riskMarker', marker ?? undefined);
-    diagram.commitTransaction('set risk marker');
   };
 
   const handleSetLinkDash = (dash: boolean) => {
@@ -1701,6 +1677,8 @@ if (model && model.nodeDataArray) {
               containers={containers}
               customContainerShapes={customContainerShapes}
               onAddContainer={handleAddContainer}
+              arrowDash={arrowDash}
+              onArrowDashChange={setArrowDash}
             />
           )}
         </div>
@@ -1714,6 +1692,7 @@ if (model && model.nodeDataArray) {
             containers={containers}
             customGroups={customGroups}
             beamViewActive={beamViewActive}
+            arrowDash={arrowDash}
             onModelChange={handleModelChange}
             onDiagramInit={() => setDiagramEpoch(e => e + 1)}
           />

@@ -3,8 +3,9 @@ import * as go from 'gojs';
 import ExCls from '../Examples/Pain-Cls-Example.json';
 import ExSeg from '../Examples/MRI-seg-Example.json';
 import ExGraphRAG from '../Examples/GraphRAG-BEAM-Example.json';
-import InstructionDialog from './InstructionDialog';  
+import InstructionDialog from './InstructionDialog';
 import WorkflowImg from '../assets/WorkFlow.png';
+import { SPARQL_URL } from '../config';
 
 interface RightSidebarProps {
   selectedData: {
@@ -140,10 +141,9 @@ WHERE {
   };
 
   const sendQueryToVirtuoso = () => {
-    // Replace with your Virtuoso endpoint and query parameter
-    const endpoint = 'http://localhost:8890/sparql'; // Change to your Virtuoso endpoint
+    // Endpoint derived in config.ts: env override → same-origin /sparql → localhost dev
     const encodedQuery = encodeURIComponent(queryText);
-    const url = `${endpoint}?query=${encodedQuery}&format=HTML`;
+    const url = `${SPARQL_URL}?query=${encodedQuery}&format=HTML`;
     window.open(url, '_blank');
   };
 

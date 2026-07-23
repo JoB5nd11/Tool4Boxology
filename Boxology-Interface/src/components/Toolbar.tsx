@@ -11,6 +11,7 @@ import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import ViewStreamIcon from '@mui/icons-material/ViewStream';
 import Grid3x3Icon from '@mui/icons-material/Grid3x3';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { SPARQL_URL } from '../config';
 
 // Define ToolbarProps type
 type ToolbarProps = {
@@ -343,7 +344,7 @@ WHERE {
 LIMIT 100`;
     navigator.clipboard?.writeText(query).catch(()=>{});
     alert('An example SPARQL query copied to clipboard. Paste it into Virtuoso.');
-    window.open('http://localhost:8890/sparql', '_blank', 'noopener,noreferrer');
+    window.open(SPARQL_URL, '_blank', 'noopener,noreferrer');
   };
 
   return (

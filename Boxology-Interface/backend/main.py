@@ -70,7 +70,6 @@ async def api_beam_export(source: dict):
         from kg_creation.beam_annotation_triples import (
             generate_annotation_triples,
             generate_component_triples,
-            generate_risk_marker_triples,
         )
 
         # The RML step only covers components inside design patterns;
@@ -84,17 +83,16 @@ async def api_beam_export(source: dict):
         enriched = enrich_with_beam(combined)
         annotation_triples = generate_annotation_triples(source)
 
-        all_workflow_nodes = [
-            n for b in source.get("boxologies", []) for n in b.get("nodeDataArray", [])
-        ]
-        risk_marker_triples = generate_risk_marker_triples(all_workflow_nodes)
-
+        # BEAM-only export: keep the beam:/beamr: facts derived by the
+        # enrichment plus rdfs:label lines (so the graph stays readable), and
+        # DROP the raw T4B typing/property triples — emitting both vocabularies
+        # made every element appear twice (once t4b:, once beam:).
         beam_lines = []
         for line in enriched.splitlines():
             stripped = line.strip()
             if not stripped:
                 continue
-            if "w3id.org/beam/" in stripped:
+            if "w3id.org/beam/" in stripped or "rdf-schema#label" in stripped:
                 beam_lines.append(stripped)
 
         if annotation_triples:
@@ -103,18 +101,11 @@ async def api_beam_export(source: dict):
                 if stripped:
                     beam_lines.append(stripped)
 
-        if risk_marker_triples:
-            for line in risk_marker_triples.splitlines():
-                stripped = line.strip()
-                if stripped:
-                    beam_lines.append(stripped)
-
-        # combined + beam_lines overlap (component triples emit some beam:
-        # lines directly), and the two generators use slightly different
-        # spacing before the final '.' — dedupe on a normalised key.
+        # The generators use slightly different spacing before the final '.'
+        # — dedupe on a normalised key.
         seen = set()
         all_lines = []
-        for line in combined.splitlines() + beam_lines:
+        for line in beam_lines:
             stripped = line.strip()
             if not stripped:
                 continue

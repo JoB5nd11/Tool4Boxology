@@ -150,66 +150,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         </div>
       )}
 
-      {/* Risk marker actions — only for plain workflow nodes (not clusters, not beamCard) */}
-      {!selectedData?.isLink && !selectedData?.isCluster && selectedData?.category !== 'beamCard' && !selectedData?.riskMarker && (
-        <>
-          <div
-            style={{
-              padding: '8px 16px',
-              cursor: 'pointer',
-              color: '#fb8c00',
-              fontWeight: 500,
-              display: 'flex',
-              alignItems: 'center',
-              transition: 'background-color 0.2s ease',
-            }}
-            onClick={() => onAction('mark_risk')}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-          >
-            <span style={{ marginRight: 8 }}>🟠</span>
-            Mark as Risk
-          </div>
-          <div
-            style={{
-              padding: '8px 16px',
-              cursor: 'pointer',
-              color: '#388e3c',
-              fontWeight: 500,
-              display: 'flex',
-              alignItems: 'center',
-              transition: 'background-color 0.2s ease',
-            }}
-            onClick={() => onAction('mark_risk_control')}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-          >
-            <span style={{ marginRight: 8 }}>🟢</span>
-            Mark as Risk Control
-          </div>
-        </>
-      )}
-
-      {!selectedData?.isLink && !selectedData?.isCluster && selectedData?.category !== 'beamCard' && selectedData?.riskMarker && (
-        <div
-          style={{
-            padding: '8px 16px',
-            cursor: 'pointer',
-            color: '#495057',
-            fontWeight: 500,
-            display: 'flex',
-            alignItems: 'center',
-            transition: 'background-color 0.2s ease',
-          }}
-          onClick={() => onAction('clear_risk_marker')}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-        >
-          <span style={{ marginRight: 8 }}>⚪</span>
-          Clear Risk Marker
-        </div>
-      )}
-
       {/* Cancel Option */}
       <div
         style={{ 

@@ -34,12 +34,17 @@ export interface LeftSidebarProps {
   containers: string[];
   customContainerShapes: { [key: string]: any[] };
   onAddContainer: (containerName: string) => void;
+  /** Active style for newly drawn arrows — true = dashed (risk relation). */
+  arrowDash: boolean;
+  onArrowDashChange: (dash: boolean) => void;
 }
 
-export default function LeftSidebar({ 
-  containers, 
-  onAddContainer, 
+export default function LeftSidebar({
+  containers,
+  onAddContainer,
   customContainerShapes,
+  arrowDash,
+  onArrowDashChange,
 }: LeftSidebarProps) {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(
@@ -266,6 +271,71 @@ export default function LeftSidebar({
           padding: '8px',
         }}
       >
+        {/* Arrows — pick the style used for newly drawn connections */}
+        <div style={{ marginBottom: '8px' }}>
+          <div style={{
+            padding: '10px 12px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: '600',
+            background: '#5459AC',
+            color: '#eaf2faff',
+            border: '1px solid #bbdefb',
+            marginBottom: '4px',
+          }}>
+            Arrows
+          </div>
+          <div style={{
+            padding: '10px 12px',
+            background: '#fff',
+            border: '1px solid #e0e0e0',
+            borderRadius: '8px',
+            display: 'flex',
+            gap: '8px',
+          }}>
+            {([
+              { dash: false, label: 'Flow', title: 'Solid arrow — workflow / data flow. New arrows you draw will be solid.' },
+              { dash: true, label: 'Risk', title: 'Dashed arrow — risk relation. New arrows you draw will be dashed.' },
+            ] as const).map(({ dash, label, title }) => {
+              const active = arrowDash === dash;
+              return (
+                <button
+                  key={label}
+                  onClick={() => onArrowDashChange(dash)}
+                  title={title}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '8px',
+                    border: active ? '2px solid #5459AC' : '1px solid #e0e0e0',
+                    borderRadius: '6px',
+                    background: active ? '#eef0ff' : '#fafafa',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <svg width="48" height="12" viewBox="0 0 48 12">
+                    <line
+                      x1="2" y1="6" x2="38" y2="6"
+                      stroke="#555" strokeWidth="2"
+                      strokeDasharray={dash ? '6 4' : undefined}
+                    />
+                    <polygon points="38,1 46,6 38,11" fill="#555" />
+                  </svg>
+                  <span style={{ fontSize: '10px', fontWeight: 500, color: '#333' }}>
+                    {label}{active ? ' ✓' : ''}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: '10px', color: '#888', padding: '4px 2px 0' }}>
+            Drag between shapes to draw an arrow in the selected style. Right-click an arrow to change it later.
+          </div>
+        </div>
+
         {/* Static Shape Groups */}
         <div style={{ marginBottom: '16px' }}>
           {searchTerm ? (
