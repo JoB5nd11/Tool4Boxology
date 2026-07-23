@@ -22,6 +22,9 @@ type ToolbarProps = {
   onAbout: () => void;
   onShowInstructions: () => void;          // <-- added
   onValidate: () => void;
+  /** Whether draw-time edge-removal rules are active. */
+  enforceValidation: boolean;
+  onToggleEnforceValidation: () => void;
   //onExportSVG: () => void;
   onExportPNG: () => void;
   onExportJPG: () => void;
@@ -49,6 +52,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onAbout,
   onShowInstructions,          // <-- added
   onValidate,
+  enforceValidation,
+  onToggleEnforceValidation,
   //onExportSVG,
   onExportPNG,
   onExportJPG,
@@ -518,7 +523,32 @@ LIMIT 100`;
       >
         Check Validation!
       </button>
-      
+      <button
+        onClick={onToggleEnforceValidation}
+        style={
+          enforceValidation
+            ? {
+                ...simpleButtonStyle,
+                backgroundColor: '#060771',
+                color: 'white',
+                borderColor: '#060771',
+              }
+            : {
+                ...simpleButtonStyle,
+                backgroundColor: '#f8f8f8',
+                color: '#888',
+                borderColor: '#aaa',
+              }
+        }
+        title={
+          enforceValidation
+            ? 'Connection rules enforced: invalid edges are removed as you draw. Click to allow any edge.'
+            : 'Connection rules OFF: any edge can be drawn. Click to re-enable enforcement.'
+        }
+      >
+        🛡️ Rules: {enforceValidation ? 'ON' : 'OFF'}
+      </button>
+
       {onCreateKG && (
         <button
           onClick={onCreateKG}

@@ -7,7 +7,7 @@ import { saveWithPicker } from './utils/fs-save';
 import * as go from 'gojs';
 import RightSidebar from './components/RightSidebar';
 import ContextMenu from './ContextMenu';
-import { validateGoJSDiagram } from './plugin/GoJSBoxologyValidation';
+import { validateGoJSDiagram, setValidationEnforcement } from './plugin/GoJSBoxologyValidation';
 import { v4 as uuidv4 } from 'uuid';
 import type { ValidationResult } from './utils/validation';
 import { elementaryPatterns } from './data/patterns';
@@ -77,6 +77,17 @@ function App() {
     'Elementary Patterns': elementaryPatternsGroup(),
   }));
   const [beamViewActive, setBeamViewActive] = useState(false);
+
+  // Draw-time edge-removal rules toggle. Default ON; only a stored "false"
+  // disables it. Synced to the GoJS validation plugin, persisted per browser.
+  const [enforceValidation, setEnforceValidation] = useState(
+    () => window.localStorage.getItem('enforceValidation') !== 'false'
+  );
+
+  useEffect(() => {
+    window.localStorage.setItem('enforceValidation', String(enforceValidation));
+    setValidationEnforcement(enforceValidation);
+  }, [enforceValidation]);
 
   // Page management for GoJS diagrams
   const [pages, setPages] = useState<PageData[]>(() => restored?.pages ?? [blankPage()]);
@@ -1451,6 +1462,8 @@ if (model && model.nodeDataArray) {
         onAbout={handleAbout}
         onShowInstructions={handleShowInstructions}
         onValidate={() => handleDiagramOperation('validate')}
+        enforceValidation={enforceValidation}
+        onToggleEnforceValidation={() => setEnforceValidation(v => !v)}
         onExportPNG={() => handleExport('png')}
         onExportJPG={() => handleExport('jpg')}
         onExportJSON={() => handleExport('json')}
