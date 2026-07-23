@@ -122,6 +122,16 @@ function mergeIdenticalNodes(diagram: go.Diagram, fromNode: go.Node, toNode: go.
   model.commitTransaction("merge nodes");
 }
 
+// --- Enforcement toggle ---
+// When false, the two edge-removal rules below are skipped: users may draw
+// any edge. Auto-merge of identical nodes and the report-only validators
+// (validateGoJSDiagram / validateEntireDiagram) are unaffected.
+let enforceValidation = true;
+
+export function setValidationEnforcement(enabled: boolean) {
+  enforceValidation = enabled;
+}
+
 // --- Prevent invalid edges and merge on link creation ---
 export function setupDiagramValidation(diagram: go.Diagram) {
   // Prevent invalid connections and merge duplicate nodes
@@ -132,31 +142,33 @@ export function setupDiagramValidation(diagram: go.Diagram) {
     const fromName = getNodeName(link.fromNode);
     const toName = getNodeName(link.toNode);
 
-    // Prevent invalid connection by rule table
-    if (!validNext[fromName] || !validNext[fromName].includes(toName)) {
-      diagram.model.startTransaction("remove invalid link");
-      (diagram.model as go.GraphLinksModel).removeLinkData(link.data);
-      diagram.model.commitTransaction("remove invalid link");
-      alert("Invalid connection. Edge removed.");
-      return;
-    }
-
-    // Enforce process output cardinality: exactly one of symbol/model/data
-    if (PROCESS_NODES.has(fromName) && OUTPUT_TARGETS.has(toName)) {
-      const outCount = countProcessOutputs(link.fromNode);
-      if (outCount > 1) {
-        diagram.model.startTransaction("enforce process output cardinality");
+    if (enforceValidation) {
+      // Prevent invalid connection by rule table
+      if (!validNext[fromName] || !validNext[fromName].includes(toName)) {
+        diagram.model.startTransaction("remove invalid link");
         (diagram.model as go.GraphLinksModel).removeLinkData(link.data);
-        diagram.model.commitTransaction("enforce process output cardinality");
-        alert("A process can have exactly one output (symbol, model, or data).");
+        diagram.model.commitTransaction("remove invalid link");
+        alert("Invalid connection. Edge removed.");
         return;
+      }
+
+      // Enforce process output cardinality: exactly one of symbol/model/data
+      if (PROCESS_NODES.has(fromName) && OUTPUT_TARGETS.has(toName)) {
+        const outCount = countProcessOutputs(link.fromNode);
+        if (outCount > 1) {
+          diagram.model.startTransaction("enforce process output cardinality");
+          (diagram.model as go.GraphLinksModel).removeLinkData(link.data);
+          diagram.model.commitTransaction("enforce process output cardinality");
+          alert("A process can have exactly one output (symbol, model, or data).");
+          return;
+        }
       }
     }
 
     // 🎯 FIXED: Only merge nodes if they have SAME NAME AND SAME LABEL
     const fromLabel = link.fromNode.data.label || "";
     const toLabel = link.toNode.data.label || "";
-    
+
     if (fromName === toName && fromLabel === toLabel) {
       // Same name AND same label = merge required
       mergeIdenticalNodes(diagram, link.fromNode, link.toNode);
