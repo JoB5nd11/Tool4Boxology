@@ -9,3 +9,8 @@ docs/
 .claude/
 CLAUDE.md
 .superpowers/
+
+# Skills (installed locally, not shared via git)
+.agents/
+.claude/skills/
+skills-lock.json
