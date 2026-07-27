@@ -27,6 +27,8 @@ import { useSessionPersistence } from './hooks/useSessionPersistence';
 import { useToast } from './components/Toast/ToastProvider';
 import { useDialogs } from './hooks/useDialogs';
 import AboutDialog from './components/dialogs/AboutDialog';
+import ChatBotButton from './components/ChatBot/ChatBotButton';
+import BoxologyGeneratorDialog from './components/dialogs/BoxologyGeneratorDialog';
 import { colors } from './styles/theme';
 
 const blankPage = (): PageData => ({
@@ -85,6 +87,17 @@ function App() {
   // Style for newly drawn arrows, picked in the left bar: false = solid flow,
   // true = dashed (risk relation).
   const [arrowDash, setArrowDash] = useState(false);
+  const [boxologyGeneratorOpen, setBoxologyGeneratorOpen] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('boxologyGenerator') === '1') {
+      setBoxologyGeneratorOpen(true);
+      params.delete('boxologyGenerator');
+      const query = params.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+    }
+  }, []);
 
   // Draw-time edge-removal rules toggle. Default ON; only a stored "false"
   // disables it. Synced to the GoJS validation plugin, persisted per browser.
@@ -204,6 +217,67 @@ function App() {
     setPages(prev => [...prev, newPage]);
     setCurrentPageId(newPage.id);
     // The page-load effect (keyed on currentPageId) pushes this into the canvas.
+  };
+
+  const handleOpenGeneratedBoxology = (boxology: any, filename?: string) => {
+    if (!boxology || boxology.class !== 'GraphLinksModel') {
+      showToast('Generated file is not a valid GraphLinksModel.', 'error');
+      return;
+    }
+
+    const rawNodes = Array.isArray(boxology.nodeDataArray) ? boxology.nodeDataArray : [];
+    const rawLinks = Array.isArray(boxology.linkDataArray) ? boxology.linkDataArray : [];
+    if (rawNodes.length === 0) {
+      showToast('Generated Boxology file has no nodes to open.', 'warning');
+      return;
+    }
+
+    const { nodeDataArray, linkDataArray } = normalizeModelData(rawNodes, rawLinks);
+    const modelData = boxology.modelData || {};
+    const labelFromFile = filename?.replace(/\.boxology$/i, '').replace(/_/g, ' ');
+    const boxologyLabel = modelData.boxologyLabel || labelFromFile || 'AI Generated Boxology';
+    const boxologyId = modelData.boxologyId || generateStableIdFromData(nodeDataArray, linkDataArray);
+    const pageId = uuidv4();
+
+    const newPage: PageData = {
+      id: pageId,
+      name: boxologyLabel,
+      nodeDataArray,
+      linkDataArray,
+      boxologyId,
+      boxologyLabel,
+    };
+
+    setPages(prev => {
+      const liveModel = diagramRef.current?.model as go.GraphLinksModel | undefined;
+      const syncedPages = liveModel && currentPageId
+        ? prev.map(page =>
+            page.id === currentPageId
+              ? {
+                  ...page,
+                  nodeDataArray: liveModel.nodeDataArray,
+                  linkDataArray: liveModel.linkDataArray || [],
+                }
+              : page
+          )
+        : prev;
+      return [...syncedPages, newPage];
+    });
+
+    setCurrentPageId(pageId);
+
+    if (diagramRef.current) {
+      const model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
+      model.modelData = {
+        ...modelData,
+        boxologyId,
+        boxologyLabel,
+        boxologyDescription: modelData.boxologyDescription,
+      };
+      diagramRef.current.model = model;
+    }
+
+    showToast(`Opened "${boxologyLabel}" on the canvas.`, 'success');
   };
 
   // Switch to different page
@@ -1592,6 +1666,7 @@ if (model && model.nodeDataArray) {
         onBeamViewToggle={setBeamViewActive}
         onAutoArrange={handleAutoArrange}
         onOpenKGViewer={handleOpenKGViewer}
+        onOpenBoxologyGenerator={() => setBoxologyGeneratorOpen(true)}
         kgJson={kgJson}
       />
 
@@ -1899,6 +1974,14 @@ if (model && model.nodeDataArray) {
       <InstructionDialog
         open={showInstructions}
         onClose={handleCloseInstructions}
+      />
+
+      {/* Floating ChatBot Button */}
+      <ChatBotButton onOpenBoxology={handleOpenGeneratedBoxology} rightOffset={RIGHT_W + 24} />
+
+      <BoxologyGeneratorDialog
+        open={boxologyGeneratorOpen}
+        onClose={() => setBoxologyGeneratorOpen(false)}
       />
 
       {isCreatingKG && (
