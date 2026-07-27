@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { shapes } from '../data/shape';
-import { patterns, type Pattern } from '../data/patterns';
-import type { ShapeDefinition } from '../types';
-import tibLogo from '../assets/TIB_Logo_EN.webp'; // adjust path if needed
-import vuLogo from '../assets/VU-Logo.png';   // add this line
+import { shapes } from '../../data/shape';
+import { patterns, type Pattern } from '../../data/patterns';
+import type { ShapeDefinition } from '../../types';
+import tibLogo from '../../assets/TIB_Logo_EN.webp'; // adjust path if needed
+import vuLogo from '../../assets/VU-Logo.png';   // add this line
 import { LineAxis, SpaOutlined } from '@mui/icons-material';
 
 interface ShapeGroupMap {

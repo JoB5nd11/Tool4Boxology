@@ -11,7 +11,7 @@ import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import ViewStreamIcon from '@mui/icons-material/ViewStream';
 import Grid3x3Icon from '@mui/icons-material/Grid3x3';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { SPARQL_URL } from '../config';
+import { SPARQL_URL } from '../../config';
 
 // Define ToolbarProps type
 type ToolbarProps = {

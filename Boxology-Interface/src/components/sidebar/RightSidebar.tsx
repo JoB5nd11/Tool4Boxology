@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
 import * as go from 'gojs';
-import ExCls from '../Examples/Pain-Cls-Example.json';
-import ExSeg from '../Examples/MRI-seg-Example.json';
-import ExGraphRAG from '../Examples/GraphRAG-BEAM-Example.json';
-import InstructionDialog from './InstructionDialog';
-import WorkflowImg from '../assets/WorkFlow.png';
-import { SPARQL_URL } from '../config';
+import ExCls from '../../Examples/Pain-Cls-Example.json';
+import ExSeg from '../../Examples/MRI-seg-Example.json';
+import ExGraphRAG from '../../Examples/GraphRAG-BEAM-Example.json';
+import InstructionDialog from '../dialogs/InstructionDialog';
+import WorkflowImg from '../../assets/WorkFlow.png';
+import { SPARQL_URL } from '../../config';
 
 interface RightSidebarProps {
   selectedData: {
