@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Fab } from '@mui/material';
 import aiAssistIcon from '../../assets/T4B-AI-Assist.png';
 import ChatBotNew from './ChatBotNew';
@@ -24,10 +24,17 @@ interface ChatBotButtonProps {
    * floats over the canvas instead.
    */
   rightOffset?: number;
+  openInitially?: boolean;
 }
 
-export const ChatBotButton: React.FC<ChatBotButtonProps> = ({ onOpenBoxology, rightOffset = 24 }) => {
+export const ChatBotButton: React.FC<ChatBotButtonProps> = ({ onOpenBoxology, rightOffset = 24, openInitially = false }) => {
   const [chatOpen, setChatOpen] = useState(false);
+
+  useEffect(() => {
+    if (openInitially) {
+      setChatOpen(true);
+    }
+  }, [openInitially]);
 
   const openChat = () => {
     if (document.activeElement instanceof HTMLElement) {

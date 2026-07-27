@@ -28,7 +28,6 @@ import { useToast } from './components/Toast/ToastProvider';
 import { useDialogs } from './hooks/useDialogs';
 import AboutDialog from './components/dialogs/AboutDialog';
 import ChatBotButton from './components/ChatBot/ChatBotButton';
-import BoxologyGeneratorDialog from './components/dialogs/BoxologyGeneratorDialog';
 import { colors } from './styles/theme';
 
 const blankPage = (): PageData => ({
@@ -87,16 +86,16 @@ function App() {
   // Style for newly drawn arrows, picked in the left bar: false = solid flow,
   // true = dashed (risk relation).
   const [arrowDash, setArrowDash] = useState(false);
-  const [boxologyGeneratorOpen, setBoxologyGeneratorOpen] = useState(false);
+  const [aiAssistOpen, setAiAssistOpen] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('boxologyGenerator') === '1') {
-      setBoxologyGeneratorOpen(true);
-      params.delete('boxologyGenerator');
-      const query = params.toString();
-      window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+    if (params.get('aiAssist') === '1') {
+      setAiAssistOpen(true);
+      params.delete('aiAssist');
     }
+    const query = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
   }, []);
 
   // Draw-time edge-removal rules toggle. Default ON; only a stored "false"
@@ -1666,7 +1665,6 @@ if (model && model.nodeDataArray) {
         onBeamViewToggle={setBeamViewActive}
         onAutoArrange={handleAutoArrange}
         onOpenKGViewer={handleOpenKGViewer}
-        onOpenBoxologyGenerator={() => setBoxologyGeneratorOpen(true)}
         kgJson={kgJson}
       />
 
@@ -1977,12 +1975,7 @@ if (model && model.nodeDataArray) {
       />
 
       {/* Floating ChatBot Button */}
-      <ChatBotButton onOpenBoxology={handleOpenGeneratedBoxology} rightOffset={RIGHT_W + 24} />
-
-      <BoxologyGeneratorDialog
-        open={boxologyGeneratorOpen}
-        onClose={() => setBoxologyGeneratorOpen(false)}
-      />
+      <ChatBotButton onOpenBoxology={handleOpenGeneratedBoxology} rightOffset={RIGHT_W + 24} openInitially={aiAssistOpen} />
 
       {isCreatingKG && (
         <div style={{
