@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openExamplesSection } from './helpers';
 import { buildDesignPatternsFromModelData } from '../../src/utils/exportHelpers';
 
 test.describe('buildDesignPatternsFromModelData — topology-based extraction', () => {

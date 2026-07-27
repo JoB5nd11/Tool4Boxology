@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openExamplesSection } from './helpers';
 
 async function dismissModal(page: any) {
   const gotItBtn = page.getByRole('button', { name: /GOT IT/i });
@@ -19,6 +20,7 @@ test.describe('Boxology example buttons append a tab (do not replace)', () => {
     const tabs = page.getByTestId('page-tab');
     await expect(tabs).toHaveCount(1);
 
+    await openExamplesSection(page);
     await page.getByRole('button', { name: /Pain Classification/i }).click();
     await page.waitForTimeout(1000);
 
@@ -31,17 +33,22 @@ test.describe('Boxology example buttons append a tab (do not replace)', () => {
   });
 
   test('loading two examples yields three distinct tabs', async ({ page }) => {
+    await openExamplesSection(page);
     await page.getByRole('button', { name: /Pain Classification/i }).click();
     await page.waitForTimeout(800);
+    await openExamplesSection(page);
     await page.getByRole('button', { name: /MRI Segmentation/i }).click();
     await page.waitForTimeout(800);
 
     await expect(page.getByTestId('page-tab')).toHaveCount(3);
     await expect(page.getByTestId('page-tab').filter({ hasText: 'Pain-Classification' })).toHaveCount(1);
-    await expect(page.getByTestId('page-tab').filter({ hasText: 'MRI-Segmentation' })).toHaveCount(1);
+    // Upstream renamed this example's boxologyLabel to 'MRI-seg-Example';
+    // the tab takes its name from that label.
+    await expect(page.getByTestId('page-tab').filter({ hasText: 'MRI-seg-Example' })).toHaveCount(1);
   });
 
   test('the leftover blank tab can be closed with its × button', async ({ page }) => {
+    await openExamplesSection(page);
     await page.getByRole('button', { name: /Pain Classification/i }).click();
     await page.waitForTimeout(800);
     await expect(page.getByTestId('page-tab')).toHaveCount(2);
@@ -57,8 +64,10 @@ test.describe('Boxology example buttons append a tab (do not replace)', () => {
   });
 
   test('loading the same example twice does not collide (two separate tabs)', async ({ page }) => {
+    await openExamplesSection(page);
     await page.getByRole('button', { name: /Pain Classification/i }).click();
     await page.waitForTimeout(800);
+    await openExamplesSection(page);
     await page.getByRole('button', { name: /Pain Classification/i }).click();
     await page.waitForTimeout(800);
 

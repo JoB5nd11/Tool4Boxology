@@ -1,7 +1,10 @@
+from urllib.error import URLError
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
+from SPARQLWrapper import SPARQLWrapper, JSON
 import sys, os, socket, importlib, traceback
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,7 +56,12 @@ async def api_create_kg(source: dict):
             "status": "ok",
             "mode": result.get("mode"),
             "triples_len": result.get("triples_len"),
+            "rdf": result.get("rdf"),
+            "rdf_format": result.get("rdf_format"),
         }
+    except (URLError, TimeoutError) as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=503, detail=f"Virtuoso connection error: {str(e)}")
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
@@ -136,7 +144,33 @@ async def api_beam_export(source: dict):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/t4b/sparql")
+async def api_t4b_sparql(payload: dict):
+    query = (payload.get("query") or "").strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Missing SPARQL query")
+    try:
+        sparql = SPARQLWrapper(SPARQL_ENDPOINT)
+        sparql.setReturnFormat(JSON)
+        sparql.setQuery(query)
+        return sparql.query().convert()
+    except (URLError, TimeoutError) as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=503, detail=f"Virtuoso connection error: {str(e)}")
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/")
 async def root():
     return {"status": "running", "sparql_query": SPARQL_ENDPOINT, "sparql_update": SPARQL_UPDATE_ENDPOINT}
+
+@app.get("/api/health")
+async def api_health():
+    return {
+        "status": "ok",
+        "service": "boxology-backend",
+        "sparql_query": SPARQL_ENDPOINT,
+        "sparql_update": SPARQL_UPDATE_ENDPOINT,
+
+    }

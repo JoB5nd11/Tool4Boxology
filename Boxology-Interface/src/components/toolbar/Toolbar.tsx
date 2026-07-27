@@ -9,9 +9,18 @@ import AlignVerticalTopIcon from '@mui/icons-material/AlignVerticalTop';
 import AlignHorizontalCenterIcon from '@mui/icons-material/AlignHorizontalCenter';
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import ViewStreamIcon from '@mui/icons-material/ViewStream';
-import Grid3x3Icon from '@mui/icons-material/Grid3x3';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { SPARQL_URL } from '../../config';
+import { useToast } from '../Toast/ToastProvider';
+import {
+  simpleButtonStyle,
+  toolbarGroupStyle,
+  iconButtonStyle,
+  getEmphasisButtonStyle,
+} from '../../styles/buttonStyles';
+// getToolbarButtonStyle also lives in ../../styles/buttonStyles if a caller needs a
+// fully custom one-off toolbar button style.
+import { colors } from '../../styles/theme';
 
 // Define ToolbarProps type
 type ToolbarProps = {
@@ -42,6 +51,8 @@ type ToolbarProps = {
   beamViewActive: boolean;
   onBeamViewToggle: (active: boolean) => void;
   onAutoArrange: () => void;
+  onOpenKGViewer?: () => void;
+  kgJson?: any; // <-- Add this prop
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -70,6 +81,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
   beamViewActive,
   onBeamViewToggle,
   onAutoArrange,
+  onOpenKGViewer,
+  kgJson
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
   // JSON/BEAM/KG export every tab (generateMultiPageRMLExport). Say so, but stay
@@ -80,6 +93,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const exportMenuRef = React.useRef<HTMLDivElement>(null);
   const helpMenuRef = React.useRef<HTMLDivElement>(null);         // <-- added
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const { showToast } = useToast();
 
   // Close export menu when clicking outside
   React.useEffect(() => {
@@ -110,67 +124,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
     }
   };
 
-  // Simple small button style for existing buttons
-  const simpleButtonStyle: React.CSSProperties = {
-    padding: '4px 8px',
-    margin: '2px',
-    border: '1px solid #110969ff',
-    backgroundColor: '#f8f8f8',
-    borderRadius: '3px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: 'normal',
-    color: '#333',
-    height: '24px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  // MUI icon button style for alignment tools
-  const iconButtonStyle: React.CSSProperties = {
-    padding: '4px',
-    border: '1px solid #ccc',
-    backgroundColor: '#fff',
-    borderRadius: 3,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '28px',
-    minWidth: '28px',
-    color: '#555',
-    margin: '1px',
-  };
-
-  const iconButtonHoverStyle = {
-    backgroundColor: '#f0f0f0',
-    borderColor: '#999',
-  };
-
-  // Grid Snap functions
-  const toggleGridLock = () => {
-    if (!diagram) return;
-
-    const isEnabled = diagram.toolManager.draggingTool.isGridSnapEnabled;
-    diagram.toolManager.draggingTool.isGridSnapEnabled = !isEnabled;
-    diagram.toolManager.resizingTool.isGridSnapEnabled = !isEnabled;
-
-    const toggleBtn = document.getElementById('gridToggle');
-    if (toggleBtn) {
-      if (isEnabled) {
-        toggleBtn.style.backgroundColor = '#fff';
-        toggleBtn.style.borderColor = '#555';
-        toggleBtn.style.color = '#555';
-      } else {
-        toggleBtn.style.backgroundColor = '#e3f2fd';
-        toggleBtn.style.borderColor = '#1976d2';
-        toggleBtn.style.color = '#1976d2';
-      }
-    }
-  };
-
   // Alignment functions
   const alignNodes = (alignment: string) => {
     if (!diagram) return;
@@ -178,7 +131,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const selectedNodes = diagram.selection.filter(part => part instanceof go.Node);
     
     if (selectedNodes.count < 2) {
-      alert('Please select at least 2 nodes to align');
+      showToast('Please select at least 2 nodes to align', 'warning');
       return;
     }
 
@@ -232,7 +185,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const selectedNodes = diagram.selection.filter(part => part instanceof go.Node);
     
     if (selectedNodes.count < 3) {
-      alert('Please select at least 3 nodes to distribute');
+      showToast('Please select at least 3 nodes to distribute', 'warning');
       return;
     }
 
@@ -273,7 +226,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const selectedNodes = diagram.selection.filter(part => part instanceof go.Node);
     
     if (selectedNodes.count < 2) {
-      alert('Please select at least 2 nodes to organize horizontally');
+      showToast('Please select at least 2 nodes to organize horizontally', 'warning');
       return;
     }
 
@@ -305,7 +258,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const selectedNodes = diagram.selection.filter(part => part instanceof go.Node);
     
     if (selectedNodes.count < 2) {
-      alert('Please select at least 2 nodes to organize vertically');
+      showToast('Please select at least 2 nodes to organize vertically', 'warning');
       return;
     }
 
@@ -343,7 +296,7 @@ WHERE {
 }
 LIMIT 100`;
     navigator.clipboard?.writeText(query).catch(()=>{});
-    alert('An example SPARQL query copied to clipboard. Paste it into Virtuoso.');
+    showToast('An example SPARQL query copied to clipboard. Paste it into Virtuoso.', 'success');
     window.open(SPARQL_URL, '_blank', 'noopener,noreferrer');
   };
 
@@ -351,13 +304,14 @@ LIMIT 100`;
     <div style={{
       display: 'flex',
       alignItems: 'center',
-      gap: '6px',
-      padding: '4px 8px',
-      backgroundColor: '#f5f5f5',
-      borderBottom: '1px solid #ddd',
+      gap: '8px',
+      padding: '6px 10px',
+      backgroundColor: colors.primary.lighter,
+      borderBottom: '1px solid #d6d5d0',
       flexWrap: 'wrap',
-      minHeight: '36px'
+      minHeight: '46px'
     }}>
+      <div style={toolbarGroupStyle} title="File">
       {/* HELP dropdown (replaces direct About button) */}
       <div ref={helpMenuRef} style={{ position: 'relative', display: 'inline-block' }}>
         <button
@@ -412,8 +366,10 @@ LIMIT 100`;
       {/* Open / Save */}
       <button onClick={onOpen} style={simpleButtonStyle}>📁 Open</button>
       <button onClick={onSave} style={simpleButtonStyle}>💾 Save</button>
+      </div>
 
       {/* Export Dropdown (unchanged) */}
+      <div style={toolbarGroupStyle} title="Export">
       <div ref={exportMenuRef} style={{ position: 'relative', display: 'inline-block' }}>
         <button
           onClick={() => {
@@ -454,6 +410,18 @@ LIMIT 100`;
               title="KG interchange format — for backend ingestion, not for reopening a diagram. Use Save to reopen later."
             >
               📄 JSON{scopeSuffix}
+            </button>
+
+            <button
+              onClick={() => {
+                onExportJPG();
+                setShowExportMenu(false);
+              }}
+              style={exportItemStyle}
+              onMouseOver={hoverOn}
+              onMouseOut={hoverOff}
+            >
+              🖼️ JPG
             </button>
 
             <button
@@ -507,19 +475,14 @@ LIMIT 100`;
       >
         🟦 Graphviz
       </button>
+      </div>
 
-      <div style={{ width: '1px', height: '20px', background: '#ccc', margin: '0 4px' }} />
-
+      <div style={toolbarGroupStyle} title="Diagram">
       <button onClick={onUndo} style={simpleButtonStyle}>🔄 Undo</button>
       <button onClick={onRedo} style={simpleButtonStyle}>🔃 Redo</button>
       <button
         onClick={onValidate}
-        style= {{
-          ...simpleButtonStyle,
-          backgroundColor: '#060771',
-          color: 'white',
-          borderColor: '#060771'
-        }}
+        style={getEmphasisButtonStyle('neutral')}
         title="Validate selected pattern or entire diagram"
       >
         Check Validation!
@@ -549,31 +512,35 @@ LIMIT 100`;
       >
         🛡️ Rules: {enforceValidation ? 'ON' : 'OFF'}
       </button>
+      </div>
 
+      <div style={toolbarGroupStyle} title="Knowledge Graph">
       {onCreateKG && (
         <button
           onClick={onCreateKG}
-          style={{
-            ...simpleButtonStyle,
-            backgroundColor: '#BF124D',
-            color: 'white',
-            borderColor: '#BF124D'
-          }}
+          style={getEmphasisButtonStyle('danger')}
           title="Create Knowledge Graph in Virtuoso from current pages"
         >
           🔗 Create KG{scopeSuffix}
         </button>
       )}
 
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json"
-        multiple
-        style={{ display: 'none' }}
-        onChange={handleFileUpload}
-      />
+        <button
+          onClick={() => {
+            if (onOpenKGViewer) {
+              onOpenKGViewer();
+              return;
+            }
+
+            const blob = new Blob([JSON.stringify(kgJson)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            window.open(`/kg_viewer.html?blob=${encodeURIComponent(url)}`, '_blank');
+          }}
+          style={{ ...getEmphasisButtonStyle('info'), width: 'auto', padding: '6px 10px' }}
+          title="View Knowledge Graph in D3 KG Viewer"
+        >
+          🧠 KG Viewer
+        </button>
 
       {/* Upload KG button */}
       {onUploadKG && (
@@ -594,7 +561,9 @@ LIMIT 100`;
       >
         🔍 SPARQL
       </button>
+      </div>
 
+      <div style={toolbarGroupStyle} title="View">
       {/* BEAM View Toggle */}
       <button
         onClick={() => onBeamViewToggle(!beamViewActive)}
@@ -618,35 +587,42 @@ LIMIT 100`;
       >
         🧭 Auto-arrange
       </button>
+      </div>
 
-      {/* Separator */}
-      <div style={{ width: '1px', height: '20px', backgroundColor: '#ccc', margin: '0 4px' }} />
-      
-      {/* Grid Snap */}
-      <button id="gridToggle" onClick={() => toggleGridLock()} style={{ ...iconButtonStyle, backgroundColor: '#e3f2fd', borderColor: '#1976d2', color: '#1976d2' }} title="Toggle Grid"><Grid3x3Icon fontSize="small" /></button>
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileUpload}
+      />
 
+      <div style={toolbarGroupStyle} title="Arrange">
       {/* Collapsible Alignment & Organization Section */}
       <button
         onClick={() => setShowAlignOrganize(prev => !prev)}
         style={{
           ...simpleButtonStyle,
-          backgroundColor: showAlignOrganize ? '#e3f2fd' : '#f8f8f8',
-          fontWeight: 'bold'
+          backgroundColor: showAlignOrganize ? '#e5e1ef' : '#ffffff',
+          fontWeight: 700
         }}
         title="Show/hide alignment and organization tools"
       >
         {showAlignOrganize ? '▼' : '▶'} Arrange Nodes
       </button>
+      </div>
 
       {showAlignOrganize && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          background: '#f9f9f9',
-          borderRadius: '6px',
+          background: '#f8f7f3',
+          borderRadius: '999px',
           padding: '4px 8px',
-          border: '1px solid #e0e0e0',
+          border: '1px solid #d9ddd3',
         }}>
           {/* Alignment Tools */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
@@ -712,38 +688,6 @@ const hoverOn = (e: React.MouseEvent<HTMLButtonElement>) => {
 const hoverOff = (e: React.MouseEvent<HTMLButtonElement>) => {
   e.currentTarget.style.backgroundColor = 'transparent';
 };
-
-// Shared button style function for Toolbar
-export function getToolbarButtonStyle(options?: {
-  backgroundColor?: string;
-  color?: string;
-  borderColor?: string;
-  fontWeight?: number | string;
-  fontSize?: number | string;
-  padding?: string;
-  margin?: string;
-  borderRadius?: string | number;
-  height?: string | number;
-}): React.CSSProperties {
-  return {
-    padding: options?.padding ?? '4px 8px',
-    margin: options?.margin ?? '2px',
-    border: `1px solid ${options?.borderColor ?? '#110969ff'}`,
-    backgroundColor: options?.backgroundColor ?? '#f8f8f8',
-    borderRadius: options?.borderRadius ?? '3px',
-    cursor: 'pointer',
-    fontSize: options?.fontSize ?? '13px',
-    fontWeight: options?.fontWeight ?? 'normal',
-    color: options?.color ?? '#333',
-    height: options?.height ?? '24px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-}
-
-// Example usage:
-// <button style={getToolbarButtonStyle({ backgroundColor: '#060771', color: 'white', borderColor: '#060771', fontWeight: 'bold' })}>Check Validation!</button>
 
 export default Toolbar;
 

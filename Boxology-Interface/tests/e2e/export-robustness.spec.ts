@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openExamplesSection } from './helpers';
 
 async function dismissModal(page: any) {
   const gotItBtn = page.getByRole('button', { name: /GOT IT/i });
@@ -15,6 +16,7 @@ async function openExportMenu(page: any) {
 }
 
 async function loadGraphRAGExample(page: any) {
+  await openExamplesSection(page);
   const btn = page.getByRole('button', { name: /GraphRAG \(BEAM\)/i });
   await btn.click();
   await page.waitForTimeout(1500);
@@ -391,6 +393,7 @@ test.describe('Auto-arrange', () => {
   });
 
   test('Auto-arrange changes node locations without changing node count or keys', async ({ page }) => {
+    await openExamplesSection(page);
     await page.getByRole('button', { name: /GraphRAG \(BEAM\)/i }).click();
     await page.waitForTimeout(1500);
 

@@ -70,7 +70,9 @@ test.describe('BEAM Notation Integration', () => {
     let beamIdx = -1;
     for (let i = 0; i < count; i++) {
       const text = await buttons.nth(i).innerText().catch(() => '');
-      if (text.includes('SPARQL')) sparqlIdx = i;
+      // Upstream added a right-sidebar nav button also containing 'SPARQL';
+      // match the toolbar one specifically.
+      if (text.includes('🔍 SPARQL')) sparqlIdx = i;
       if (text.includes('BEAM View')) beamIdx = i;
     }
 
@@ -80,7 +82,7 @@ test.describe('BEAM Notation Integration', () => {
   });
 
   test('existing toolbar buttons are intact', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /SPARQL/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /🔍 SPARQL/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /Create KG/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Undo/i })).toBeVisible();
   });

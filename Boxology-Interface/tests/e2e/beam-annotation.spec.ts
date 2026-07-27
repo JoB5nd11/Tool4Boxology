@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openExamplesSection } from './helpers';
 
 async function dismissModal(page: any) {
   const gotItBtn = page.getByRole('button', { name: /GOT IT/i });
@@ -54,15 +55,19 @@ test.describe('GraphRAG Example loader (right sidebar)', () => {
   });
 
   test('GraphRAG (BEAM) button is visible in right sidebar Boxology example section', async ({ page }) => {
+    await openExamplesSection(page);
     await expect(page.getByRole('button', { name: /GraphRAG \(BEAM\)/i })).toBeVisible();
   });
 
   test('Pain Classification and MRI Segmentation buttons also present', async ({ page }) => {
+    await openExamplesSection(page);
     await expect(page.getByRole('button', { name: /Pain Classification/i })).toBeVisible();
+    await openExamplesSection(page);
     await expect(page.getByRole('button', { name: /MRI Segmentation/i })).toBeVisible();
   });
 
   test('clicking GraphRAG (BEAM) loads the diagram into the canvas', async ({ page }) => {
+    await openExamplesSection(page);
     await page.getByRole('button', { name: /GraphRAG \(BEAM\)/i }).click();
     await page.waitForTimeout(1500);
 

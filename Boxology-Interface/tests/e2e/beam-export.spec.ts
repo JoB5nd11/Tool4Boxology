@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openExamplesSection } from './helpers';
 
 async function dismissModal(page: any) {
   const gotItBtn = page.getByRole('button', { name: /GOT IT/i });
@@ -45,6 +46,7 @@ test.describe('BEAM Export — no cluster required', () => {
 
   test('BEAM export does NOT show clustering validation error when diagram has unclustered nodes', async ({ page }) => {
     // Load GraphRAG example — it has workflow nodes WITHOUT clusters
+    await openExamplesSection(page);
     const graphragBtn = page.getByRole('button', { name: /GraphRAG \(BEAM\)/i });
     await graphragBtn.click();
     await page.waitForTimeout(1500);
@@ -76,6 +78,7 @@ test.describe('BEAM Export — no cluster required', () => {
   });
 
   test('JSON export no longer shows a clustering error for unclustered nodes', async ({ page }) => {
+    await openExamplesSection(page);
     const graphragBtn = page.getByRole('button', { name: /GraphRAG \(BEAM\)/i });
     await graphragBtn.click();
     await page.waitForTimeout(1500);
@@ -108,6 +111,7 @@ test.describe('BEAM Export — backend interaction', () => {
 
   test('BEAM export sends correct payload to /api/beam-export', async ({ page }) => {
     // Load GraphRAG example
+    await openExamplesSection(page);
     const graphragBtn = page.getByRole('button', { name: /GraphRAG \(BEAM\)/i });
     await graphragBtn.click();
     await page.waitForTimeout(1500);
@@ -144,6 +148,7 @@ test.describe('BEAM Export — backend interaction', () => {
   });
 
   test('BEAM export payload includes beamCard annotations from GraphRAG example', async ({ page }) => {
+    await openExamplesSection(page);
     const graphragBtn = page.getByRole('button', { name: /GraphRAG \(BEAM\)/i });
     await graphragBtn.click();
     await page.waitForTimeout(1500);
@@ -195,6 +200,7 @@ test.describe('BEAM Export — backend interaction', () => {
   });
 
   test('BEAM export handles backend error gracefully', async ({ page }) => {
+    await openExamplesSection(page);
     const graphragBtn = page.getByRole('button', { name: /GraphRAG \(BEAM\)/i });
     await graphragBtn.click();
     await page.waitForTimeout(1500);
@@ -231,6 +237,7 @@ test.describe('BEAM Export — backend interaction', () => {
     await page.waitForSelector('canvas', { timeout: 15000 });
     await dismissModal(page);
 
+    await openExamplesSection(page);
     const graphragBtn = page.getByRole('button', { name: /GraphRAG \(BEAM\)/i });
     await graphragBtn.click();
     await page.waitForTimeout(1500);

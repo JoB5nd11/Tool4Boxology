@@ -202,6 +202,9 @@ test.describe('Tab management', () => {
     await addNode(page, 'beta');
     expect(await nodeCount(page)).toBeGreaterThan(0);
     await tabs.nth(1).getByText('×').click();
+    // Closing a tab that has content now confirms first (save? then discard?).
+    await page.getByRole('button', { name: /^Cancel$/ }).click();   // don't save
+    await page.getByRole('button', { name: /^OK$/ }).click();       // yes, discard
     await page.waitForTimeout(500);
     await expect(tabs).toHaveCount(1);
 
