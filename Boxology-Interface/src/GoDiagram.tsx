@@ -505,6 +505,41 @@ function showSmallPorts(node: any, show: any) {
   });
 }
 
+// ── BEAM card sizing ──────────────────────────────────────────────────────────
+// A card's stored `size` only pins its width. The height is always NaN so the
+// card measures to its own content — a long description grows the card instead
+// of being clipped or ellipsised. Legacy data ("220 100") still works: the
+// stored height is read and discarded.
+const DEFAULT_CARD_WIDTH = 220;
+
+function cardSizeFromData(size: unknown): go.Size {
+  const width = parseFloat(String(size ?? '').split(/\s+/)[0]);
+  return new go.Size(isFinite(width) && width > 0 ? width : DEFAULT_CARD_WIDTH, NaN);
+}
+
+function cardSizeToData(size: go.Size): string {
+  const width = isFinite(size.width) ? Math.round(size.width) : DEFAULT_CARD_WIDTH;
+  return `${width} NaN`;
+}
+
+// Cards are resized horizontally only — the height belongs to the text.
+function makeHorizontalResizeAdornment(): go.Adornment {
+  const $ = go.GraphObject.make;
+  const handle = (alignment: go.Spot) =>
+    $(go.Shape, 'Rectangle', {
+      alignment,
+      cursor: 'col-resize',
+      desiredSize: new go.Size(8, 8),
+      fill: 'lightblue',
+      stroke: 'deepskyblue',
+    });
+  return $(go.Adornment, 'Spot',
+    $(go.Placeholder),
+    handle(go.Spot.Left),
+    handle(go.Spot.Right)
+  );
+}
+
     // UPDATED: Node template - shape as port with cursor differentiation
     diagram.nodeTemplate = $(
       go.Node,
@@ -820,9 +855,12 @@ function showSmallPorts(node: any, show: any) {
 
     // ── BEAM Card template — two-section layout (header + description) ────────
     // Used for: System, Context, Note, Risk, Risk Source, Consequence, Impact, Risk Control
-    // CARD_SHAPE is the Spot main element so it sets the node bounds.
-    // The Vertical content panel uses stretch:Fill to inherit that width,
-    // giving TextBlocks a real pixel budget so WrapFit actually wraps.
+    // The card is width-driven, height-automatic: CARD_BODY carries the stored
+    // width (so WrapFit has a real pixel budget) and leaves its height NaN, and
+    // the enclosing Auto panel grows CARD_SHAPE around whatever the header and
+    // description end up needing. That Auto panel is the Spot main element, so
+    // it still sets the node bounds for the ports and the risk-class badge.
+    // Fixing the height instead would clip long descriptions.
     diagram.nodeTemplateMap.add('beamCard',
       $(go.Node, 'Spot',
         {
@@ -830,7 +868,8 @@ function showSmallPorts(node: any, show: any) {
           selectable: true,
           movable: true,
           resizable: true,
-          resizeObjectName: 'CARD_SHAPE',
+          resizeObjectName: 'CARD_BODY',
+          resizeAdornmentTemplate: makeHorizontalResizeAdornment(),
           contextClick: (e, obj) => {
             const node = obj.part;
             if (node instanceof go.Node) {
@@ -844,75 +883,84 @@ function showSmallPorts(node: any, show: any) {
         },
         new go.Binding('location', 'loc', go.Point.parse).makeTwoWay(go.Point.stringify),
 
-        // Main Spot element: border shape drives node bounds + default port
-        $(go.Shape, 'Rectangle',
-          {
-            name: 'CARD_SHAPE',
-            fill: 'white',
-            strokeWidth: 2,
-            portId: '',
-            fromLinkable: true,
-            toLinkable: true,
-            fromSpot: go.Spot.AllSides,
-            toSpot: go.Spot.AllSides,
-            cursor: 'move',
-            minSize: new go.Size(160, 80),
-            maxSize: new go.Size(800, 600),
-          },
-          new go.Binding('stroke', 'stroke'),
-          new go.Binding('strokeWidth', 'strokeWidth'),
-          new go.Binding('desiredSize', 'size', go.Size.parse).makeTwoWay(go.Size.stringify),
-        ),
+        // Main Spot element: Auto panel that grows the border shape around the
+        // content, so the node bounds always include the full description.
+        $(go.Panel, 'Auto',
+          { isPanelMain: true },
 
-        // Content overlay — stretch:Fill constrains width to CARD_SHAPE so WrapFit works
-        $(go.Panel, 'Vertical',
-          {
-            alignment: go.Spot.Center,
-            stretch: go.GraphObject.Fill,
-            defaultAlignment: go.Spot.Left,
-          },
-          // Header: colored band + bold title
-          $(go.Panel, 'Auto',
-            { stretch: go.GraphObject.Horizontal, minSize: new go.Size(0, 34) },
-            $(go.Shape, 'Rectangle',
-              { strokeWidth: 0, stretch: go.GraphObject.Fill },
-              new go.Binding('fill', 'color'),
+          // Border shape + default port
+          $(go.Shape, 'Rectangle',
+            {
+              name: 'CARD_SHAPE',
+              fill: 'white',
+              strokeWidth: 2,
+              portId: '',
+              fromLinkable: true,
+              toLinkable: true,
+              fromSpot: go.Spot.AllSides,
+              toSpot: go.Spot.AllSides,
+              cursor: 'move',
+              minSize: new go.Size(160, 80),
+            },
+            new go.Binding('stroke', 'stroke'),
+            new go.Binding('strokeWidth', 'strokeWidth'),
+          ),
+
+          // Content — fixed width (from data), automatic height
+          $(go.Panel, 'Vertical',
+            {
+              name: 'CARD_BODY',
+              defaultAlignment: go.Spot.Left,
+              minSize: new go.Size(160, 0),
+              maxSize: new go.Size(800, Infinity),
+            },
+            // Only the width is honoured; the height stays NaN so the card
+            // measures to its content instead of clipping it.
+            new go.Binding('desiredSize', 'size', cardSizeFromData)
+              .makeTwoWay(cardSizeToData),
+
+            // Header: colored band + bold title
+            $(go.Panel, 'Auto',
+              { stretch: go.GraphObject.Horizontal, minSize: new go.Size(0, 34) },
+              $(go.Shape, 'Rectangle',
+                { strokeWidth: 0, stretch: go.GraphObject.Fill },
+                new go.Binding('fill', 'color'),
+              ),
+              $(go.TextBlock, {
+                name: 'CARD_TITLE',
+                stretch: go.GraphObject.Horizontal,
+                margin: new go.Margin(6, 10, 6, 10),
+                font: 'bold 11px sans-serif',
+                stroke: '#111',
+                editable: true,
+                isMultiline: true,
+                wrap: go.TextBlock.WrapFit,
+                alignment: go.Spot.Left,
+              },
+              new go.Binding('text', 'label').makeTwoWay(),
+              ),
             ),
+            // Separator line
+            $(go.Shape, 'LineH', {
+              stroke: '#aaa',
+              strokeWidth: 1,
+              stretch: go.GraphObject.Horizontal,
+              height: 1,
+            }),
+            // Body: description — wraps within CARD_BODY width, no line cap
             $(go.TextBlock, {
+              name: 'CARD_DESC',
               stretch: go.GraphObject.Horizontal,
               margin: new go.Margin(6, 10, 6, 10),
-              font: 'bold 11px sans-serif',
-              stroke: '#111',
+              font: '10px sans-serif',
+              stroke: '#444',
               editable: true,
+              isMultiline: true,
               wrap: go.TextBlock.WrapFit,
-              alignment: go.Spot.Left,
-              maxLines: 3,
-              overflow: go.TextBlock.OverflowEllipsis,
+              alignment: go.Spot.TopLeft,
             },
-            new go.Binding('text', 'label').makeTwoWay(),
+            new go.Binding('text', 'subtext').makeTwoWay(),
             ),
-          ),
-          // Separator line
-          $(go.Shape, 'LineH', {
-            stroke: '#aaa',
-            strokeWidth: 1,
-            stretch: go.GraphObject.Horizontal,
-            height: 1,
-          }),
-          // Body: description — wraps within CARD_SHAPE width
-          $(go.TextBlock, {
-            stretch: go.GraphObject.Horizontal,
-            margin: new go.Margin(6, 10, 6, 10),
-            font: '10px sans-serif',
-            stroke: '#444',
-            editable: true,
-            isMultiline: true,
-            wrap: go.TextBlock.WrapFit,
-            maxLines: 10,
-            overflow: go.TextBlock.OverflowEllipsis,
-            alignment: go.Spot.TopLeft,
-          },
-          new go.Binding('text', 'subtext').makeTwoWay(),
           ),
         ),
 
@@ -959,6 +1007,16 @@ function showSmallPorts(node: any, show: any) {
         makePort('B', go.Spot.Bottom, true, true),
       )
     );
+
+    // The ResizingTool writes a concrete height into CARD_BODY even when only a
+    // side handle was dragged, which would pin the card and clip later edits to
+    // the description. Hand the height back to the content.
+    diagram.addDiagramListener('PartResized', (e) => {
+      const obj = e.subject as go.GraphObject;
+      if (obj instanceof go.Panel && obj.name === 'CARD_BODY') {
+        obj.height = NaN;
+      }
+    });
 
     diagram.addDiagramListener('ChangedSelection', () => {
       const node = diagram.selection.first();
@@ -1228,7 +1286,7 @@ function showSmallPorts(node: any, show: any) {
           loc: go.Point.stringify(point),
           type: shape.name,
           ...(shape.category && { category: shape.category }),
-          ...(shape.category === 'beamCard' && { size: '220 100', subtext: 'Description' }),
+          ...(shape.category === 'beamCard' && { size: `${DEFAULT_CARD_WIDTH} NaN`, subtext: 'Description' }),
           ...(shape.width && { width: shape.width }),
           ...(shape.height && { height: shape.height }),
         };
