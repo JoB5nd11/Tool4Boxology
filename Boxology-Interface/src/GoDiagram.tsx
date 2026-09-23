@@ -265,7 +265,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       allowDrop: true,
       padding: new go.Margin(40),               // << -- add space around content
       initialContentAlignment: go.Spot.TopLeft, // keep content origin at top-left
-      'animationManager.isEnabled': true,  // 🔧 ADD: Disable animations
+      'animationManager.isEnabled': false,  // 🔧 ADD: Disable animations
       grid: $(
         go.Panel,
         'Grid',
@@ -569,9 +569,31 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     
     diagram.groupTemplateMap.add('RefinementGroup',
       new go.Group('Auto', {
-        layout: new go.TreeLayout(),
-        layoutConditions: go.LayoutConditions.Added | go.LayoutConditions.Removed
+        subGraphExpandedChanged: (grp: go.Group) => {
+          const diagram = grp.diagram;
+          if (!diagram || diagram.undoManager.isUndoingRedoing) return;
+          const anchor = diagram.findNodeForKey(grp.data.anchorKey);
+          if (!anchor) return;
+
+          grp.ensureBounds();
+
+          if (!grp.isSubGraphExpanded) {
+            // Collapsed: but the box's center on the anchor's center
+            const c = grp.actualBounds.center;
+            const dx = anchor.location.x - c.x;
+            const dy = anchor.location.y - c.y;
+            grp.move(new go.Point(grp.position.x + dx, grp.position.y + dy));
+            diagram.model.set(grp.data, 'collapseOffset', {dx, dy});
+          }else{
+            // Expanded: Reverse the offset so the anchor sits where the box was
+            const off = grp.data.collapseOffset;
+            if (!off) return;
+            grp.move(new go.Point(grp.position.x - off.dx, grp.position.y - off.dy));
+            diagram.model.set(grp.data, 'collapseOffset', null);
+          }
+        },    
       })
+      .bindTwoWay('isSubGraphExpanded', 'expanded')
       .add(
         new go.Shape('Rectangle', {
           fill: '#e3e9f7',

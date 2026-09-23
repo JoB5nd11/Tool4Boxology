@@ -1035,8 +1035,9 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
         handleClusterSelectedNodes();
         break;
       case 'cluster_refine':
-        console.log('Target: ' + target);
-        handleClusterRefinement(target);
+        if (target){
+          handleClusterRefinement(target);
+        }
         break;
       case 'uncluster_group':
         handleUnclusterGroup();
@@ -1264,22 +1265,24 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
       return;
     }
     const diagram = diagramRef.current;
-    const nodeData = diagram.model.findNodeDataForKey(target);
-    if (nodeData == null) return;
+    const anchor = diagram.findNodeForKey(target);
+    if (!anchor || anchor instanceof go.Group) return;
+    const anchorCenter = anchor.location.copy()
 
     // Collect selected non-group nodes
     const selectedNodes: go.Node[] = [];
     diagram.selection.each(part => {
       if (part instanceof go.Node && !part.data.isGroup) selectedNodes.push(part);
     });
+    if (!selectedNodes.includes(anchor)) selectedNodes.push(anchor);
 
     if (selectedNodes.length === 0) {
       showToast('Select one or more nodes to cluster.', 'warning');
       return;
     }
 
-    const targetFill = nodeData.fill || nodeData.color || '#e3e9f7';
-    const targetStroke = nodeData.stroke || '#aab8da';
+    const targetFill = anchor.data.fill || anchor.data.color || '#e3e9f7';
+    const targetStroke = anchor.data.stroke || '#aab8da';
 
 
     diagram.startTransaction('refine cluster group');
@@ -1287,9 +1290,10 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
 
     const groupRefinement: any = {
       key,
-      text: nodeData.label,
+      text: anchor.data.label,
       isGroup: true,
       category: 'RefinementGroup',
+      anchorKey: target,
       headerColor: targetFill,
       fill: getColorWithAlpha(targetFill, 0.5),
       stroke: targetStroke,
@@ -1301,6 +1305,14 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     selectedNodes.forEach(n => {
       (diagram.model as go.GraphLinksModel).setDataProperty(n.data, 'group', key);
     });
+
+    diagram.layoutDiagram(false);
+    const grp = diagram.findNodeForKey(key);
+    if (grp) {
+      const dx = anchorCenter.x - anchor.location.x;
+      const dy = anchorCenter.y - anchor.location.y;
+      grp.move(new go.Point(grp.position.x + dx, grp.position.y + dy));
+    }
 
     diagram.commitTransaction('refine cluster group');
   }
