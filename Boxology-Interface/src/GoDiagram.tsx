@@ -265,7 +265,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       allowDrop: true,
       padding: new go.Margin(40),               // << -- add space around content
       initialContentAlignment: go.Spot.TopLeft, // keep content origin at top-left
-      'animationManager.isEnabled': false,  // 🔧 ADD: Disable animations
+      'animationManager.isEnabled': true,  // 🔧 ADD: Disable animations
       grid: $(
         go.Panel,
         'Grid',
@@ -566,6 +566,37 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         )
       )
     );
+    
+    diagram.groupTemplateMap.add('RefinementGroup',
+      new go.Group('Auto', {
+        layout: new go.TreeLayout(),
+        layoutConditions: go.LayoutConditions.Added | go.LayoutConditions.Removed
+      })
+      .add(
+        new go.Shape('Rectangle', {
+          fill: '#e3e9f7',
+          stroke:'#aab8da',
+          parameter1: 10,
+        })
+          .bind('fill', 'fill')
+          .bind('stroke', 'stroke'),
+        new go.Panel('Table', { margin: 3 })
+          .addRowColumnDefinition(
+            new go.RowColumnDefinition({ row: 0, background: 'white' })
+            .bind('background', 'headerColor'))
+          .add(
+            go.GraphObject.build('SubGraphExpanderButton', {margin: 4}),
+            new go.TextBlock({
+              column: 1,
+              font: 'bold 14px sans-serif',
+              stroke: 'black',
+              textAlign: 'center',
+              margin: 8,
+            }).bind('text'),
+            new go.Placeholder({row: 1, columnSpan: 2, padding: 12})
+          ),
+        )
+      );
 
     diagram.addDiagramListener('ChangedSelection', () => {
       const node = diagram.selection.first();

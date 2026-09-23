@@ -96,7 +96,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
             alignItems: 'center',
             transition: 'background-color 0.2s ease',
           }}
-          onClick={() => onAction('uncluster_group')}
+          onClick={(ev) => onAction('uncluster_group')}
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
         >
@@ -104,6 +104,24 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           Uncluster
         </div>
       )}
+
+      <div
+        style={{
+          padding: '8px 16px',
+          cursor: 'pointer',
+          color: '#495057',
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          transition: 'background-color 0.2s ease',
+        }}
+        onClick={() => onAction('cluster_refine', selectedData.key)}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+      >
+        <span style={{ marginRight: 8 }}>🧩</span>
+        Refine
+      </div>
 
       {/* Cancel Option */}
       <div

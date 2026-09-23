@@ -1034,6 +1034,10 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
       case 'cluster_group':
         handleClusterSelectedNodes();
         break;
+      case 'cluster_refine':
+        console.log('Target: ' + target);
+        handleClusterRefinement(target);
+        break;
       case 'uncluster_group':
         handleUnclusterGroup();
         break;
@@ -1225,6 +1229,81 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
 
     diagram.commitTransaction('update shared nodes');
   };
+
+  const getColorWithAlpha = (colorString: string, alpha: number): string => {
+    // Use a temporary canvas context to leverage browser color parsing
+    const ctx = document.createElement('canvas').getContext('2d');
+    if (!ctx) return colorString;
+
+    ctx.fillStyle = colorString;
+    const computed = ctx.fillStyle; // Always normalizes to #rrggbb or rgba(...)
+
+    // Convert #rrggbb to rgba(r, g, b, alpha)
+    if (computed.startsWith('#')) {
+      const hex = computed.slice(1);
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    // Handle rgb(r, g, b) or rgba(r, g, b, a)
+    if (computed.startsWith('rgb')) {
+      const values = computed.match(/\d+(\.\d+)?/g);
+      if (values && values.length >= 3) {
+        return `rgba(${values[0]}, ${values[1]}, ${values[2]}, ${alpha})`;
+      }
+    }
+
+    return colorString;
+  };
+
+  const handleClusterRefinement = async (target: string) => {
+    if (!diagramRef.current) {
+      showToast('No diagram available', 'error');
+      return;
+    }
+    const diagram = diagramRef.current;
+    const nodeData = diagram.model.findNodeDataForKey(target);
+    if (nodeData == null) return;
+
+    // Collect selected non-group nodes
+    const selectedNodes: go.Node[] = [];
+    diagram.selection.each(part => {
+      if (part instanceof go.Node && !part.data.isGroup) selectedNodes.push(part);
+    });
+
+    if (selectedNodes.length === 0) {
+      showToast('Select one or more nodes to cluster.', 'warning');
+      return;
+    }
+
+    const targetFill = nodeData.fill || nodeData.color || '#e3e9f7';
+    const targetStroke = nodeData.stroke || '#aab8da';
+
+
+    diagram.startTransaction('refine cluster group');
+    const key = `group_${Date.now()}`;
+
+    const groupRefinement: any = {
+      key,
+      text: nodeData.label,
+      isGroup: true,
+      category: 'RefinementGroup',
+      headerColor: targetFill,
+      fill: getColorWithAlpha(targetFill, 0.5),
+      stroke: targetStroke,
+    };
+
+    (diagram.model as go.GraphLinksModel).addNodeData(groupRefinement);
+
+    // Assign selected nodes to this group
+    selectedNodes.forEach(n => {
+      (diagram.model as go.GraphLinksModel).setDataProperty(n.data, 'group', key);
+    });
+
+    diagram.commitTransaction('refine cluster group');
+  }
 
   // Cluster currently selected nodes into a gray labeled group
   const handleClusterSelectedNodes = async () => {
