@@ -397,7 +397,11 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           new go.Binding('width', 'width', (w) => typeof w === 'number' ? w : NaN).makeTwoWay(),
           new go.Binding('height', 'height', (h) => typeof h === 'number' ? h : NaN).makeTwoWay(),
           new go.Binding('strokeWidth', 'strokeWidth'),
-          new go.Binding('parameter1', 'parameter1')
+          new go.Binding('parameter1', 'parameter1'),
+          new go.Binding('desiredSize', 'expanded', (exp, shape) => {
+            const s = exp ? shape.part.data.expandedSize : shape.part.data.collapsedUserSize;
+            return s ? go.Size.parse(s) : new go.Size(NaN, NaN);
+          }),
         ),
       
         // Label (centered) - UPDATED: Make editable
@@ -568,8 +572,40 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     );
     
     // Refinement
+    function stateMinSize(exp: boolean, d: any): go.Size {
+      const parse = (s?: string) => (s ? go.Size.parse(s) : new go.Size(0, 0));
+      if (exp) return parse(d.expandedSize);
+      const anchor = parse(d.collapsedSize);
+      const user = parse(d.collapsedUserSize);
+      return new go.Size(Math.max(anchor.width, user.width), Math.max(anchor.height, user.height));
+    }
+
     diagram.groupTemplateMap.add('RefinementGroup',
       new go.Group('Auto', {
+        layerName: 'Background',
+        selectable: true,
+        movable: true,
+        cursor: 'move',
+        handlesDragDropForMembers: true,
+        computesBoundsAfterDrag: true,
+        computesBoundsIncludingLinks: true,
+        fromLinkable: false,
+        toLinkable: false,
+        resizable: true,
+        resizeObjectName: 'SHAPE', 
+        contextClick: (e, obj) => {
+          const group = obj.part;
+          if (group instanceof go.Group) {
+            setSelectedData({
+              key: group.data.key,
+              label: group.data.label || '',
+              isGroup: true
+            });
+            const mouseEvent = e.event as MouseEvent;
+            setContextMenu({ x: mouseEvent.clientX, y: mouseEvent.clientY });
+          }
+          e.handled = true;  // Prevent browser context menu
+        },
         subGraphExpandedChanged: (grp: go.Group) => {
           const diagram = grp.diagram;
           if (!diagram || diagram.undoManager.isUndoingRedoing) return;
@@ -606,8 +642,9 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         })
         .bind('fill', 'fill')
         .bind('stroke', 'stroke')
+        // aligning size and shape to anchor element
         .bind('minSize', 'expanded', (exp, shape) =>
-          exp ? new go.Size(0, 0) : go.Size.parse(shape.part.data.collapsedSize))
+          stateMinSize(exp, shape.part.data))
         .bind('spot1', 'expanded', exp =>
           exp ? go.Spot.TopLeft : new go.Spot(0.15, 0.15))
         .bind('spot2', 'expanded', exp =>
@@ -628,7 +665,11 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
               textAlign: 'center',
               margin: 8,
             }).bind('text'),
-            new go.Placeholder({row: 1, columnSpan: 2, padding: 12})
+            new go.Placeholder({row: 1, columnSpan: 2, padding: 12}))
+          .bind('alignment', 'expanded', exp => 
+            exp ? go.Spot.Top : go.Spot.Center)
+          .bind('stretch', 'expanded', exp => 
+            exp ? go.Stretch.Horizontal : go.Stretch.None
           ),
         )
       );
@@ -698,6 +739,16 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         }
       });
     });
+
+    diagram.addDiagramListener('PartResized', e => {
+      const obj = e.subject as go.GraphObject;
+      const grp = obj.part;
+      if (!(grp instanceof go.Group) || grp.category !== 'RefinementGroup') return;
+      const prop = grp.isSubGraphExpanded ? 'expandedSize' : 'collapsedUserSize';
+      e.diagram.model.set(grp.data, prop, go.Size.stringify(obj.desiredSize));
+      obj.desiredSize = new go.Size(NaN, NaN);
+      grp.updateTargetBindings('expanded');
+    })
 
     const handleDragOver = (e: DragEvent) => {
       e.preventDefault();

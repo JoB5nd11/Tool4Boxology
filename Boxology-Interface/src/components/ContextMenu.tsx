@@ -43,6 +43,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
     };
   }, [contextMenu, onAction]);
 
+  console.log(contextMenu);
   if (!contextMenu) return null;
 
   return (
@@ -120,7 +121,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
       >
         <span style={{ marginRight: 8 }}>🧩</span>
-        Refine
+        Create Refinement Group
       </div>
 
       {/* Cancel Option */}
