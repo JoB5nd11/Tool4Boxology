@@ -567,6 +567,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
       )
     );
     
+    // Refinement
     diagram.groupTemplateMap.add('RefinementGroup',
       new go.Group('Auto', {
         subGraphExpandedChanged: (grp: go.Group) => {
@@ -576,7 +577,9 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
           if (!anchor) return;
 
           grp.ensureBounds();
-
+          
+          // Keeping the collapsed group at the same position the the orignal node.
+          //! When `animationManager.isEnabled = true` it gets moved too much 
           if (!grp.isSubGraphExpanded) {
             // Collapsed: but the box's center on the anchor's center
             const c = grp.actualBounds.center;
@@ -594,14 +597,24 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
         },    
       })
       .bindTwoWay('isSubGraphExpanded', 'expanded')
+      // add group label
       .add(
         new go.Shape('Rectangle', {
           fill: '#e3e9f7',
           stroke:'#aab8da',
           parameter1: 10,
         })
-          .bind('fill', 'fill')
-          .bind('stroke', 'stroke'),
+        .bind('fill', 'fill')
+        .bind('stroke', 'stroke')
+        .bind('minSize', 'expanded', (exp, shape) =>
+          exp ? new go.Size(0, 0) : go.Size.parse(shape.part.data.collapsedSize))
+        .bind('spot1', 'expanded', exp =>
+          exp ? go.Spot.TopLeft : new go.Spot(0.15, 0.15))
+        .bind('spot2', 'expanded', exp =>
+          exp ? go.Spot.BottomRight : new go.Spot(0.85, 0.85))
+        .bindObject('figure', 'isSubGraphExpanded', (exp, shape) => 
+          exp ? 'Rectangle' : (shape.part.data.anchorFigure || 'Ellipse')
+        ),
         new go.Panel('Table', { margin: 3 })
           .addRowColumnDefinition(
             new go.RowColumnDefinition({ row: 0, background: 'white' })

@@ -1265,9 +1265,18 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
       return;
     }
     const diagram = diagramRef.current;
+
+    // Setting up the anchor
     const anchor = diagram.findNodeForKey(target);
     if (!anchor || anchor instanceof go.Group) return;
+    const anchorMain = anchor.findMainElement()
     const anchorCenter = anchor.location.copy()
+    const anchorBounds = anchorMain ? anchorMain.actualBounds : anchor.actualBounds;
+    const anchorSize = go.Size.stringify(new go.Size(anchorBounds.width, anchorBounds.height));
+    const anchorShape =
+      (anchor.findObject('SHAPE') as go.Shape | null) ??
+      (anchor.findMainElement() instanceof go.Shape ? anchor.findMainElement() as go.Shape : null);
+    const anchorFigure = anchor.data.figure ?? anchorShape?.figure ?? 'Ellipse'
 
     // Collect selected non-group nodes
     const selectedNodes: go.Node[] = [];
@@ -1288,6 +1297,7 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     diagram.startTransaction('refine cluster group');
     const key = `group_${Date.now()}`;
 
+    console.log(key);
     const groupRefinement: any = {
       key,
       text: anchor.data.label,
@@ -1297,6 +1307,8 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
       headerColor: targetFill,
       fill: getColorWithAlpha(targetFill, 0.5),
       stroke: targetStroke,
+      anchorFigure,
+      anchorSize,
     };
 
     (diagram.model as go.GraphLinksModel).addNodeData(groupRefinement);
