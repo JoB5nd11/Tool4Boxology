@@ -599,7 +599,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
             setSelectedData({
               key: group.data.key,
               label: group.data.label || '',
-              isGroup: true
+              isCluster: true
             });
             const mouseEvent = e.event as MouseEvent;
             setContextMenu({ x: mouseEvent.clientX, y: mouseEvent.clientY });
@@ -664,6 +664,7 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
               stroke: 'black',
               textAlign: 'center',
               margin: 8,
+              editable: true,
             }).bind('text'),
             new go.Placeholder({row: 1, columnSpan: 2, padding: 12}))
           .bind('alignment', 'expanded', exp => 

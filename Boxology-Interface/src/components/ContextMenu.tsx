@@ -43,9 +43,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
     };
   }, [contextMenu, onAction]);
 
-  console.log(contextMenu);
   if (!contextMenu) return null;
-
   return (
     <div
       ref={menuRef}
@@ -66,6 +64,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
     >
       {/* Cluster selected nodes - only show if NOT already a cluster */}
       {!selectedData?.isCluster && (
+        <>
         <div
           style={{
             padding: '8px 16px',
@@ -83,10 +82,29 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           <span style={{ marginRight: 8 }}>🗂️</span>
           Cluster Group
         </div>
+        <div
+          style={{
+            padding: '8px 16px',
+            cursor: 'pointer',
+            color: '#495057',
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            transition: 'background-color 0.2s ease',
+          }}
+          onClick={() => onAction('cluster_refine', selectedData.key)}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+        >
+          <span style={{ marginRight: 8 }}>🧩</span>
+          Create Refinement Group
+        </div>
+        </>
       )}
 
       {/* Uncluster group - only show if a cluster IS selected */}
       {selectedData?.isCluster && (
+       <>
         <div
           style={{
             padding: '8px 16px',
@@ -104,25 +122,25 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           <span style={{ marginRight: 8 }}>🔓</span>
           Uncluster
         </div>
+        <div
+          style={{
+            padding: '8px 16px',
+            cursor: 'pointer',
+            color: '#495057',
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            transition: 'background-color 0.2s ease',
+          }}
+          onClick={() => onAction('uncluster_refine', selectedData.key)}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+        >
+          <span style={{ marginRight: 8 }}>🧩</span>
+          Remove Refinement Group
+        </div>
+        </>
       )}
-
-      <div
-        style={{
-          padding: '8px 16px',
-          cursor: 'pointer',
-          color: '#495057',
-          fontWeight: 500,
-          display: 'flex',
-          alignItems: 'center',
-          transition: 'background-color 0.2s ease',
-        }}
-        onClick={() => onAction('cluster_refine', selectedData.key)}
-        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-      >
-        <span style={{ marginRight: 8 }}>🧩</span>
-        Create Refinement Group
-      </div>
 
       {/* Cancel Option */}
       <div

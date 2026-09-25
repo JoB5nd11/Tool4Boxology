@@ -1042,6 +1042,9 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
       case 'uncluster_group':
         handleUnclusterGroup();
         break;
+      case 'uncluster_refine':
+        handleunclusterRefinement();
+        break;
       default:
         if (target) {
           console.log('Adding to group:', target);
@@ -1294,10 +1297,9 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     const targetStroke = anchor.data.stroke || '#aab8da';
 
 
-    diagram.startTransaction('refine cluster group');
+    diagram.startTransaction('cluster refine group');
     const key = `group_${Date.now()}`;
 
-    console.log(key);
     const groupRefinement: any = {
       key,
       text: anchor.data.label,
@@ -1326,8 +1328,44 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
       grp.move(new go.Point(grp.position.x + dx, grp.position.y + dy));
     }
 
-    diagram.commitTransaction('refine cluster group');
+    diagram.commitTransaction('cluster refine group');
   }
+
+  const handleunclusterRefinement = () => {
+    if (!diagramRef.current){
+      showToast('No diagram available', 'error');
+      return;
+    }
+
+    const diagram = diagramRef.current; 
+    const selectedPart = diagram.selection.first()
+
+    if (!(selectedPart instanceof go.Group)){
+      showToast('Please select a cluster group to uncluster.', 'warning');
+      return;
+    }
+
+    diagram.startTransaction('uncluster refine group');
+
+    const members: go.Node[] = [];
+    selectedPart.memberParts.each(part => {
+      if (part instanceof go.Node){
+        members.push(part);
+      }
+    });
+
+    const model = diagram.model as go.GraphLinksModel;
+    members.forEach(member => {
+      model.setDataProperty(member.data, 'group', undefined);
+    });
+
+    model.removeNodeData(selectedPart.data);
+    diagram.commitTransaction('uncluster refine group');
+
+    // Auto-detect and update shared nodes
+    setTimeout(() => detectAndUpdateSharedNodes(), 100);
+    showToast(`Refinement unclustered! ${members.length} node(s) released.`, 'success');
+  };
 
   // Cluster currently selected nodes into a gray labeled group
   const handleClusterSelectedNodes = async () => {
