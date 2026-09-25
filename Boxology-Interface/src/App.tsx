@@ -1284,12 +1284,17 @@ const validateNodeClustering = (): { valid: boolean; errors: string[] } => {
     // Collect selected non-group nodes
     const selectedNodes: go.Node[] = [];
     diagram.selection.each(part => {
-      if (part instanceof go.Node && !part.data.isGroup) selectedNodes.push(part);
+      if (part instanceof go.Node) selectedNodes.push(part);
     });
     if (!selectedNodes.includes(anchor)) selectedNodes.push(anchor);
 
     if (selectedNodes.length === 0) {
       showToast('Select one or more nodes to cluster.', 'warning');
+      return;
+    }
+    // Only the anchor can be in a group for deeper nestings
+    if (selectedNodes.some(n => n.containingGroup !== null)){
+      showToast('Only the anchor node may be inside a group.', 'warning');
       return;
     }
 
