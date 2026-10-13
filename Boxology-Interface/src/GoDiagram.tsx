@@ -306,7 +306,9 @@ function buildRiskMenu(
   });
 }
 
-function showRiskClassSelector(_e: go.InputEvent, node: go.Node) {
+// Opens a dropdown just above a node and closes it on an outside click or
+// Escape. `fill` puts the options into the container.
+function openNodePopup(node: go.Node, fill: (diagram: go.Diagram, container: HTMLElement) => void) {
   const diagram = node.diagram;
   const diagramDiv = diagram?.div;
   if (!diagram || !diagramDiv) return;
@@ -329,7 +331,7 @@ function showRiskClassSelector(_e: go.InputEvent, node: go.Node) {
   container.style.overflow = 'visible';
   container.style.fontFamily = 'system-ui, -apple-system, sans-serif';
 
-  buildRiskMenu(diagram, node, riskClassTree, container);
+  fill(diagram, container);
 
   const closeHandler = (event: MouseEvent | KeyboardEvent) => {
     if (event instanceof MouseEvent && container.contains(event.target as Node)) return;
@@ -344,6 +346,51 @@ function showRiskClassSelector(_e: go.InputEvent, node: go.Node) {
   }, 0);
 
   document.body.appendChild(container);
+}
+
+function showRiskClassSelector(_e: go.InputEvent, node: go.Node) {
+  openNodePopup(node, (diagram, container) => buildRiskMenu(diagram, node, riskClassTree, container));
+}
+
+// ── BEAM context types ───────────────────────────────────────────────────────
+// A Context card stays a Context; its badge only sets the `contextType`
+// subtype (beam v0.0.2: BusinessObjective / TechnicalObjective are subclasses
+// of Context). Unlike the risk badge it never touches name, type or colours.
+// Generic Context is stored as no `contextType` at all.
+const CONTEXT_TYPES: { value: string; label: string; dot: string }[] = [
+  { value: 'Context',            label: 'Context',             dot: '#757575' },
+  { value: 'BusinessObjective',  label: 'Business Objective',  dot: '#2f5fb3' },
+  { value: 'TechnicalObjective', label: 'Technical Objective', dot: '#2f7d5b' },
+];
+const CONTEXT_TYPE_LABEL: Record<string, string> =
+  Object.fromEntries(CONTEXT_TYPES.map((c) => [c.value, c.label]));
+const CONTEXT_TYPE_DOT: Record<string, string> =
+  Object.fromEntries(CONTEXT_TYPES.map((c) => [c.value, c.dot]));
+
+function showContextTypeSelector(_e: go.InputEvent, node: go.Node) {
+  openNodePopup(node, (diagram, container) => {
+    const current = node.data.contextType ?? 'Context';
+    CONTEXT_TYPES.forEach(({ value, label }) => {
+      const option = document.createElement('div');
+      option.textContent = label;
+      option.dataset.contextType = value;
+      option.style.padding = '8px 12px';
+      option.style.cursor = 'pointer';
+      option.style.fontSize = '12px';
+      option.style.color = 'black';
+      option.style.whiteSpace = 'nowrap';
+      option.style.background = value === current ? '#e0f2fe' : 'white';
+      option.style.fontWeight = value === current ? '600' : 'normal';
+      option.onclick = (event) => {
+        event.stopPropagation();
+        diagram.model.startTransaction('change context type');
+        diagram.model.set(node.data, 'contextType', value === 'Context' ? undefined : value);
+        diagram.model.commitTransaction('change context type');
+        container.remove();
+      };
+      container.appendChild(option);
+    });
+  });
 }
 
 const GoDiagram: React.FC<GoDiagramProps> = ({
@@ -993,6 +1040,41 @@ function makeHorizontalResizeAdornment(): go.Adornment {
             $(go.TextBlock,
               { font: '9px system-ui, -apple-system, sans-serif', stroke: '#374151' },
               new go.Binding('text', 'name', (n) => RISK_CLASS_LABEL[n] ?? n ?? 'Risk')
+            ),
+            $(go.Shape, 'TriangleDown',
+              { width: 5, height: 3, fill: '#9ca3af', stroke: null, margin: new go.Margin(0, 0, 0, 3) }
+            )
+          )
+        ),
+
+        // Context-type badge — shown ONLY on Context cards. Click to pick the
+        // subtype (Context / Business Objective / Technical Objective); the
+        // card itself stays a Context. Text and dot bind to the whole data
+        // object, because clearing `contextType` makes it undefined and GoJS
+        // skips a Binding whose source property is undefined.
+        $(go.Panel, 'Auto',
+          {
+            name: 'CONTEXT_TYPE_BADGE',
+            alignment: go.Spot.Top,
+            alignmentFocus: go.Spot.Bottom,
+            margin: new go.Margin(-6, 0, 0, 0),
+            cursor: 'pointer',
+            click: (_e, obj) => showContextTypeSelector(_e, obj.part as go.Node),
+            visible: false,
+          },
+          new go.Binding('visible', 'name', (n) => n === 'Context'),
+          $(go.Shape, 'RoundedRectangle',
+            { fill: 'white', stroke: '#d1d5db', strokeWidth: 1, parameter1: 10 }
+          ),
+          $(go.Panel, 'Horizontal',
+            { margin: new go.Margin(3, 8, 3, 8) },
+            $(go.Shape, 'Circle',
+              { width: 6, height: 6, stroke: null, margin: new go.Margin(0, 4, 0, 0) },
+              new go.Binding('fill', '', (d) => CONTEXT_TYPE_DOT[d.contextType ?? 'Context'] ?? '#9ca3af')
+            ),
+            $(go.TextBlock,
+              { name: 'CONTEXT_TYPE_TEXT', font: '9px system-ui, -apple-system, sans-serif', stroke: '#374151' },
+              new go.Binding('text', '', (d) => CONTEXT_TYPE_LABEL[d.contextType ?? 'Context'] ?? d.contextType)
             ),
             $(go.Shape, 'TriangleDown',
               { width: 5, height: 3, fill: '#9ca3af', stroke: null, margin: new go.Margin(0, 0, 0, 3) }
