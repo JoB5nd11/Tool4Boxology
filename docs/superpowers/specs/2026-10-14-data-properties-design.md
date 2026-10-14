@@ -24,8 +24,10 @@ Decisions taken with the user (the user asked to follow the recommendation at ev
 
 ## User experience
 
-- **Double-click** a component or BEAM card → **Data properties** dialog. (Text editing is unaffected:
-  GoJS starts it on a click of an already-selected text, not on double-click.)
+- **Double-click** a component or BEAM card → **Data properties** dialog. Single-click text editing is
+  unchanged. A click on a selected node's text starts in-place editing, so the second click of a
+  double-click lands in the text editor and GoJS never reports the double-click; the dialog therefore
+  listens to the DOM `dblclick` on the diagram div, cancels any in-place edit, and opens for that node.
 - Dialog sections:
   1. **Schema properties** for the element's type. Rows show only once added; an **Add property ▾**
      menu lists the schema properties not yet used.
@@ -35,7 +37,7 @@ Decisions taken with the user (the user asked to follow the recommendation at ev
 - Values are validated against the datatype; invalid values or empty custom names block **Save**
   with an inline error. Save is one undoable transaction; Cancel discards.
 - If the schema can't be loaded, the dialog says *Schema unavailable — custom properties only*.
-- **Canvas indicator**: an element with properties shows a small `⋯ n` pill at its bottom-right;
+- **Canvas indicator**: an element with properties shows a small `n props` pill at its bottom-right;
   hovering shows `label: value` lines.
 
 ## Data model
@@ -100,5 +102,5 @@ the KG, the same as its other triples do today.
 - Python unittest: `test_data_property_triples.py` (subjects, datatypes, validation, custom slug,
   Context skip), `test_property_schema.py` (inheritance via subclass closure, ranges).
 - Playwright: `data-properties.spec.ts` — double-click opens the dialog; add custom + save writes
-  `props`; invalid decimal blocks save; Cancel discards; the `⋯ n` pill appears; export payload
+  `props`; invalid decimal blocks save; Cancel discards; the `n props` pill appears; export payload
   carries card `props`; schema rows appear when the schema endpoint is mocked.

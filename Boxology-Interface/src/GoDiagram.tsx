@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
+import React, { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import * as go from 'gojs';
 import { setupDiagramValidation, validateGoJSDiagram } from './plugin/GoJSBoxologyValidation';
 import { mapShapeToGoJSFigure } from './utils/shapeMapping';
@@ -6,6 +6,13 @@ import { shapeTypesTree , shapes } from './data/shape';
 import { beamStyleMap } from './data/beamStyles';
 import type { DiagramData } from './types';
 import { inferLinkCategory } from './utils/linkCategory';
+import DataPropertiesDialog from './components/dialogs/DataPropertiesDialog';
+import {
+  loadPropertySchema,
+  schemaPropertiesFor,
+  type DataProperty,
+  type PropertySchema,
+} from './utils/propertySchema';
 
 interface ContextMenuPosition {
   x: number;
@@ -393,6 +400,43 @@ function showContextTypeSelector(_e: go.InputEvent, node: go.Node) {
   });
 }
 
+// Data-properties count pill (bottom-right of components and BEAM cards);
+// hover lists the values. Bound to the whole data object because clearing
+// `props` leaves it undefined, and GoJS skips Bindings on undefined sources.
+function makePropsPill() {
+  const $ = go.GraphObject.make;
+  const count = (d: { props?: unknown }) => (Array.isArray(d.props) ? d.props.length : 0);
+  return $(go.Panel, 'Auto',
+    {
+      name: 'PROPS_PILL',
+      alignment: go.Spot.BottomRight,
+      alignmentFocus: go.Spot.Center,
+      visible: false,
+      cursor: 'help',
+      toolTip: $('ToolTip',
+        $(go.TextBlock,
+          { margin: 4, font: '10px system-ui, -apple-system, sans-serif' },
+          new go.Binding('text', '', (d) =>
+            (d.props ?? []).map((p: DataProperty) => `${p.label}: ${p.value}`).join('\n'))
+        )
+      ),
+    },
+    new go.Binding('visible', '', (d) => count(d) > 0),
+    $(go.Shape, 'RoundedRectangle',
+      { fill: '#eef2ff', stroke: '#6366f1', strokeWidth: 1, parameter1: 8 }
+    ),
+    $(go.TextBlock,
+      {
+        name: 'PROPS_PILL_TEXT',
+        margin: new go.Margin(1, 6, 1, 6),
+        font: 'bold 9px system-ui, -apple-system, sans-serif',
+        stroke: '#3730a3',
+      },
+      new go.Binding('text', '', (d) => `${count(d)} prop${count(d) === 1 ? '' : 's'}`)
+    )
+  );
+}
+
 const GoDiagram: React.FC<GoDiagramProps> = ({
   diagramRef,
   setSelectedData,
@@ -405,6 +449,10 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
   onDiagramInit,
 }) => {
   const diagramDivRef = useRef<HTMLDivElement>(null);
+  // Node whose data properties are being edited (double-click), and the
+  // schema for the dialog: undefined while loading, null if unavailable.
+  const [propsNode, setPropsNode] = useState<go.Node | null>(null);
+  const [propsSchema, setPropsSchema] = useState<PropertySchema | null | undefined>(undefined);
 
   // Held in refs so a new callback identity never re-runs the setup effect,
   // which would tear down and rebuild the whole diagram.
@@ -712,6 +760,8 @@ function makeHorizontalResizeAdornment(): go.Adornment {
       
       // 🔧 REMOVED: All separate port lines (TOP_PORT, BOTTOM_PORT, LEFT_PORT, RIGHT_PORT)
       
+      makePropsPill(),
+
       // Type selector - Always visible
       $(go.Panel, 'Auto',
         {
@@ -1082,6 +1132,8 @@ function makeHorizontalResizeAdornment(): go.Adornment {
           )
         ),
 
+        makePropsPill(),
+
         // Port indicators (visible on hover via showSmallPorts)
         makePort('T', go.Spot.Top, true, true),
         makePort('L', go.Spot.Left, true, true),
@@ -1395,11 +1447,36 @@ function makeHorizontalResizeAdornment(): go.Adornment {
       return false;
     };
 
+    // Double-click opens the Data properties dialog. Listened for on the DOM
+    // rather than via ObjectDoubleClicked: a click on a selected node's text
+    // starts in-place editing, the second click then lands in the text
+    // editor and GoJS never reports the double-click. Such an edit is
+    // cancelled and the dialog opens for the node being edited.
+    const handleDoubleClick = (e: MouseEvent) => {
+      const div = diagram.div;
+      if (!div) return;
+      const textTool = diagram.toolManager.textEditingTool;
+      let part: go.Part | null = null;
+      if (diagram.currentTool === textTool && textTool.textBlock) {
+        part = textTool.textBlock.part;
+        textTool.doCancel();
+      } else {
+        const rect = div.getBoundingClientRect();
+        const doc = diagram.transformViewToDoc(new go.Point(e.clientX - rect.left, e.clientY - rect.top));
+        part = diagram.findPartAt(doc, true);
+      }
+      if (!(part instanceof go.Node) || part instanceof go.Group) return;
+      setPropsSchema(undefined);
+      setPropsNode(part);
+      loadPropertySchema().then(setPropsSchema);
+    };
+
     const diagramDiv = diagram.div;
     if (diagramDiv) {
       diagramDiv.addEventListener('dragover', handleDragOver);
       diagramDiv.addEventListener('drop', handleDrop);
       diagramDiv.addEventListener('contextmenu', handleContextMenu);
+      diagramDiv.addEventListener('dblclick', handleDoubleClick);
     }
 
     diagramRef.current = diagram;
@@ -1440,6 +1517,7 @@ function makeHorizontalResizeAdornment(): go.Adornment {
         diagramDiv.removeEventListener('dragover', handleDragOver);
         diagramDiv.removeEventListener('drop', handleDrop);
         diagramDiv.removeEventListener('contextmenu', handleContextMenu);
+        diagramDiv.removeEventListener('dblclick', handleDoubleClick);
       }
       if (diagramRef.current) {
         diagramRef.current.div = null;
@@ -1569,8 +1647,18 @@ function makeHorizontalResizeAdornment(): go.Adornment {
     };
   }, [diagramRef, customGroups]);
 
+  const saveProps = (props: DataProperty[]) => {
+    const node = propsNode;
+    setPropsNode(null);
+    if (!node?.diagram) return;
+    node.diagram.model.commit((m) => {
+      m.set(node.data, 'props', props.length ? props : undefined);
+    }, 'edit data properties');
+  };
+
   // Render the diagram container
   return (
+    <>
     <div
       ref={diagramDivRef}
       style={{
@@ -1584,6 +1672,18 @@ function makeHorizontalResizeAdornment(): go.Adornment {
         overflowY: 'visible',
       }}
     />
+    {propsNode && (
+      <DataPropertiesDialog
+        key={String(propsNode.data.key)}
+        open
+        title={propsNode.data.label || propsNode.data.name || 'Element'}
+        schema={propsSchema ? schemaPropertiesFor(propsSchema, propsNode.data) : propsSchema}
+        initial={propsNode.data.props ?? []}
+        onSave={saveProps}
+        onCancel={() => setPropsNode(null)}
+      />
+    )}
+    </>
   );
 };
 

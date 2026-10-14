@@ -38,7 +38,10 @@ export function loadPropertySchema(): Promise<PropertySchema | null> {
 
 /** Schema properties for a node: a Context card's subtype first, then the
  *  BEAM class of its type, then its name. The first key with entries wins. */
-export function schemaPropertiesFor(schema: PropertySchema, node: any): SchemaProperty[] {
+export function schemaPropertiesFor(
+  schema: PropertySchema,
+  node: { name?: string; type?: string; contextType?: string },
+): SchemaProperty[] {
   const style = beamStyleMap[node?.type ?? ''] ?? beamStyleMap[node?.name ?? ''];
   const keys = [
     node?.name === 'Context' ? node?.contextType : undefined,

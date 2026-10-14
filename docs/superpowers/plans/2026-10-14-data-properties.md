@@ -243,7 +243,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 1: Write the failing e2e test** — `data-properties.spec.ts` (double-click via `page.mouse.dblclick` at the node centre computed with `diagram.maybeUpdate()` + `transformDocToView`):
   1. double-click a Model component → dialog visible; schema request mocked with `page.route('**/api/schema/properties', …)` returning `{classes:{Model:[{iri:'http://w3id.org/beam/core#version',label:'version',datatype:'xsd:string'}]}}`; *Add property* lists `version`.
-  2. Add custom `gpu hours` / integer / `12`, Save → `node.data.props` equals `[{iri:null,label:'gpu hours',datatype:'xsd:integer',value:'12'}]`; `PROPS_PILL` visible with text `⋯ 1`.
+  2. Add custom `gpu hours` / integer / `12`, Save → `node.data.props` equals `[{iri:null,label:'gpu hours',datatype:'xsd:integer',value:'12'}]`; `PROPS_PILL` visible with text `1 prop`.
   3. Decimal `0,87` → Save disabled and the error text shown; Cancel → `props` unchanged.
   4. Duplicate custom names (`a`, `A!`) → Save disabled.
   5. Schema route aborted → dialog shows *Schema unavailable — custom properties only*, custom row still works.
