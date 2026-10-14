@@ -55,7 +55,7 @@ class GenerateTest(unittest.TestCase):
         ]))
         self.assertIn(f'<{T4B}Annotation/b1/r> <{T4B}prop/odds> "low" .', out)
         self.assertIn(f'<{T4B}Boxology/b1> <{T4B}prop/owner> "lab" .', out)
-        self.assertNotIn("why", out)
+        self.assertIn(f'<{T4B}Annotation/b1/c> <{T4B}prop/why> "x" .', out)
 
     def test_groups_cards_and_bad_entries_skipped(self):
         out = generate_property_triples(_src(nodes=[

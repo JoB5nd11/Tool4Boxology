@@ -4,7 +4,8 @@
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
 # ---------------------------------------------------------------------------
-#  Datatype properties offered in the "Data properties" dialog.
+#  Draft BEAM v0.0.2 terms: the datatype properties offered in the
+#  "Data properties" dialog, plus beam:Context / beam:hasContext.
 #
 #  DRAFT: these terms are proposed in the BEAM v0.0.2 design note
 #  (beam-v002-elements) and are not part of a published BEAM release yet.
@@ -12,6 +13,14 @@
 #  dialog and the export read whatever owl:DatatypeProperty is declared here
 #  (domain = element class, range = xsd type).
 # ---------------------------------------------------------------------------
+
+beam:Context a owl:Class ;                     # draft
+    rdfs:label "Context" .
+
+beam:hasContext a owl:ObjectProperty ;         # draft
+    rdfs:label "hasContext" ;
+    rdfs:domain beam:Element ;
+    rdfs:range beam:Context .
 
 beam:PerformanceMetric a owl:Class ;           # draft
     rdfs:label "PerformanceMetric" .

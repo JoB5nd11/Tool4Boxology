@@ -16,7 +16,7 @@ RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label"
 # beamCard name → RDF class IRI
 _TYPE_MAP = {
     "System":      BEAM + "System",
-    "Context":     None,  # metadata on the boxology, not a standalone instance
+    "Context":     BEAM + "Context",  # draft v0.0.2 class; text also stays a beam:context literal
     "Note":        BEAM + "Note",
     "Risk":        BEAMR + "Risk",
     "RiskSource":  BEAMR + "RiskSource",
@@ -26,6 +26,15 @@ _TYPE_MAP = {
 }
 
 _RISK_TYPES = {"Risk", "RiskSource", "Consequence", "Impact", "RiskControl"}
+_RISK_CONCEPTS = {"RiskSource", "Risk", "Consequence", "Impact"}
+
+# Draft relations for arrows the ontologies have no property for
+# (ontologies/t4b_relations.ttl); all are sub-properties of t4b:relatedTo.
+T4B_RELATED_TO = T4B + "relatedTo"
+T4B_FLOWS_TO = T4B + "flowsTo"
+T4B_HAS_RISK_RELATION = T4B + "hasRiskRelation"
+T4B_HAS_RISK_CONCEPT = T4B + "hasRiskConcept"
+DRAFT_RELATIONS = (T4B_RELATED_TO, T4B_FLOWS_TO, T4B_HAS_RISK_RELATION, T4B_HAS_RISK_CONCEPT)
 
 # Risk-chain links between two cards: (from_type, to_type) → predicate IRI.
 # Looked up in both directions so the drawing direction doesn't matter.
@@ -56,41 +65,62 @@ def _component_iri(node_key):
 
 
 def _resolve_link_property(from_type, to_type, from_is_annotation, to_is_annotation):
-    """Pick the BEAM/BEAMR property for an annotation link.
+    """Pick the property for an annotation link (a connector touching a card).
 
     Returns (property IRI, reversed) — with reversed=True the triple is
-    emitted as `to property from`.  Both drawing directions of a connector
-    resolve to the same triple, since the visual notation does not force one.
+    emitted as `to property from`.  Every pair of ends maps to something:
+    the most specific BEAM/BEAMR property when one exists, otherwise a draft
+    t4b: relation, and t4b:relatedTo (in drawing direction) as the last
+    resort.  See docs/superpowers/specs/2026-10-14-arrow-relation-mapping-design.md.
     """
-    # Card ↔ workflow element: the property depends only on the card type.
-    # Any concrete node counts as an element (beamr:associatedTo /
-    # beamr:originatedFrom range over beam:Unit), so no whitelist of
-    # workflow type names — subtypes like KG, Dataset or CNN qualify too.
-    if from_is_annotation != to_is_annotation:
-        card = from_type if from_is_annotation else to_type
-        card_is_from = from_is_annotation
-        if card == "Risk":
-            return BEAMR + "hasRisk", card_is_from       # element hasRisk risk
-        if card == "RiskSource":
-            return BEAMR + "originatedFrom", not card_is_from
-        if card == "RiskControl":
-            return BEAMR + "associatedTo", not card_is_from
-        if card in ("Note", "System"):
-            return BEAM + "note", card_is_from           # element beam:note note
-        return None, False
+    # A workflow element and the System card (whose IRI is the boxology)
+    # both play the beam:Element role; every other card is known by its type.
+    def kind(name, is_card):
+        return name if is_card and name != "System" else "E"
 
-    # Card ↔ card: risk chain, either drawing direction
-    if (from_type, to_type) in _CHAIN_RULES:
-        return _CHAIN_RULES[(from_type, to_type)], False
-    if (to_type, from_type) in _CHAIN_RULES:
-        return _CHAIN_RULES[(to_type, from_type)], True
+    a = kind(from_type, from_is_annotation)
+    b = kind(to_type, to_is_annotation)
+
+    def sym(is_subject, is_object):
+        if is_subject(a) and is_object(b):
+            return False
+        if is_subject(b) and is_object(a):
+            return True
+        return None
+
+    rules = (
+        (lambda x: x != "Note", lambda y: y == "Note", BEAM + "note"),
+        (lambda x: x != "Context", lambda y: y == "Context", BEAM + "hasContext"),
+        (lambda x: x == "E", lambda y: y == "Risk", BEAMR + "hasRisk"),
+        (lambda x: x == "RiskSource", lambda y: y == "E", BEAMR + "originatedFrom"),
+        (lambda x: x == "RiskControl", lambda y: y == "E", BEAMR + "associatedTo"),
+        (lambda x: x == "E", lambda y: y in ("Consequence", "Impact"), T4B_HAS_RISK_CONCEPT),
+    )
+    for is_subject, is_object, prop in rules:
+        reversed_dir = sym(is_subject, is_object)
+        if reversed_dir is not None:
+            return prop, reversed_dir
+
+    # System card <-> workflow element: the boxology has that element.
+    from_system = from_is_annotation and from_type == "System"
+    to_system = to_is_annotation and to_type == "System"
+    if from_system != to_system:
+        element = to_type if from_system else from_type
+        prop = _system_link_property(element)
+        if prop:
+            return prop, to_system
+
+    # Card <-> card: risk chain, either drawing direction
+    if (a, b) in _CHAIN_RULES:
+        return _CHAIN_RULES[(a, b)], False
+    if (b, a) in _CHAIN_RULES:
+        return _CHAIN_RULES[(b, a)], True
     # Risk controls modify any risk concept
-    if from_type == "RiskControl" and to_type in _RISK_TYPES:
-        return BEAMR + "modifiesRiskConcept", False
-    if to_type == "RiskControl" and from_type in _RISK_TYPES:
-        return BEAMR + "modifiesRiskConcept", True
+    reversed_dir = sym(lambda x: x == "RiskControl", lambda y: y in _RISK_CONCEPTS)
+    if reversed_dir is not None:
+        return BEAMR + "modifiesRiskConcept", reversed_dir
 
-    return None, False
+    return T4B_RELATED_TO, False
 
 
 def generate_annotation_triples(source):
@@ -127,14 +157,15 @@ def generate_annotation_triples(source):
             ann_iri = _annotation_iri(box_id, key)
             node_map[key] = {"iri": ann_iri, "name": name, "is_annotation": True}
 
-            if name == "Context":
-                # Context is metadata on the boxology, not a standalone node
-                if subtext:
-                    lines.append(f"{_iri(box_iri)} {_iri(BEAM + 'context')} {_lit(subtext)} .")
-                continue
+            if name == "Context" and subtext:
+                # Kept alongside the Context node (transition: existing
+                # queries read the literal on the boxology).
+                lines.append(f"{_iri(box_iri)} {_iri(BEAM + 'context')} {_lit(subtext)} .")
 
             if name == "System":
-                # System card adds description to the boxology
+                # The System card stands for the boxology itself: it adds the
+                # description, and connectors to it resolve to the boxology.
+                node_map[key]["iri"] = box_iri
                 if subtext:
                     lines.append(f"{_iri(box_iri)} {_iri(BEAM + 'description')} {_lit(subtext)} .")
                 continue
@@ -181,14 +212,15 @@ def generate_annotation_triples(source):
             prop, reversed_dir = _resolve_link_property(
                 from_type, to_type, from_is_ann, to_is_ann
             )
-            if prop is None:
-                continue
 
             if reversed_dir:
                 lines.append(f"{_iri(to_iri)} {_iri(prop)} {_iri(from_iri)} .")
             else:
                 lines.append(f"{_iri(from_iri)} {_iri(prop)} {_iri(to_iri)} .")
 
+    # A risk tied only to the System card gets box hasRisk both from the
+    # fallback and from its connector; keep one.
+    lines = list(dict.fromkeys(lines))
     return "\n".join(lines) + "\n" if lines else ""
 
 
@@ -216,6 +248,17 @@ _SYSTEM_LINK_PROPERTIES = (
     (BEAM + "Process",  BEAM + "hasProcess"),
     (BEAM + "Agent",    BEAM + "hasAgent"),
 )
+
+
+def _is_agent_type(name):
+    """True when t4b:{name} sits under beam:Agent in the ontology bundle."""
+    if not name:
+        return False
+    try:
+        from kg_creation.beam_enrichment import _load_schema
+    except ImportError:
+        from beam_enrichment import _load_schema
+    return BEAM + "Agent" in _load_schema().subclass_closure.get(T4B + name, ())
 
 
 def _system_link_property(name):
@@ -265,23 +308,77 @@ def generate_component_triples(source):
             if system_prop:
                 lines.append(f"{_iri(box_iri)} {_iri(system_prop)} {_iri(comp_iri)} .")
 
-        for link in boxology.get("workflowLinks", []) or []:
-            from_key = str(link.get("from"))
-            to_key = str(link.get("to"))
-            if from_key not in node_type or to_key not in node_type:
-                continue
-            from_iri = _component_iri(from_key)
-            to_iri = _component_iri(to_key)
-            from_proc = _is_process_type(node_type[from_key])
-            to_proc = _is_process_type(node_type[to_key])
-            if from_proc and to_proc:
-                lines.append(f"{_iri(from_iri)} {_iri(BEAM + 'inform')} {_iri(to_iri)} .")
-            elif to_proc:
-                lines.append(
-                    f"{_iri(from_iri)} {_iri(T4B + 'inputRoleParticipatesInProcess')} {_iri(to_iri)} .")
-            elif from_proc:
-                lines.append(
-                    f"{_iri(from_iri)} {_iri(T4B + 'outputRoleParticipatesInProcess')} {_iri(to_iri)} .")
-            # resource → resource arrows have no counterpart in T4B/BEAM
+        lines += _workflow_link_lines(boxology)
 
     return "\n".join(lines) + "\n" if lines else ""
+
+
+def _workflow_link_lines(boxology):
+    """One triple per workflow arrow (an arrow between two non-card nodes).
+
+    Dashed arrows are the "Risk" arrow style: a risk relation, not a flow.
+    Solid arrows map by the ends' BEAM classes, with t4b:flowsTo where BEAM
+    has no property (e.g. resource -> resource).
+    """
+    node_type = {
+        str(n.get("key")): n.get("type") or n.get("name") or ""
+        for n in boxology.get("nodeDataArray", []) or []
+    }
+    lines = []
+    for link in boxology.get("workflowLinks", []) or []:
+        from_key = str(link.get("from"))
+        to_key = str(link.get("to"))
+        if from_key not in node_type or to_key not in node_type:
+            continue
+        from_iri = _component_iri(from_key)
+        to_iri = _component_iri(to_key)
+        from_proc = _is_process_type(node_type[from_key])
+        to_proc = _is_process_type(node_type[to_key])
+        if link.get("dash"):
+            s, p, o = from_iri, T4B_HAS_RISK_RELATION, to_iri
+        elif from_proc and to_proc:
+            s, p, o = from_iri, BEAM + "inform", to_iri
+        elif to_proc and _is_agent_type(node_type[from_key]):
+            s, p, o = from_iri, BEAM + "participatedIn", to_iri
+        elif from_proc and _is_agent_type(node_type[to_key]):
+            s, p, o = to_iri, BEAM + "participatedIn", from_iri
+        elif to_proc:
+            s, p, o = from_iri, T4B + "inputRoleParticipatesInProcess", to_iri
+        elif from_proc:
+            s, p, o = from_iri, T4B + "outputRoleParticipatesInProcess", to_iri
+        else:
+            s, p, o = from_iri, T4B_FLOWS_TO, to_iri
+        lines.append(f"{_iri(s)} {_iri(p)} {_iri(o)} .")
+    return lines
+
+
+def generate_workflow_link_triples(source):
+    """Workflow-arrow triples only, for the KG upload: its RML step covers
+    arrows inside design patterns but not the rest."""
+    lines = []
+    for boxology in source.get("boxologies", []):
+        lines += _workflow_link_lines(boxology)
+    return "\n".join(lines) + "\n" if lines else ""
+
+
+# Relations among workflow elements (and the boxology) that an export emits;
+# on a KG re-upload they are deleted first, then inserted fresh, so redrawn
+# or restyled arrows leave nothing stale behind.
+_ELEMENT_RELATIONS = (
+    BEAM + "inform", BEAM + "participatedIn",
+    BEAM + "use", BEAM + "usedBy", BEAM + "produce", BEAM + "producedBy",
+    BEAM + "hasResource", BEAM + "hasProcess", BEAM + "hasAgent",
+    T4B + "inputRoleParticipatesInProcess", T4B + "outputRoleParticipatesInProcess",
+) + DRAFT_RELATIONS
+
+
+def stale_relation_delete_query(box_iri, component_keys):
+    nodes = " ".join([_iri(box_iri)] + [_iri(_component_iri(k)) for k in component_keys])
+    predicates = ", ".join(_iri(p) for p in _ELEMENT_RELATIONS)
+    return (
+        "DELETE { ?s ?p ?o } WHERE { "
+        f"VALUES ?s {{ {nodes} }} VALUES ?o {{ {nodes} }} "
+        "?s ?p ?o . "
+        f"FILTER(?p IN ({predicates})) "
+        "}"
+    )

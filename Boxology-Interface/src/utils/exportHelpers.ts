@@ -363,7 +363,12 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
       page.linkDataArray ?? []
     );
 
-    const patterns = buildDesignPatternsFromModelData(nodeDataArray, linkDataArray);
+    // A dashed arrow is the "Risk" arrow style — a risk relation, not a data
+    // flow — so it must not make input/output roles in a design pattern.
+    const patterns = buildDesignPatternsFromModelData(
+      nodeDataArray,
+      linkDataArray.filter((l: any) => !l.dash)
+    );
 
     // Use UUID instead of box_[hex]
     const id = page.boxologyId ?? generateUUID();
@@ -408,7 +413,7 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
     // outside any design pattern (the RML step only covers pattern members).
     const workflowLinks = (linkDataArray ?? [])
       .filter((l: any) => !touchesCard(l))
-      .map((l: any) => ({ from: String(l.from), to: String(l.to) }));
+      .map((l: any) => ({ from: String(l.from), to: String(l.to), ...(l.dash ? { dash: true } : {}) }));
 
     return {
       id,

@@ -9,9 +9,13 @@ except:
     from .beam_enrichment import enrich_with_beam
 
 try:
-    from beam_annotation_triples import generate_annotation_triples
+    from beam_annotation_triples import (
+        generate_annotation_triples, generate_workflow_link_triples, stale_relation_delete_query,
+    )
 except:
-    from .beam_annotation_triples import generate_annotation_triples
+    from .beam_annotation_triples import (
+        generate_annotation_triples, generate_workflow_link_triples, stale_relation_delete_query,
+    )
 
 try:
     from data_property_triples import generate_property_triples, stale_property_delete_query
@@ -146,6 +150,13 @@ def _delete_stale_properties(sparql, boxology_entity, boxology):
 	sparql.setQuery(stale_property_delete_query(boxology_entity.strip("<>"), keys, schema_iris))
 	sparql.query().convert()
 
+def _delete_stale_relations(sparql, boxology_entity, boxology):
+	# Arrow relations among this boxology's components; re-inserted below.
+	keys = [str(n["key"]) for n in boxology.get("nodeDataArray", []) if "key" in n]
+	sparql.setReturnFormat(JSON)
+	sparql.setQuery(stale_relation_delete_query(boxology_entity.strip("<>"), keys))
+	sparql.query().convert()
+
 def update_kg(source,triples):
 	sparql = _get_update_sparql()
 	#sparql = SPARQLWrapper(SPARQL_ENDPOINT,defaultGraph=SPARQL_ENDPOINT)
@@ -154,6 +165,7 @@ def update_kg(source,triples):
 		_delete_stale_beam(sparql, boxology_entity)
 		_delete_stale_annotations(sparql, boxology_entity)
 		_delete_stale_properties(sparql, boxology_entity, boxology)
+		_delete_stale_relations(sparql, boxology_entity, boxology)
 		query = "DELETE WHERE {"
 		query += boxology_entity + " a <http://tool4boxology.org/Boxology> .\n"
 		query += boxology_entity + " <http://www.w3.org/2000/01/rdf-schema#label> ?boxology_label .\n"
@@ -182,6 +194,13 @@ def update_kg(source,triples):
 
 def create_kg(source):
 	knowledge_graph = kg_generation(source)
+	# The RML step only covers arrows inside design patterns; add every
+	# workflow arrow before enrichment so t4b roles also lift to beam:.
+	workflow_triples = generate_workflow_link_triples(source)
+	if workflow_triples:
+		if knowledge_graph and not knowledge_graph.endswith("\n"):
+			knowledge_graph += "\n"
+		knowledge_graph = knowledge_graph + workflow_triples
 	knowledge_graph = enrich_with_beam(knowledge_graph)
 	annotation_triples = generate_annotation_triples(source)
 	if annotation_triples:

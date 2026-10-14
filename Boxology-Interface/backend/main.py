@@ -972,6 +972,7 @@ async def api_beam_export(source: dict):
         from kg_creation.beam_annotation_triples import (
             generate_annotation_triples,
             generate_component_triples,
+            DRAFT_RELATIONS,
         )
         from kg_creation.data_property_triples import generate_property_triples
 
@@ -990,13 +991,17 @@ async def api_beam_export(source: dict):
         # BEAM-only export: keep the beam:/beamr: facts derived by the
         # enrichment plus rdfs:label lines (so the graph stays readable), and
         # DROP the raw T4B typing/property triples — emitting both vocabularies
-        # made every element appear twice (once t4b:, once beam:).
+        # made every element appear twice (once t4b:, once beam:). Draft
+        # t4b: arrow relations (flowsTo, hasRiskRelation, ...) are kept: BEAM
+        # has no property for those arrows, and dropping them loses the arrow.
+        draft_predicates = tuple(f"<{p}>" for p in DRAFT_RELATIONS)
         beam_lines = []
         for line in enriched.splitlines():
             stripped = line.strip()
             if not stripped:
                 continue
-            if "w3id.org/beam/" in stripped or "rdf-schema#label" in stripped:
+            if ("w3id.org/beam/" in stripped or "rdf-schema#label" in stripped
+                    or any(p in stripped for p in draft_predicates)):
                 beam_lines.append(stripped)
 
         # Annotation and data-property triples go in unfiltered: custom

@@ -5,8 +5,8 @@ Each prop is {"iri", "label", "datatype", "value"}. Schema props carry their
 ontology IRI; custom props have iri None and get one under t4b:prop/.
 Subjects follow the IRIs the rest of the export already uses: components are
 t4b:Component/<key>, cards t4b:Annotation/<box>/<key>, and the System card is
-the boxology itself. Context cards have no node of their own yet (their text
-is a beam:context literal on the boxology), so their props are not exported.
+the boxology itself. Context cards are nodes too (a beam:Context), so their
+props hang off that node.
 """
 
 import re
@@ -74,8 +74,6 @@ def generate_property_triples(source):
 
         for ann in boxology.get("annotations", []):
             name = ann.get("name", "")
-            if name == "Context":
-                continue
             subject = box_iri if name == "System" else f"{T4B}Annotation/{box_id}/{ann['key']}"
             lines += _prop_lines(subject, ann.get("props"))
 

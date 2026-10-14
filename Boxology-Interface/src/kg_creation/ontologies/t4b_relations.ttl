@@ -1,0 +1,37 @@
+@prefix t4b:   <http://tool4boxology.org/> .
+@prefix beam:  <http://w3id.org/beam/core#> .
+@prefix beamr: <http://w3id.org/beam/risk#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+
+# ---------------------------------------------------------------------------
+#  DRAFT relations for arrows that neither BEAM nor BEAMR has a property for.
+#  The export uses the most specific BEAM/BEAMR property when one exists and
+#  falls back to these, so every arrow drawn in the editor reaches the graph.
+#  See docs/superpowers/specs/2026-10-14-arrow-relation-mapping-design.md.
+# ---------------------------------------------------------------------------
+
+t4b:relatedTo a owl:ObjectProperty ;              # draft
+    rdfs:label "related to" ;
+    rdfs:comment "A connector between two diagram elements with no more specific BEAM meaning." .
+
+t4b:flowsTo a owl:ObjectProperty ;                # draft
+    rdfs:label "flows to" ;
+    rdfs:subPropertyOf t4b:relatedTo ;
+    rdfs:comment "A solid workflow arrow with no BEAM counterpart, e.g. resource to resource." ;
+    rdfs:domain beam:Element ;
+    rdfs:range beam:Element .
+
+t4b:hasRiskRelation a owl:ObjectProperty ;        # draft
+    rdfs:label "has risk relation" ;
+    rdfs:subPropertyOf t4b:relatedTo ;
+    rdfs:comment "The dashed 'Risk' arrow between two workflow elements." ;
+    rdfs:domain beam:Element ;
+    rdfs:range beam:Element .
+
+t4b:hasRiskConcept a owl:ObjectProperty ;         # draft
+    rdfs:label "has risk concept" ;
+    rdfs:subPropertyOf t4b:relatedTo ;
+    rdfs:comment "An element connected to a Consequence or Impact card (beamr:hasRisk only ranges over Risk)." ;
+    rdfs:domain beam:Element ;
+    rdfs:range beamr:RiskConcept .
