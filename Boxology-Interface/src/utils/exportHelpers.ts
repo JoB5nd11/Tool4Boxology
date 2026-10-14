@@ -379,6 +379,7 @@ export const generateMultiPageRMLExport = (pages: any[]): any => {
         name: n.name ?? n.type ?? '',
         label: n.label ?? n.text ?? '',
         subtext: n.subtext ?? '',
+        ...(Array.isArray(n.props) && n.props.length ? { props: n.props } : {}),
       }));
 
     const annotationKeys = new Set(annotations.map((a: any) => a.key));
