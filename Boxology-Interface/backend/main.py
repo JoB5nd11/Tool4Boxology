@@ -973,6 +973,7 @@ async def api_beam_export(source: dict):
             generate_annotation_triples,
             generate_component_triples,
         )
+        from kg_creation.data_property_triples import generate_property_triples
 
         # The RML step only covers components inside design patterns;
         # generate_component_triples fills in every remaining node/link so the
@@ -984,6 +985,7 @@ async def api_beam_export(source: dict):
         combined = t4b_triples + component_triples
         enriched = enrich_with_beam(combined)
         annotation_triples = generate_annotation_triples(source)
+        property_triples = generate_property_triples(source)
 
         # BEAM-only export: keep the beam:/beamr: facts derived by the
         # enrichment plus rdfs:label lines (so the graph stays readable), and
@@ -997,8 +999,10 @@ async def api_beam_export(source: dict):
             if "w3id.org/beam/" in stripped or "rdf-schema#label" in stripped:
                 beam_lines.append(stripped)
 
-        if annotation_triples:
-            for line in annotation_triples.splitlines():
+        # Annotation and data-property triples go in unfiltered: custom
+        # properties live under t4b:prop/, which the BEAM filter above drops.
+        for extra in (annotation_triples, property_triples):
+            for line in (extra or "").splitlines():
                 stripped = line.strip()
                 if stripped:
                     beam_lines.append(stripped)

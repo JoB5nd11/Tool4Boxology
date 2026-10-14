@@ -13,6 +13,13 @@ try:
 except:
     from .beam_annotation_triples import generate_annotation_triples
 
+try:
+    from data_property_triples import generate_property_triples, stale_property_delete_query
+    from property_schema import all_schema_property_iris
+except:
+    from .data_property_triples import generate_property_triples, stale_property_delete_query
+    from .property_schema import all_schema_property_iris
+
 from SPARQLWrapper import SPARQLWrapper, POST, DIGEST, JSON
 import os
 import socket
@@ -127,6 +134,18 @@ def _delete_stale_annotations(sparql, boxology_entity):
 	sparql.setQuery(q_ann_in)
 	sparql.query().convert()
 
+def _delete_stale_properties(sparql, boxology_entity, boxology):
+	# Data-property literals on the boxology (System card) and on components;
+	# card props go with the Annotation/<box>/ cleanup above.
+	try:
+		schema_iris = all_schema_property_iris()
+	except Exception:
+		schema_iris = set()
+	keys = [str(n["key"]) for n in boxology.get("nodeDataArray", []) if "key" in n]
+	sparql.setReturnFormat(JSON)
+	sparql.setQuery(stale_property_delete_query(boxology_entity.strip("<>"), keys, schema_iris))
+	sparql.query().convert()
+
 def update_kg(source,triples):
 	sparql = _get_update_sparql()
 	#sparql = SPARQLWrapper(SPARQL_ENDPOINT,defaultGraph=SPARQL_ENDPOINT)
@@ -134,6 +153,7 @@ def update_kg(source,triples):
 		boxology_entity = "<http://tool4boxology.org/Boxology/" + boxology["id"] + ">"
 		_delete_stale_beam(sparql, boxology_entity)
 		_delete_stale_annotations(sparql, boxology_entity)
+		_delete_stale_properties(sparql, boxology_entity, boxology)
 		query = "DELETE WHERE {"
 		query += boxology_entity + " a <http://tool4boxology.org/Boxology> .\n"
 		query += boxology_entity + " <http://www.w3.org/2000/01/rdf-schema#label> ?boxology_label .\n"
@@ -166,6 +186,11 @@ def create_kg(source):
 	annotation_triples = generate_annotation_triples(source)
 	if annotation_triples:
 		knowledge_graph = knowledge_graph + annotation_triples
+	property_triples = generate_property_triples(source)
+	if property_triples:
+		if knowledge_graph and not knowledge_graph.endswith("\n"):
+			knowledge_graph += "\n"
+		knowledge_graph = knowledge_graph + property_triples
 	update_needed = boxology_exists(source)
 	if update_needed:
 		update_kg(source,knowledge_graph)
