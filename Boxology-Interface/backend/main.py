@@ -1069,6 +1069,14 @@ async def api_health():
     }
 
 
+@app.get("/api/schema/properties")
+def api_schema_properties():
+    """Datatype properties per class (inherited from superclasses), for the
+    Data properties dialog. Keys are class local names."""
+    from kg_creation.property_schema import load_property_schema
+    return {"classes": load_property_schema()}
+
+
 @app.post("/api/llm/boxology")
 def api_generate_boxology(payload: dict):
     """

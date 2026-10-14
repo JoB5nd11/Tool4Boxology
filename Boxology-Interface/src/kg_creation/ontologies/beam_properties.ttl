@@ -1,0 +1,40 @@
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# ---------------------------------------------------------------------------
+#  Datatype properties offered in the "Data properties" dialog.
+#
+#  DRAFT: these terms are proposed in the BEAM v0.0.2 design note
+#  (beam-v002-elements) and are not part of a published BEAM release yet.
+#  Replace or merge this file when the official v0.0.2 ttl exists; the
+#  dialog and the export read whatever owl:DatatypeProperty is declared here
+#  (domain = element class, range = xsd type).
+# ---------------------------------------------------------------------------
+
+beam:PerformanceMetric a owl:Class ;           # draft
+    rdfs:label "PerformanceMetric" .
+
+beam:SuccessCriteria a owl:Class ;             # draft
+    rdfs:label "SuccessCriteria" .
+
+beam:metricValue a owl:DatatypeProperty ;      # draft
+    rdfs:label "metricValue" ;
+    rdfs:domain beam:PerformanceMetric ;
+    rdfs:range xsd:decimal .
+
+beam:unit a owl:DatatypeProperty ;             # draft
+    rdfs:label "unit" ;
+    rdfs:domain beam:PerformanceMetric ;
+    rdfs:range xsd:string .
+
+beam:measuredOn a owl:DatatypeProperty ;       # draft
+    rdfs:label "measuredOn" ;
+    rdfs:domain beam:PerformanceMetric ;
+    rdfs:range xsd:date .
+
+beam:threshold a owl:DatatypeProperty ;        # draft
+    rdfs:label "threshold" ;
+    rdfs:domain beam:SuccessCriteria ;
+    rdfs:range xsd:decimal .
