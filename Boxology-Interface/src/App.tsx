@@ -58,6 +58,12 @@ const elementaryPatternsGroup = () =>
     pattern: pattern,
   }));
 
+// Public .boxology files that can be auto-opened via ?example=<key> in the URL,
+// e.g. the "Open editor" link on the tutorial page uses ?example=tumor-diagnosis.
+const EXAMPLE_BOXOLOGY_FILES: Record<string, string> = {
+  'tumor-diagnosis': '/download/Tumor-Diagnosis.boxology',
+};
+
 function App() {
   const { showToast } = useToast();
   const { confirmAsync, promptAsync, alertAsync } = useDialogs();
@@ -94,8 +100,23 @@ function App() {
       setAiAssistOpen(true);
       params.delete('aiAssist');
     }
+    const exampleKey = params.get('example');
+    if (exampleKey) {
+      params.delete('example');
+      const path = EXAMPLE_BOXOLOGY_FILES[exampleKey];
+      if (path) {
+        fetch(path)
+          .then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch ${path}`);
+            return res.json();
+          })
+          .then(boxology => handleOpenGeneratedBoxology(boxology, path.split('/').pop()))
+          .catch(() => showToast('Could not load the example diagram.', 'error'));
+      }
+    }
     const query = params.toString();
     window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Draw-time edge-removal rules toggle. Default ON; only a stored "false"
@@ -1183,6 +1204,11 @@ if (model && model.nodeDataArray) {
       case 'cluster_group':
         handleClusterSelectedNodes();
         break;
+      case 'cluster_refine':
+        if (target){
+          handleClusterRefinement(target);
+        }
+        break;
       case 'uncluster_group':
         handleUnclusterGroup();
         break;
@@ -1191,6 +1217,9 @@ if (model && model.nodeDataArray) {
         break;
       case 'set_link_dashed':
         handleSetLinkDash(true);
+        break;
+      case 'uncluster_refine':
+        handleunclusterRefinement();
         break;
       default:
         if (target) {
@@ -1379,6 +1408,144 @@ if (model && model.nodeDataArray) {
     }
 
     diagram.commitTransaction('update shared nodes');
+  };
+
+  const getColorWithAlpha = (colorString: string, alpha: number): string => {
+    // Use a temporary canvas context to leverage browser color parsing
+    const ctx = document.createElement('canvas').getContext('2d');
+    if (!ctx) return colorString;
+
+    ctx.fillStyle = colorString;
+    const computed = ctx.fillStyle; // Always normalizes to #rrggbb or rgba(...)
+
+    // Convert #rrggbb to rgba(r, g, b, alpha)
+    if (computed.startsWith('#')) {
+      const hex = computed.slice(1);
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    // Handle rgb(r, g, b) or rgba(r, g, b, a)
+    if (computed.startsWith('rgb')) {
+      const values = computed.match(/\d+(\.\d+)?/g);
+      if (values && values.length >= 3) {
+        return `rgba(${values[0]}, ${values[1]}, ${values[2]}, ${alpha})`;
+      }
+    }
+
+    return colorString;
+  };
+
+  const handleClusterRefinement = async (target: string) => {
+    if (!diagramRef.current) {
+      showToast('No diagram available', 'error');
+      return;
+    }
+    const diagram = diagramRef.current;
+
+    // Setting up the anchor
+    const anchor = diagram.findNodeForKey(target);
+    if (!anchor || anchor instanceof go.Group) return;
+    const anchorMain = anchor.findMainElement()
+    const anchorCenter = anchor.location.copy()
+    const anchorBounds = anchorMain ? anchorMain.actualBounds : anchor.actualBounds;
+    const anchorSize = go.Size.stringify(new go.Size(anchorBounds.width, anchorBounds.height));
+    const anchorShape =
+      (anchor.findObject('SHAPE') as go.Shape | null) ??
+      (anchor.findMainElement() instanceof go.Shape ? anchor.findMainElement() as go.Shape : null);
+    const anchorFigure = anchor.data.figure ?? anchorShape?.figure ?? 'Ellipse'
+
+    // Collect selected non-group nodes
+    const selectedNodes: go.Node[] = [];
+    diagram.selection.each(part => {
+      if (part instanceof go.Node) selectedNodes.push(part);
+    });
+    if (!selectedNodes.includes(anchor)) selectedNodes.push(anchor);
+
+    if (selectedNodes.length === 0) {
+      showToast('Select one or more nodes to cluster.', 'warning');
+      return;
+    }
+    // Only the anchor can be in a group for deeper nestings
+    if (selectedNodes.some(n => n.containingGroup !== null)){
+      showToast('Only the anchor node may be inside a group.', 'warning');
+      return;
+    }
+
+    const targetFill = anchor.data.fill || anchor.data.color || '#e3e9f7';
+    const targetStroke = anchor.data.stroke || '#aab8da';
+
+
+    diagram.startTransaction('cluster refine group');
+    const key = `group_${Date.now()}`;
+
+    const groupRefinement: any = {
+      key,
+      text: anchor.data.label,
+      isGroup: true,
+      category: 'RefinementGroup',
+      anchorKey: target,
+      headerColor: targetFill,
+      fill: getColorWithAlpha(targetFill, 0.5),
+      stroke: targetStroke,
+      anchorFigure,
+      anchorSize,
+    };
+
+    (diagram.model as go.GraphLinksModel).addNodeData(groupRefinement);
+
+    // Assign selected nodes to this group
+    selectedNodes.forEach(n => {
+      (diagram.model as go.GraphLinksModel).setDataProperty(n.data, 'group', key);
+    });
+
+    diagram.layoutDiagram(false);
+    const grp = diagram.findNodeForKey(key);
+    if (grp) {
+      const dx = anchorCenter.x - anchor.location.x;
+      const dy = anchorCenter.y - anchor.location.y;
+      grp.move(new go.Point(grp.position.x + dx, grp.position.y + dy));
+    }
+
+    diagram.commitTransaction('cluster refine group');
+  }
+
+  const handleunclusterRefinement = () => {
+    if (!diagramRef.current){
+      showToast('No diagram available', 'error');
+      return;
+    }
+
+    const diagram = diagramRef.current; 
+    const selectedPart = diagram.selection.first()
+
+    if (!(selectedPart instanceof go.Group)){
+      showToast('Please select a cluster group to uncluster.', 'warning');
+      return;
+    }
+
+    diagram.startTransaction('uncluster refine group');
+
+    const members: go.Node[] = [];
+    selectedPart.memberParts.each(part => {
+      if (part instanceof go.Node){
+        members.push(part);
+      }
+    });
+
+    const model = diagram.model as go.GraphLinksModel;
+    members.forEach(member => {
+      model.setDataProperty(member.data, 'group', undefined);
+    });
+
+    model.removeNodeData(selectedPart.data);
+    diagram.commitTransaction('uncluster refine group');
+
+    // Auto-detect and update shared nodes
+    setTimeout(() => detectAndUpdateSharedNodes(), 100);
+    showToast(`Refinement unclustered! ${members.length} node(s) released.`, 'success');
   };
 
   // Cluster currently selected nodes into a gray labeled group

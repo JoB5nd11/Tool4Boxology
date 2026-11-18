@@ -736,7 +736,11 @@ function makeHorizontalResizeAdornment(): go.Adornment {
           new go.Binding('width', 'width', (w) => typeof w === 'number' ? w : NaN).makeTwoWay(),
           new go.Binding('height', 'height', (h) => typeof h === 'number' ? h : NaN).makeTwoWay(),
           new go.Binding('strokeWidth', 'strokeWidth'),
-          new go.Binding('parameter1', 'parameter1')
+          new go.Binding('parameter1', 'parameter1'),
+          new go.Binding('desiredSize', 'expanded', (exp, shape) => {
+            const s = exp ? shape.part.data.expandedSize : shape.part.data.collapsedUserSize;
+            return s ? go.Size.parse(s) : new go.Size(NaN, NaN);
+          }),
         ),
       
         // Label (centered) - UPDATED: Make editable
@@ -949,6 +953,110 @@ function makeHorizontalResizeAdornment(): go.Adornment {
         )
       )
     );
+    
+    // Refinement
+    function stateMinSize(exp: boolean, d: any): go.Size {
+      const parse = (s?: string) => (s ? go.Size.parse(s) : new go.Size(0, 0));
+      if (exp) return parse(d.expandedSize);
+      const anchor = parse(d.collapsedSize);
+      const user = parse(d.collapsedUserSize);
+      return new go.Size(Math.max(anchor.width, user.width), Math.max(anchor.height, user.height));
+    }
+
+    diagram.groupTemplateMap.add('RefinementGroup',
+      new go.Group('Auto', {
+        layerName: 'Background',
+        selectable: true,
+        movable: true,
+        cursor: 'move',
+        handlesDragDropForMembers: true,
+        computesBoundsAfterDrag: true,
+        computesBoundsIncludingLinks: true,
+        fromLinkable: false,
+        toLinkable: false,
+        resizable: true,
+        resizeObjectName: 'SHAPE', 
+        contextClick: (e, obj) => {
+          const group = obj.part;
+          if (group instanceof go.Group) {
+            setSelectedData({
+              key: group.data.key,
+              label: group.data.label || '',
+              isCluster: true
+            });
+            const mouseEvent = e.event as MouseEvent;
+            setContextMenu({ x: mouseEvent.clientX, y: mouseEvent.clientY });
+          }
+          e.handled = true;  // Prevent browser context menu
+        },
+        subGraphExpandedChanged: (grp: go.Group) => {
+          const diagram = grp.diagram;
+          if (!diagram || diagram.undoManager.isUndoingRedoing) return;
+          const anchor = diagram.findNodeForKey(grp.data.anchorKey);
+          if (!anchor) return;
+
+          grp.ensureBounds();
+          
+          // Keeping the collapsed group at the same position the the orignal node.
+          //! When `animationManager.isEnabled = true` it gets moved too much 
+          if (!grp.isSubGraphExpanded) {
+            // Collapsed: but the box's center on the anchor's center
+            const c = grp.actualBounds.center;
+            const dx = anchor.location.x - c.x;
+            const dy = anchor.location.y - c.y;
+            grp.move(new go.Point(grp.position.x + dx, grp.position.y + dy));
+            diagram.model.set(grp.data, 'collapseOffset', {dx, dy});
+          }else{
+            // Expanded: Reverse the offset so the anchor sits where the box was
+            const off = grp.data.collapseOffset;
+            if (!off) return;
+            grp.move(new go.Point(grp.position.x - off.dx, grp.position.y - off.dy));
+            diagram.model.set(grp.data, 'collapseOffset', null);
+          }
+        },    
+      })
+      .bindTwoWay('isSubGraphExpanded', 'expanded')
+      // add group label
+      .add(
+        new go.Shape('Rectangle', {
+          fill: '#e3e9f7',
+          stroke:'#aab8da',
+          parameter1: 10,
+        })
+        .bind('fill', 'fill')
+        .bind('stroke', 'stroke')
+        // aligning size and shape to anchor element
+        .bind('minSize', 'expanded', (exp, shape) =>
+          stateMinSize(exp, shape.part.data))
+        .bind('spot1', 'expanded', exp =>
+          exp ? go.Spot.TopLeft : new go.Spot(0.15, 0.15))
+        .bind('spot2', 'expanded', exp =>
+          exp ? go.Spot.BottomRight : new go.Spot(0.85, 0.85))
+        .bindObject('figure', 'isSubGraphExpanded', (exp, shape) => 
+          exp ? 'Rectangle' : (shape.part.data.anchorFigure || 'Ellipse')
+        ),
+        new go.Panel('Table', { margin: 3 })
+          .addRowColumnDefinition(
+            new go.RowColumnDefinition({ row: 0, background: 'white' })
+            .bind('background', 'headerColor'))
+          .add(
+            go.GraphObject.build('SubGraphExpanderButton', {margin: 4}),
+            new go.TextBlock({
+              column: 1,
+              font: 'bold 14px sans-serif',
+              stroke: 'black',
+              textAlign: 'center',
+              margin: 8,
+              editable: true,
+            }).bind('text'),
+            new go.Placeholder({row: 1, columnSpan: 2, padding: 12}))
+          .bind('alignment', 'expanded', exp => 
+            exp ? go.Spot.Top : go.Spot.Center)
+          .bind('stretch', 'expanded', exp => 
+            exp ? go.Stretch.Horizontal : go.Stretch.None
+          ),
+        )
+      );
 
     // ── BEAM Card template — two-section layout (header + description) ────────
     // Used for: System, Context, Note, Risk, Risk Source, Consequence, Impact, Risk Control
@@ -1240,6 +1348,16 @@ function makeHorizontalResizeAdornment(): go.Adornment {
       const category = inferLinkCategory(fromData, toData);
       (diagram.model as go.GraphLinksModel).setCategoryForLinkData(link.data, category ?? '');
     });
+
+    diagram.addDiagramListener('PartResized', e => {
+      const obj = e.subject as go.GraphObject;
+      const grp = obj.part;
+      if (!(grp instanceof go.Group) || grp.category !== 'RefinementGroup') return;
+      const prop = grp.isSubGraphExpanded ? 'expandedSize' : 'collapsedUserSize';
+      e.diagram.model.set(grp.data, prop, go.Size.stringify(obj.desiredSize));
+      obj.desiredSize = new go.Size(NaN, NaN);
+      grp.updateTargetBindings('expanded');
+    })
 
     const handleDragOver = (e: DragEvent) => {
       e.preventDefault();

@@ -12,6 +12,7 @@ import ViewStreamIcon from '@mui/icons-material/ViewStream';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { SPARQL_URL } from '../../config';
 import { useToast } from '../Toast/ToastProvider';
+import ShaclValidationDialog from '../dialogs/ShaclValidationDialog';
 import {
   simpleButtonStyle,
   toolbarGroupStyle,
@@ -53,6 +54,7 @@ type ToolbarProps = {
   onAutoArrange: () => void;
   onOpenKGViewer?: () => void;
   kgJson?: any; // <-- Add this prop
+  recentBoxology?: { id: string; label: string } | null;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -82,7 +84,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onBeamViewToggle,
   onAutoArrange,
   onOpenKGViewer,
-  kgJson
+  kgJson,
+  recentBoxology
 }) => {
   const [showExportMenu, setShowExportMenu] = React.useState(false);
   // JSON/BEAM/KG export every tab (generateMultiPageRMLExport). Say so, but stay
@@ -90,6 +93,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const scopeSuffix = pageCount > 1 ? ` (all ${pageCount} tabs)` : '';
   const [showHelpMenu, setShowHelpMenu] = React.useState(false);  // <-- added
   const [showAlignOrganize, setShowAlignOrganize] = useState(false);
+  const [showShaclDialog, setShowShaclDialog] = useState(false);
   const exportMenuRef = React.useRef<HTMLDivElement>(null);
   const helpMenuRef = React.useRef<HTMLDivElement>(null);         // <-- added
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -561,6 +565,15 @@ LIMIT 100`;
       >
         🔍 SPARQL
       </button>
+
+      {/* SHACL constraint validation */}
+      <button
+        onClick={() => setShowShaclDialog(true)}
+        style={simpleButtonStyle}
+        title="Upload a SHACL shapes file and validate the Knowledge Graph against it"
+      >
+        🛡️ SHACL
+      </button>
       </div>
 
       <div style={toolbarGroupStyle} title="View">
@@ -650,6 +663,12 @@ LIMIT 100`;
       )}
 
       {/* ...other toolbar buttons... */}
+
+      <ShaclValidationDialog
+        open={showShaclDialog}
+        onClose={() => setShowShaclDialog(false)}
+        recentBoxology={recentBoxology ?? null}
+      />
     </div>
   );
 };
