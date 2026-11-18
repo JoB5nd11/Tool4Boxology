@@ -9,6 +9,7 @@ import AlignVerticalTopIcon from '@mui/icons-material/AlignVerticalTop';
 import AlignHorizontalCenterIcon from '@mui/icons-material/AlignHorizontalCenter';
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import ViewStreamIcon from '@mui/icons-material/ViewStream';
+import GridOnIcon from '@mui/icons-material/GridOn';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { SPARQL_URL } from '../../config';
 import { useToast } from '../Toast/ToastProvider';
@@ -52,6 +53,10 @@ type ToolbarProps = {
   beamViewActive: boolean;
   onBeamViewToggle: (active: boolean) => void;
   onAutoArrange: () => void;
+  snapToGrid: boolean;
+  onToggleSnapToGrid: () => void;
+  showTypeBadges: boolean;
+  onToggleTypeBadges: () => void;
   onOpenKGViewer?: () => void;
   kgJson?: any; // <-- Add this prop
   recentBoxology?: { id: string; label: string } | null;
@@ -83,6 +88,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
   beamViewActive,
   onBeamViewToggle,
   onAutoArrange,
+  snapToGrid,
+  onToggleSnapToGrid,
+  showTypeBadges,
+  onToggleTypeBadges,
   onOpenKGViewer,
   kgJson,
   recentBoxology
@@ -600,6 +609,24 @@ LIMIT 100`;
       >
         🧭 Auto-arrange
       </button>
+
+      {/* Type badge toggle — hide for clean image downloads */}
+      <button
+        onClick={onToggleTypeBadges}
+        style={{
+          ...simpleButtonStyle,
+          backgroundColor: showTypeBadges ? '#f8f8f8' : '#060771',
+          color: showTypeBadges ? '#333' : 'white',
+          borderColor: showTypeBadges ? '#110969ff' : '#060771',
+        }}
+        title={
+          showTypeBadges
+            ? 'Type badges shown above boxes. Click to hide them (e.g. before downloading an image).'
+            : 'Type badges hidden. Click to show them again.'
+        }
+      >
+        🏷️ Badges: {showTypeBadges ? 'ON' : 'OFF'}
+      </button>
       </div>
 
       {/* Hidden file input */}
@@ -652,6 +679,26 @@ LIMIT 100`;
             <span style={{ fontSize: '11px', color: '#666', marginRight: '4px' }}>Distribute:</span>
             <button onClick={() => distributeNodes('horizontal')} style={iconButtonStyle} title="Distribute Horizontal"><AlignHorizontalCenterIcon fontSize="small" /><span style={{ fontSize: '8px', marginLeft: '2px' }}>⟷</span></button>
             <button onClick={() => distributeNodes('vertical')} style={iconButtonStyle} title="Distribute Vertical"><AlignVerticalCenterIcon fontSize="small" /><span style={{ fontSize: '8px', marginLeft: '2px' }}>⟱</span></button>
+          </div>
+          {/* Grid snapping — applies to moving, resizing and arrow bends */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <span style={{ fontSize: '11px', color: '#666', marginRight: '4px' }}>Grid:</span>
+            <button
+              onClick={onToggleSnapToGrid}
+              style={
+                snapToGrid
+                  ? { ...iconButtonStyle, width: 'auto', padding: '0 8px', backgroundColor: '#060771', borderColor: '#060771', color: 'white' }
+                  : { ...iconButtonStyle, width: 'auto', padding: '0 8px' }
+              }
+              title={
+                snapToGrid
+                  ? 'Snap to grid ON: moving, resizing and bending arrows snap to the grid. Click to turn off.'
+                  : 'Snap to grid OFF. Click to snap moving, resizing and bending arrows to the grid.'
+              }
+            >
+              <GridOnIcon fontSize="small" />
+              <span style={{ fontSize: '11px', marginLeft: '4px' }}>Snap {snapToGrid ? 'ON' : 'OFF'}</span>
+            </button>
           </div>
           {/* Organize Tools */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>

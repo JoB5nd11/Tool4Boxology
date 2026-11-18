@@ -29,6 +29,10 @@ interface GoDiagramProps {
   beamViewActive: boolean;
   /** Style for newly drawn arrows — true = dashed (risk relation), false = solid flow. */
   arrowDash?: boolean;
+  /** Snap node moves, resizes and arrow bends to the background grid. */
+  snapToGrid?: boolean;
+  /** Show the type badges (white pills) above components and BEAM cards. */
+  showTypeBadges?: boolean;
   /** Fires after every committed user transaction, so App can keep `pages` in sync with the canvas. */
   onModelChange?: (nodeDataArray: DiagramData[], linkDataArray: DiagramData[]) => void;
   /**
@@ -445,6 +449,8 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
   customGroups,
   beamViewActive,
   arrowDash,
+  snapToGrid = false,
+  showTypeBadges = true,
   onModelChange,
   onDiagramInit,
 }) => {
@@ -462,6 +468,10 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
   onDiagramInitRef.current = onDiagramInit;
   const arrowDashRef = useRef(arrowDash);
   arrowDashRef.current = arrowDash;
+  const snapToGridRef = useRef(snapToGrid);
+  snapToGridRef.current = snapToGrid;
+  const showTypeBadgesRef = useRef(showTypeBadges);
+  showTypeBadgesRef.current = showTypeBadges;
 
   const handleSidebarChange = (field: string, value: string) => {
     if (!diagramRef.current || !setSelectedData) return;
@@ -566,8 +576,24 @@ const GoDiagram: React.FC<GoDiagramProps> = ({
     };
 
     // 🔧 ADD: Configure tools with custom cursors
-    diagram.toolManager.draggingTool.isGridSnapEnabled = false;
+    diagram.toolManager.draggingTool.isGridSnapEnabled = snapToGridRef.current;
+    diagram.toolManager.resizingTool.isGridSnapEnabled = snapToGridRef.current;
     diagram.toolManager.draggingTool.delay = 0;
+
+    // LinkReshapingTool has no built-in grid snapping; snap the dragged
+    // handle to the nearest grid point instead.
+    const linkReshapingTool = diagram.toolManager.linkReshapingTool;
+    const baseComputeReshape = linkReshapingTool.computeReshape;
+    linkReshapingTool.computeReshape = function (p: go.Point) {
+      const pt = baseComputeReshape.call(this, p);
+      if (!snapToGridRef.current || !this.diagram?.grid) return pt;
+      const cell = this.diagram.grid.gridCellSize;
+      const origin = this.diagram.grid.gridOrigin;
+      return new go.Point(
+        Math.round((pt.x - origin.x) / cell.width) * cell.width + origin.x,
+        Math.round((pt.y - origin.y) / cell.height) * cell.height + origin.y
+      );
+    };
     
     // 🔧 ADD: Custom cursor for linking tool
     diagram.toolManager.linkingTool.isEnabled = true;
@@ -776,6 +802,7 @@ function makeHorizontalResizeAdornment(): go.Adornment {
           cursor: 'pointer',
           visible: true  // CHANGED: Always visible
         },
+        new go.Binding('visible', '', () => showTypeBadgesRef.current),
         $(go.Shape, 'RoundedRectangle',
           {
             fill: 'white',
@@ -1185,7 +1212,7 @@ function makeHorizontalResizeAdornment(): go.Adornment {
             // panel's defaults (visible, black dot, empty text).
             visible: false,
           },
-          new go.Binding('visible', 'name', (n) => RISK_CLASS_SET.has(n)),
+          new go.Binding('visible', 'name', (n) => showTypeBadgesRef.current && RISK_CLASS_SET.has(n)),
           $(go.Shape, 'RoundedRectangle',
             { fill: 'white', stroke: '#d1d5db', strokeWidth: 1, parameter1: 10 }
           ),
@@ -1220,7 +1247,7 @@ function makeHorizontalResizeAdornment(): go.Adornment {
             click: (_e, obj) => showContextTypeSelector(_e, obj.part as go.Node),
             visible: false,
           },
-          new go.Binding('visible', 'name', (n) => n === 'Context'),
+          new go.Binding('visible', 'name', (n) => showTypeBadgesRef.current && n === 'Context'),
           $(go.Shape, 'RoundedRectangle',
             { fill: 'white', stroke: '#d1d5db', strokeWidth: 1, parameter1: 10 }
           ),
@@ -1668,6 +1695,30 @@ function makeHorizontalResizeAdornment(): go.Adornment {
       validateGoJSDiagram(diagram);
     }
   };
+
+  useEffect(() => {
+    const diagram = diagramRef.current;
+    if (!diagram) return;
+    diagram.toolManager.draggingTool.isGridSnapEnabled = snapToGrid;
+    diagram.toolManager.resizingTool.isGridSnapEnabled = snapToGrid;
+  }, [snapToGrid, diagramRef]);
+
+  // Badge visibility is not model data, so apply it outside the UndoManager.
+  useEffect(() => {
+    const diagram = diagramRef.current;
+    if (!diagram) return;
+    diagram.commit((d) => {
+      d.nodes.each((node) => {
+        const name = node.data?.name;
+        const typeBadge = node.findObject('TYPE_BADGE');
+        if (typeBadge) typeBadge.visible = showTypeBadges;
+        const riskBadge = node.findObject('RISK_CLASS_BADGE');
+        if (riskBadge) riskBadge.visible = showTypeBadges && RISK_CLASS_SET.has(name);
+        const contextBadge = node.findObject('CONTEXT_TYPE_BADGE');
+        if (contextBadge) contextBadge.visible = showTypeBadges && name === 'Context';
+      });
+    }, null);
+  }, [showTypeBadges, diagramRef]);
 
   // BEAM view re-skin effect
   useEffect(() => {

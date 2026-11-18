@@ -129,6 +129,22 @@ function App() {
     window.localStorage.setItem('enforceValidation', String(enforceValidation));
     setValidationEnforcement(enforceValidation);
   }, [enforceValidation]);
+
+  // Grid snapping for moving, resizing and arrow bends. Default OFF.
+  const [snapToGrid, setSnapToGrid] = useState(
+    () => window.localStorage.getItem('snapToGrid') === 'true'
+  );
+  useEffect(() => {
+    window.localStorage.setItem('snapToGrid', String(snapToGrid));
+  }, [snapToGrid]);
+
+  // Type badges above boxes; hide them for clean image downloads. Default ON.
+  const [showTypeBadges, setShowTypeBadges] = useState(
+    () => window.localStorage.getItem('showTypeBadges') !== 'false'
+  );
+  useEffect(() => {
+    window.localStorage.setItem('showTypeBadges', String(showTypeBadges));
+  }, [showTypeBadges]);
   const [kgJson, setKgJson] = useState<any>(null);
 
   // Page management for GoJS diagrams
@@ -1831,6 +1847,10 @@ if (model && model.nodeDataArray) {
         beamViewActive={beamViewActive}
         onBeamViewToggle={setBeamViewActive}
         onAutoArrange={handleAutoArrange}
+        snapToGrid={snapToGrid}
+        onToggleSnapToGrid={() => setSnapToGrid(v => !v)}
+        showTypeBadges={showTypeBadges}
+        onToggleTypeBadges={() => setShowTypeBadges(v => !v)}
         onOpenKGViewer={handleOpenKGViewer}
         kgJson={kgJson}
       />
@@ -2065,6 +2085,8 @@ if (model && model.nodeDataArray) {
             customGroups={customGroups}
             beamViewActive={beamViewActive}
             arrowDash={arrowDash}
+            snapToGrid={snapToGrid}
+            showTypeBadges={showTypeBadges}
             onModelChange={handleModelChange}
             onDiagramInit={() => setDiagramEpoch(e => e + 1)}
           />
